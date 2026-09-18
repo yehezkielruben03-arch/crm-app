@@ -85,9 +85,9 @@ Gunakan 4 akun berikut sesuai role untuk menguji hak akses dan alur kerja antar 
 
 | ID | Skenario Uji | Langkah Aksi | Data Input | Hasil yang Diharapkan | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **VND-01** | Tambah Vendor Baru (Admin) | Login Admin -> Menu **Vendors** -> **Add Vendor** | Nama PT Vendor, PIC, NPWP, Bank, Rekening, Kategori: `Hardware & IT` | Vendor tersimpan, status Active, muncul di list vendor. | [ ] |
-| **VND-02** | Filter Kategori Vendor | Filter list vendor berdasarkan kategori | Kategori: `CCTV & Access Control` | Tabel hanya menampilkan vendor yang sesuai kategori. | [ ] |
-| **VND-03** | Edit & Nonaktifkan Vendor | Klik Edit Vendor -> Ubah status jadi Inactive | Status: Inactive | Vendor tidak muncul di pilihan dropdown form kalkulasi HPP RFQ baru. | [ ] |
+| **VND-01** | Tambah Vendor Baru (Admin) | Login Admin -> Menu **Vendors** -> **Add Vendor** | Nama PT Vendor, PIC, NPWP, Bank, Rekening, Kategori: `Hardware & IT` | Vendor tersimpan, status Active, muncul di list vendor. | [x] PASS |
+| **VND-02** | Filter Kategori Vendor | Filter list vendor berdasarkan kategori | Kategori: `CCTV & Access Control` | Tabel hanya menampilkan vendor yang sesuai kategori. | [x] PASS |
+| **VND-03** | Edit & Nonaktifkan Vendor | Klik Edit Vendor -> Ubah status jadi Inactive | Status: Inactive | Vendor tidak muncul di pilihan dropdown form kalkulasi HPP RFQ baru. | [x] PASS |
 
 ---
 

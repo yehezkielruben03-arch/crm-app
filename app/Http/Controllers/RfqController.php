@@ -587,7 +587,7 @@ class RfqController extends Controller
 
         $rfq->load(['items', 'customer']);
         
-        $vendors = \App\Models\Vendor::orderBy('nama_vendor')->get();
+        $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
         // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
         $mp = \App\Models\Mainpower::first();
         $mpPediaRate = $mp ? ($mp->mp + $mp->thr + $mp->bpjskes + $mp->bpjstk) : 336179; // fallback
