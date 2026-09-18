@@ -152,7 +152,14 @@
             </div>
             <!-- Daftar Kontak Person (1:N) -->
             <div class="p-5 rounded-2xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                <h3 class="text-xs font-semibold uppercase tracking-wider mb-4" style="color: var(--text-muted);">Daftar Kontak Person</h3>
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-muted);">Daftar Kontak Person</h3>
+                    @if($canEdit)
+                    <a href="{{ route('customers.edit', $customer) }}#contacts-container" class="text-xs font-semibold hover:underline" style="color: var(--accent-blue);">
+                        + Tambah / Kelola Kontak
+                    </a>
+                    @endif
+                </div>
                 
                 @forelse($customer->contacts as $contact)
                     <div class="mb-4 {{ !$loop->last ? 'pb-4 border-b border-gray-200 dark:border-gray-700' : '' }}">
