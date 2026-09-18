@@ -499,6 +499,9 @@ class CustomerController extends Controller
 
     public function previewImport(Request $request)
     {
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isLeader(), 403, 'Anda tidak memiliki akses untuk import data master.');
 
         $request->validate([
@@ -573,6 +576,9 @@ class CustomerController extends Controller
 
     public function processImport(Request $request)
     {
+        set_time_limit(300);
+        ini_set('memory_limit', '512M');
+
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isLeader(), 403, 'Anda tidak memiliki akses untuk import data master.');
 
         $request->validate([

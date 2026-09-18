@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\User;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithCalculatedFormulas;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnFailure;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
@@ -14,12 +15,15 @@ use Maatwebsite\Excel\Concerns\SkipsErrors;
 
 use Illuminate\Support\Facades\Auth;
 
-class CustomerImport implements ToModel, WithHeadingRow
+class CustomerImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
 {
     private bool $isSales = false;
     public int $importedCount = 0;
     private array $mapping = [];
     private int $headingRow = 1;
+    private array $seenNames = [];
+    private ?int $codeCounter = null;
+    private ?string $codePrefix = null;
 
     public function __construct(array $mapping = [], int $headingRow = 1)
     {
@@ -29,11 +33,24 @@ class CustomerImport implements ToModel, WithHeadingRow
             $user = Auth::user();
             $this->isSales = !$user->isAdminOrAbove();
         }
+
+        // Cache kode perusahaan terakhir untuk performa bulk import super cepat
+        $this->codePrefix = 'PTI' . now()->format('Ymd');
+        $last = Customer::where('company_code', 'LIKE', $this->codePrefix . '%')
+            ->orderByDesc('company_code')
+            ->first();
+        $this->codeCounter = $last ? (int) substr($last->company_code, -7) : 0;
     }
 
     public function headingRow(): int
     {
         return $this->headingRow;
+    }
+
+    private function generateSequentialCompanyCode(): string
+    {
+        $this->codeCounter++;
+        return $this->codePrefix . str_pad($this->codeCounter, 7, '0', STR_PAD_LEFT);
     }
 
     public function model(array $row)
@@ -53,13 +70,20 @@ class CustomerImport implements ToModel, WithHeadingRow
             return null;
         }
 
-        // Cek Duplicate Company Name
+        // Cek Duplicate internal dalam file Excel (In-Memory deduplication)
+        $cleanKey = strtolower(preg_replace('/[^a-z0-9]/i', '', $companyName));
+        if (isset($this->seenNames[$cleanKey])) {
+            return null;
+        }
+        $this->seenNames[$cleanKey] = true;
+
+        // Cek Duplicate Company Name di Database
         if (Customer::where('company_name', $companyName)->exists()) {
             return null;
         }
 
         // 2. Flexible Aliases untuk Field Lain
-        $email = trim($row['email'] ?? $row['alamat_email'] ?? $row['e_mail'] ?? '');
+        $email = trim((string)($row['email'] ?? $row['alamat_email'] ?? $row['e_mail'] ?? ''));
         if (!empty($email) && Customer::where('email', $email)->exists()) {
             return null; // Skip if email exists
         }
@@ -68,7 +92,7 @@ class CustomerImport implements ToModel, WithHeadingRow
         $industry = $row['industri'] ?? $row['industry'] ?? $row['bidang'] ?? $row['sektor'] ?? $row['bidang_usaha'] ?? $row['jenis_industri'] ?? $row['kategori_industri'] ?? null;
         
         $finalStatus = 'Active';
-        $rawStatus = strtolower(trim($row['status_aktivitas'] ?? $row['status'] ?? ''));
+        $rawStatus = strtolower(trim((string)($row['status_aktivitas'] ?? $row['status'] ?? '')));
         if (in_array($rawStatus, ['vakum', 'inactive', 'tidak aktif'])) {
             $finalStatus = 'Inactive';
         } elseif (in_array($rawStatus, ['prospek', 'prospect', 'lead'])) {
@@ -98,8 +122,14 @@ class CustomerImport implements ToModel, WithHeadingRow
         // 4. Generate Kode Perusahaan bila langsung berstatus Active
         $companyCode = null;
         if ($finalStatus === 'Active') {
-            $companyCode = Customer::generateCompanyCode();
+            $companyCode = $this->generateSequentialCompanyCode();
         }
+
+        $rawPhone = $row['no_telp'] ?? $row['telp'] ?? $row['telepon'] ?? $row['phone'] ?? null;
+        $cleanPhone = $rawPhone ? substr(trim((string)$rawPhone), 0, 100) : null;
+
+        $rawCpPhone = $row['cp_telepon'] ?? $row['telp_pic'] ?? $row['hp_pic'] ?? $row['no_telp'] ?? null;
+        $cleanCpPhone = $rawCpPhone ? substr(trim((string)$rawCpPhone), 0, 100) : null;
 
         $this->importedCount++;
 
@@ -118,7 +148,7 @@ class CustomerImport implements ToModel, WithHeadingRow
             'province'          => $row['provinsi'] ?? $row['province'] ?? null,
             'postal_code'       => $row['kode_pos'] ?? $row['kodepos'] ?? $row['postal_code'] ?? null,
             'country'           => $row['negara'] ?? $row['country'] ?? null,
-            'phone'             => $row['no_telp'] ?? $row['telp'] ?? $row['telepon'] ?? $row['phone'] ?? null,
+            'phone'             => $cleanPhone,
             'office_phone'      => $row['telepon_kantor'] ?? $row['telp_kantor'] ?? $row['office_phone'] ?? null,
             'whatsapp'          => $row['whatsapp'] ?? $row['wa'] ?? $row['no_wa'] ?? null,
             'preferred_contact' => $row['preferred_contact'] ?? $row['kontak_pilihan'] ?? null,
@@ -133,12 +163,12 @@ class CustomerImport implements ToModel, WithHeadingRow
             'cp_name'           => $row['pic'] ?? $row['cp_nama'] ?? $row['nama_pic'] ?? $row['contact_person'] ?? null,
             'cp_position'       => $row['cp_jabatan'] ?? $row['jabatan_pic'] ?? $row['jabatan'] ?? null,
             'cp_email'          => $row['cp_email'] ?? $row['email_pic'] ?? null,
-            'cp_phone'          => $row['cp_telepon'] ?? $row['telp_pic'] ?? $row['hp_pic'] ?? null,
+            'cp_phone'          => $cleanCpPhone,
         ]);
     }
 
     public function getFailedRows(): array
     {
-        return []; // We handle failures manually now
+        return [];
     }
 }
