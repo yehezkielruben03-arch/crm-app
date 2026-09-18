@@ -349,6 +349,52 @@ class RfqController extends Controller
         return view('rfqs.show', compact('rfq'));
     }
 
+    public function downloadAttachment(Rfq $rfq)
+    {
+        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki akses ke berkas RFQ ini.');
+        }
+
+        if (empty($rfq->attachment_file_path)) {
+            abort(404, 'Berkas lampiran tidak ditemukan pada RFQ ini.');
+        }
+
+        $filename = $rfq->attachment_file_name ?: basename($rfq->attachment_file_path);
+
+        // Prioritas 1: Storage disk public
+        $disk = Storage::disk('public');
+        if ($disk->exists($rfq->attachment_file_path)) {
+            $path = $disk->path($rfq->attachment_file_path);
+            $mime = function_exists('mime_content_type') ? @mime_content_type($path) : null;
+            return response()->file($path, [
+                'Content-Type'        => $mime ?: 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]);
+        }
+
+        // Prioritas 2: Direct storage_path fallback
+        $fallbackPath = storage_path('app/public/' . $rfq->attachment_file_path);
+        if (file_exists($fallbackPath)) {
+            $mime = function_exists('mime_content_type') ? @mime_content_type($fallbackPath) : null;
+            return response()->file($fallbackPath, [
+                'Content-Type'        => $mime ?: 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]);
+        }
+
+        // Prioritas 3: Testing disk fallback jika ada
+        $testPath = storage_path('framework/testing/disks/public/' . $rfq->attachment_file_path);
+        if (file_exists($testPath)) {
+            $mime = function_exists('mime_content_type') ? @mime_content_type($testPath) : null;
+            return response()->file($testPath, [
+                'Content-Type'        => $mime ?: 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]);
+        }
+
+        abort(404, 'File fisik lampiran tidak ditemukan di server.');
+    }
+
     public function edit(Rfq $rfq)
     {
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);

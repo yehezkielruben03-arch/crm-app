@@ -263,7 +263,7 @@
                             <p class="text-[11px] font-mono" style="color: var(--text-muted);">{{ $rfq->attachment_file_name ?? basename($rfq->attachment_file_path) }}</p>
                         </div>
                     </div>
-                    <a href="{{ asset('storage/' . $rfq->attachment_file_path) }}" target="_blank"
+                    <a href="{{ route('rfq.attachment', $rfq) }}" target="_blank"
                         class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 transition">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                         Lihat / Download File
