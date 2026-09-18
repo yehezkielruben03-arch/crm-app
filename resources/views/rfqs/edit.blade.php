@@ -184,13 +184,39 @@
         <div class="card p-5 md:p-6 animate-in" style="animation-delay: 0.15s; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 24px 40px -26px rgba(15,23,42,0.12);">
                     
                     {{-- Judul Detail Item --}}
-                    <div class="flex items-center justify-between mb-4 pb-3" style="border-bottom: 1px solid #e2e8f0;">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3" style="border-bottom: 1px solid #e2e8f0;">
                         <div>
                             <h2 class="text-sm font-semibold" style="color: var(--text-secondary);">Detail Item</h2>
                             <p class="text-xs mt-0.5" style="color: var(--text-muted);">
                                 <span x-show="type === 'Non Projek'">Tambah produk atau jasa yang diminta</span>
-                                <span x-show="type === 'Projek'">Tambah item berdasarkan kategori projek</span>
+                                <span x-show="type === 'Projek'">Tambah item berdasarkan 3 blok kategori (Hardware, Jasa, Material)</span>
                             </p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekItem()"
+                                class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                                style="background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.18); color: var(--accent-blue);">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Tambah Item
+                            </button>
+                            <div x-show="type === 'Projek'" class="flex items-center gap-1.5">
+                                <span class="text-xs text-slate-400 mr-1 hidden md:inline">Tambah Item:</span>
+                                <button type="button" @click="addProjekItem('Hardware')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Hardware
+                                </button>
+                                <button type="button" @click="addProjekItem('Jasa Pemasangan')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Jasa
+                                </button>
+                                <button type="button" @click="addProjekItem('Material Support')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Material
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -438,18 +464,24 @@
             let initialType = '{{ old("type", $rfq->type) }}';
             let nonProj = [];
             let catItems = {
-                'Active Equipment': [],
-                'Passive Equipment': [],
-                'Consumables': [],
-                'Professional Service': [],
-                'Training Support': []
+                'Hardware': [],
+                'Jasa Pemasangan': [],
+                'Material Support': []
+            };
+
+            const normalizeCat = (cat) => {
+                if (!cat) return 'Hardware';
+                if (cat === 'Hardware' || cat === 'Active Equipment') return 'Hardware';
+                if (cat === 'Jasa' || cat === 'Jasa Pemasangan' || cat === 'Professional Service' || cat === 'Professional Services' || cat === 'Training Support' || cat === 'Training & Support') return 'Jasa Pemasangan';
+                if (cat === 'Material' || cat === 'Material Support' || cat === 'Passive Equipment' || cat === 'Consumables') return 'Material Support';
+                return 'Hardware';
             };
 
             let globId = 1;
 
             if (initialType === 'Projek') {
                 OLD_ITEMS.forEach(item => {
-                    let cat = item.category || 'Active Equipment'; // fallback
+                    let cat = normalizeCat(item.category);
                     if (!catItems[cat]) catItems[cat] = [];
                     catItems[cat].push({
                         id: globId++,
@@ -487,11 +519,9 @@
                 nonProjekItems: nonProj,
                 
                 categories: [
-                    { name: 'Active Equipment', label: 'I. Active Equipment', items: catItems['Active Equipment'] },
-                    { name: 'Passive Equipment', label: 'II. Passive Equipment', items: catItems['Passive Equipment'] },
-                    { name: 'Consumables', label: 'V. Consumables', items: catItems['Consumables'] },
-                    { name: 'Professional Service', label: 'VI. Professional Services', items: catItems['Professional Service'] },
-                    { name: 'Training Support', label: 'VII. Training & Support', items: catItems['Training Support'] }
+                    { name: 'Hardware', label: 'I. Hardware', items: catItems['Hardware'] || [] },
+                    { name: 'Jasa Pemasangan', label: 'II. Jasa Pemasangan', items: catItems['Jasa Pemasangan'] || [] },
+                    { name: 'Material Support', label: 'III. Material Support', items: catItems['Material Support'] || [] }
                 ],
                 
                 addNonProjekItem() {

@@ -14,7 +14,8 @@ class Rfq extends Model
     protected $fillable = [
         'rfq_number', 'customer_id', 'customer_name', 'customer_code',
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
-        'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes'
+        'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
+        'attachment_file_path', 'attachment_file_name'
     ];
 
     protected $casts = [

@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('rfq.store') }}" id="rfqForm" x-data="rfqForm()">
+    <form method="POST" action="{{ route('rfq.store') }}" id="rfqForm" enctype="multipart/form-data" x-data="rfqForm()">
         @csrf
 
         {{-- Baris Atas: Info RFQ + Ringkasan --}}
@@ -57,13 +57,19 @@
                                             class="w-full px-3 py-2 text-sm rounded-lg outline-none"
                                             style="background: #f8fafc; border: 1px solid #e2e8f0; color: var(--text-primary);">
                                     </div>
-                                    <div class="py-1 max-h-60 overflow-y-auto">
+                                    <div class="py-1 max-h-64 overflow-y-auto divide-y divide-slate-100">
                                         <template x-for="c in filteredCustomers" :key="c.id">
                                             <button type="button" @click="selectCustomer(c)"
-                                                class="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left transition-all duration-100"
+                                                class="w-full flex flex-col items-start gap-1 px-4 py-2.5 text-sm text-left transition-all duration-100 hover:bg-slate-50"
                                                 :style="selectedId == c.id ? 'background: rgba(37,99,235,0.08); color: var(--accent-blue); font-weight:600;' : 'color: var(--text-primary);'">
-                                                <span x-text="c.company_name"></span>
-                                                <code class="text-[10px] px-1.5 py-0.5 rounded" style="background: rgba(148,163,184,0.1);" x-text="c.company_code"></code>
+                                                <div class="w-full flex items-center justify-between gap-2">
+                                                    <span class="font-medium" x-text="c.company_name"></span>
+                                                    <code class="text-[10px] px-1.5 py-0.5 rounded font-mono" style="background: rgba(148,163,184,0.15);" x-text="c.company_code"></code>
+                                                </div>
+                                                <div x-show="c.address" class="text-xs text-slate-500 line-clamp-1 flex items-center gap-1">
+                                                    <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                    <span x-text="c.address"></span>
+                                                </div>
                                             </button>
                                         </template>
                                         <div x-show="filteredCustomers.length === 0" class="px-4 py-3 text-xs text-center" style="color: var(--text-muted);">
@@ -141,6 +147,18 @@
                                 onfocus="this.style.borderColor='var(--accent-blue)'"
                                 onblur="this.style.borderColor='#e2e8f0'">{{ old('notes') }}</textarea>
                         </div>
+
+                        {{-- Lampiran Spesifikasi Teknis / TOR Klien --}}
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                                Lampiran Spesifikasi Teknis / TOR Klien (PDF, Word, Excel, Gambar - Maks. 5MB)
+                            </label>
+                            <input type="file" name="attachment" id="attachment"
+                                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                                class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all border border-slate-200 rounded-xl p-2 bg-slate-50">
+                            <p class="mt-1 text-[11px] text-slate-400">Unggah berkas Term of Reference (TOR) atau spesifikasi teknis dari klien jika ada.</p>
+                            @error('attachment')<p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p>@enderror
+                        </div>
                     </div>
                 </div>
             </div>
@@ -181,20 +199,40 @@
         <div class="card p-5 md:p-6 animate-in" style="animation-delay: 0.15s; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 24px 40px -26px rgba(15,23,42,0.12);">
 
                     {{-- Judul Detail Item --}}
-                    <div class="flex items-center justify-between mb-4 pb-3" style="border-bottom: 1px solid #e2e8f0;">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3" style="border-bottom: 1px solid #e2e8f0;">
                         <div>
                             <h2 class="text-sm font-semibold" style="color: var(--text-secondary);">Detail Item</h2>
                             <p class="text-xs mt-0.5" style="color: var(--text-muted);">
                                 <span x-show="type === 'Non Projek'">Tambah produk atau jasa yang diminta</span>
-                                <span x-show="type === 'Projek'">Tambah item berdasarkan kategori projek</span>
+                                <span x-show="type === 'Projek'">Tambah item berdasarkan 3 blok kategori (Hardware, Jasa, Material)</span>
                             </p>
                         </div>
-                        <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekItem()"
-                            class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all active:scale-95"
-                            style="background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.18); color: var(--accent-blue);">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Tambah Item
-                        </button>
+                        <div class="flex items-center gap-2">
+                            <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekItem()"
+                                class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all active:scale-95"
+                                style="background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.18); color: var(--accent-blue);">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Tambah Item
+                            </button>
+                            <div x-show="type === 'Projek'" class="flex items-center gap-1.5">
+                                <span class="text-xs text-slate-400 mr-1 hidden md:inline">Tambah Item:</span>
+                                <button type="button" @click="addProjekItem('Hardware')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Hardware
+                                </button>
+                                <button type="button" @click="addProjekItem('Jasa Pemasangan')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Jasa
+                                </button>
+                                <button type="button" @click="addProjekItem('Material Support')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Material
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     {{-- Container NON PROJEK --}}
@@ -405,7 +443,8 @@
                     const query = this.search.toLowerCase();
                     return this.customers.filter(c => 
                         (c.company_name && c.company_name.toLowerCase().includes(query)) ||
-                        (c.company_code && c.company_code.toLowerCase().includes(query))
+                        (c.company_code && c.company_code.toLowerCase().includes(query)) ||
+                        (c.address && c.address.toLowerCase().includes(query))
                     );
                 },
                 
@@ -439,11 +478,9 @@
             let initialType = '{{ old("type", "Non Projek") }}';
             let nonProj = [];
             let catItems = {
-                'Active Equipment': [],
-                'Passive Equipment': [],
-                'Consumables': [],
-                'Professional Service': [],
-                'Training Support': []
+                'Hardware': [],
+                'Jasa Pemasangan': [],
+                'Material Support': []
             };
 
             let globId = 1;
@@ -460,11 +497,9 @@
                 nonProjekItems: nonProj,
                 
                 categories: [
-                    { name: 'Active Equipment', label: 'I. Active Equipment', items: catItems['Active Equipment'] },
-                    { name: 'Passive Equipment', label: 'II. Passive Equipment', items: catItems['Passive Equipment'] },
-                    { name: 'Consumables', label: 'V. Consumables', items: catItems['Consumables'] },
-                    { name: 'Professional Service', label: 'VI. Professional Services', items: catItems['Professional Service'] },
-                    { name: 'Training Support', label: 'VII. Training & Support', items: catItems['Training Support'] }
+                    { name: 'Hardware', label: 'I. Hardware', items: catItems['Hardware'] },
+                    { name: 'Jasa Pemasangan', label: 'II. Jasa Pemasangan', items: catItems['Jasa Pemasangan'] },
+                    { name: 'Material Support', label: 'III. Material Support', items: catItems['Material Support'] }
                 ],
                 
                 addNonProjekItem() {

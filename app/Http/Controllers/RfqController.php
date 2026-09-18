@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\Notification;
 use App\Models\Rfq;
+use App\Models\RfqItem;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -175,6 +176,7 @@ class RfqController extends Controller
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
+            'attachment'              => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg|max:5120',
             'items'                   => 'required|array|min:1',
             'items.*.category'        => 'nullable|string',
             'items.*.product_name'    => 'required|string',
@@ -228,19 +230,29 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
+            $attachmentPath = null;
+            $attachmentName = null;
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                $attachmentPath = $file->store('rfq_attachments', 'public');
+                $attachmentName = $file->getClientOriginalName();
+            }
+
             $rfq = Rfq::create([
-                'rfq_number'          => Rfq::generateRfqNumber(),
-                'customer_id'         => $customer->id,
-                'customer_name'       => $customer->company_name,
-                'customer_code'       => $customer->company_code,
-                'customer_contact_id' => $validated['customer_contact_id'],
-                'need_date'           => $validated['need_date'] ?? null,
-                'type'                => $validated['type'],
-                'sales_id'            => $salesId,
-                'sales_name'          => $salesName,
-                'rfq_date'            => now()->format('Y-m-d'),
-                'notes'               => $validated['notes'] ?? null,
-                'status'              => Rfq::STATUS_PENDING_ADMIN,
+                'rfq_number'           => Rfq::generateRfqNumber(),
+                'customer_id'          => $customer->id,
+                'customer_name'        => $customer->company_name,
+                'customer_code'        => $customer->company_code,
+                'customer_contact_id'  => $validated['customer_contact_id'],
+                'need_date'            => $validated['need_date'] ?? null,
+                'type'                 => $validated['type'],
+                'sales_id'             => $salesId,
+                'sales_name'           => $salesName,
+                'rfq_date'             => now()->format('Y-m-d'),
+                'notes'                => $validated['notes'] ?? null,
+                'attachment_file_path' => $attachmentPath,
+                'attachment_file_name' => $attachmentName,
+                'status'               => Rfq::STATUS_PENDING_ADMIN,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -253,9 +265,10 @@ class RfqController extends Controller
 
                 $basePrice         = $hpp + $ongkirPedia + $ongkirPelanggan;
                 $priceAfterMargin  = $ceiling > 0 ? ceil(($basePrice * $marginMultiplier) / $ceiling) * $ceiling : 0;
+                $cat               = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
 
                 $rfq->items()->create([
-                    'category'           => $item['category'] ?? null,
+                    'category'           => $cat,
                     'product_name'       => $item['product_name'],
                     'qty'                => $item['qty'],
                     'unit'               => $item['unit'] ?? null,

@@ -13,42 +13,41 @@ class RfqItem extends Model
         'biaya_kirim', 'fee_eu', 'margin_type', 'margin_value', 'custom_ceiling', 'vendor_id'
     ];
 
-    public const CATEGORY_ACTIVE = 'Active Equipment';
-    public const CATEGORY_PASSIVE = 'Passive Equipment';
-    public const CATEGORY_CONSUMABLES = 'Consumables';
-    public const CATEGORY_SERVICE = 'Professional Service';
-    public const CATEGORY_TRAINING = 'Training Support';
+    public const CATEGORY_HARDWARE = 'Hardware';
+    public const CATEGORY_JASA = 'Jasa Pemasangan';
+    public const CATEGORY_MATERIAL = 'Material Support';
 
-    /**
-     * Urutan sub-kategori statis mengikuti format Excel (romawi III & IV di-skip).
-     * Kunci = nomor romawi, nilai = label kanonik yang disimpan di database.
-     */
     public const CATEGORY_ORDER = [
-        'I'   => 'Active Equipment',
-        'II'  => 'Passive Equipment',
-        'V'   => 'Consumables',
-        'VI'  => 'Professional Services',
-        'VII' => 'Training & Support',
+        'I'   => 'Hardware',
+        'II'  => 'Jasa Pemasangan',
+        'III' => 'Material Support',
     ];
 
     /**
-     * Normalisasi varian teks kategori lama agar selalu tampil dengan label
-     * kanonik Excel (mis. 'Professional Service' -> 'Professional Services').
+     * Normalisasi varian teks kategori lama agar konsisten dengan 3 Blok HPP & Quotation:
+     * 1. Hardware (Active Equipment, dll)
+     * 2. Jasa Pemasangan (Jasa, Professional Service, dll)
+     * 3. Material Support (Material, Passive Equipment, Consumables, dll)
      */
-    private static function normalizeCategory(?string $cat): ?string
+    public static function normalizeCategory(?string $cat): ?string
     {
         if (empty($cat)) {
             return null;
         }
 
         $variants = [
-            'Active Equipment'     => 'Active Equipment',
-            'Passive Equipment'    => 'Passive Equipment',
-            'Consumables'          => 'Consumables',
-            'Professional Service' => 'Professional Services',
-            'Professional Services'=> 'Professional Services',
-            'Training Support'     => 'Training & Support',
-            'Training & Support'   => 'Training & Support',
+            'Hardware'             => 'Hardware',
+            'Active Equipment'     => 'Hardware',
+            'Jasa'                 => 'Jasa Pemasangan',
+            'Jasa Pemasangan'      => 'Jasa Pemasangan',
+            'Professional Service' => 'Jasa Pemasangan',
+            'Professional Services'=> 'Jasa Pemasangan',
+            'Training Support'     => 'Jasa Pemasangan',
+            'Training & Support'   => 'Jasa Pemasangan',
+            'Material'             => 'Material Support',
+            'Material Support'     => 'Material Support',
+            'Passive Equipment'    => 'Material Support',
+            'Consumables'          => 'Material Support',
         ];
 
         return $variants[$cat] ?? $cat;
