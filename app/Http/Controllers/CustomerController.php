@@ -800,7 +800,7 @@ class CustomerController extends Controller
         $validated = $request->validate([
             'name'     => 'required|string|max:150',
             'position' => 'nullable|string|max:100',
-            'phone'    => 'nullable|string|max:20',
+            'phone'    => 'nullable|string|max:50',
             'email'    => 'nullable|email|max:100',
         ]);
 
