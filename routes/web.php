@@ -172,7 +172,6 @@ Route::middleware('auth')->group(function () {
         });
 
         Route::get('/rfqs/{rfq}', [RfqController::class, 'show'])->name('rfq.show');
-        Route::get('/rfqs/{rfq}/attachment', [RfqController::class, 'downloadAttachment'])->name('rfq.attachment');
         Route::get('/rfqs/{rfq}/edit', [RfqController::class, 'edit'])->name('rfq.edit');
         Route::put('/rfqs/{rfq}', [RfqController::class, 'update'])->name('rfq.update');
         Route::delete('/rfqs/{rfq}', [RfqController::class, 'destroy'])->name('rfq.destroy');

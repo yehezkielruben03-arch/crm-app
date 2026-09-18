@@ -251,25 +251,6 @@
                         <dd class="text-sm" style="color: var(--text-secondary);">{{ $rfq->customerContact?->name ?? '-' }} ({{ $rfq->customerContact?->position ?? '-' }})</dd>
                     </div>
                 </div>
-
-                @if($rfq->attachment_file_path)
-                <div class="mt-4 p-3.5 rounded-xl flex items-center justify-between" style="background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.18);">
-                    <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-blue-100 text-blue-600">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        </div>
-                        <div>
-                            <p class="text-xs font-semibold" style="color: var(--text-primary);">Lampiran Spesifikasi Teknis (TOR Klien)</p>
-                            <p class="text-[11px] font-mono" style="color: var(--text-muted);">{{ $rfq->attachment_file_name ?? basename($rfq->attachment_file_path) }}</p>
-                        </div>
-                    </div>
-                    <a href="{{ route('rfq.attachment', $rfq) }}" target="_blank"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-blue-600 bg-white border border-blue-200 hover:bg-blue-50 transition">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        Buka Dokumen TOR Klien
-                    </a>
-                </div>
-                @endif
             </div>
 
             {{-- Item RFQ --}}

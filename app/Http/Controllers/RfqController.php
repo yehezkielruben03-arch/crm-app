@@ -176,7 +176,6 @@ class RfqController extends Controller
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
-            'attachment'              => 'nullable|file|mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg|max:5120',
             'items'                   => 'required|array|min:1',
             'items.*.category'        => 'nullable|string',
             'items.*.product_name'    => 'required|string',
@@ -230,29 +229,19 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
-            $attachmentPath = null;
-            $attachmentName = null;
-            if ($request->hasFile('attachment')) {
-                $file = $request->file('attachment');
-                $attachmentPath = $file->store('rfq_attachments', 'public');
-                $attachmentName = $file->getClientOriginalName();
-            }
-
             $rfq = Rfq::create([
-                'rfq_number'           => Rfq::generateRfqNumber(),
-                'customer_id'          => $customer->id,
-                'customer_name'        => $customer->company_name,
-                'customer_code'        => $customer->company_code,
-                'customer_contact_id'  => $validated['customer_contact_id'],
-                'need_date'            => $validated['need_date'] ?? null,
-                'type'                 => $validated['type'],
-                'sales_id'             => $salesId,
-                'sales_name'           => $salesName,
-                'rfq_date'             => now()->format('Y-m-d'),
-                'notes'                => $validated['notes'] ?? null,
-                'attachment_file_path' => $attachmentPath,
-                'attachment_file_name' => $attachmentName,
-                'status'               => Rfq::STATUS_PENDING_ADMIN,
+                'rfq_number'          => Rfq::generateRfqNumber(),
+                'customer_id'         => $customer->id,
+                'customer_name'       => $customer->company_name,
+                'customer_code'       => $customer->company_code,
+                'customer_contact_id' => $validated['customer_contact_id'],
+                'need_date'           => $validated['need_date'] ?? null,
+                'type'                => $validated['type'],
+                'sales_id'            => $salesId,
+                'sales_name'          => $salesName,
+                'rfq_date'            => now()->format('Y-m-d'),
+                'notes'               => $validated['notes'] ?? null,
+                'status'              => Rfq::STATUS_PENDING_ADMIN,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -347,52 +336,6 @@ class RfqController extends Controller
         $rfq->load(['customer', 'sales', 'items']);
 
         return view('rfqs.show', compact('rfq'));
-    }
-
-    public function downloadAttachment(Rfq $rfq)
-    {
-        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
-            abort(403, 'Anda tidak memiliki akses ke berkas RFQ ini.');
-        }
-
-        if (empty($rfq->attachment_file_path)) {
-            abort(404, 'Berkas lampiran tidak ditemukan pada RFQ ini.');
-        }
-
-        $filename = $rfq->attachment_file_name ?: basename($rfq->attachment_file_path);
-
-        // Prioritas 1: Storage disk public
-        $disk = Storage::disk('public');
-        if ($disk->exists($rfq->attachment_file_path)) {
-            $path = $disk->path($rfq->attachment_file_path);
-            $mime = function_exists('mime_content_type') ? @mime_content_type($path) : null;
-            return response()->file($path, [
-                'Content-Type'        => $mime ?: 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $filename . '"',
-            ]);
-        }
-
-        // Prioritas 2: Direct storage_path fallback
-        $fallbackPath = storage_path('app/public/' . $rfq->attachment_file_path);
-        if (file_exists($fallbackPath)) {
-            $mime = function_exists('mime_content_type') ? @mime_content_type($fallbackPath) : null;
-            return response()->file($fallbackPath, [
-                'Content-Type'        => $mime ?: 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $filename . '"',
-            ]);
-        }
-
-        // Prioritas 3: Testing disk fallback jika ada
-        $testPath = storage_path('framework/testing/disks/public/' . $rfq->attachment_file_path);
-        if (file_exists($testPath)) {
-            $mime = function_exists('mime_content_type') ? @mime_content_type($testPath) : null;
-            return response()->file($testPath, [
-                'Content-Type'        => $mime ?: 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $filename . '"',
-            ]);
-        }
-
-        abort(404, 'File fisik lampiran tidak ditemukan di server.');
     }
 
     public function edit(Rfq $rfq)

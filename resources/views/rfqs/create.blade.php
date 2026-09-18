@@ -16,7 +16,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('rfq.store') }}" id="rfqForm" enctype="multipart/form-data" x-data="rfqForm()">
+    <form method="POST" action="{{ route('rfq.store') }}" id="rfqForm" x-data="rfqForm()">
         @csrf
 
         {{-- Baris Atas: Info RFQ + Ringkasan --}}
@@ -146,18 +146,6 @@
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: #f8fafc; border: 1px solid #e2e8f0; color: var(--text-primary); resize: vertical; min-height: 80px;"
                                 onfocus="this.style.borderColor='var(--accent-blue)'"
                                 onblur="this.style.borderColor='#e2e8f0'">{{ old('notes') }}</textarea>
-                        </div>
-
-                        {{-- Lampiran Spesifikasi Teknis / TOR Klien --}}
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Lampiran Spesifikasi Teknis / TOR Klien (PDF, Word, Excel, Gambar - Maks. 5MB)
-                            </label>
-                            <input type="file" name="attachment" id="attachment"
-                                accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                                class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-all border border-slate-200 rounded-xl p-2 bg-slate-50">
-                            <p class="mt-1 text-[11px] text-slate-400">Unggah berkas Term of Reference (TOR) atau spesifikasi teknis dari klien jika ada.</p>
-                            @error('attachment')<p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p>@enderror
                         </div>
                     </div>
                 </div>
