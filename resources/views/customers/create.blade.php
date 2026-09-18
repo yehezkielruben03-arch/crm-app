@@ -97,6 +97,66 @@
                     </div>
                 </div>
 
+                {{-- Card: Daftar Kontak Person (Customer Contacts - 1:N) --}}
+                <div class="card p-6 animate-in" style="animation-delay: 0.12s;">
+                    <div class="flex items-center justify-between mb-4 pb-3" style="border-bottom: 1px solid var(--border-color);">
+                        <div>
+                            <h2 class="text-sm font-semibold" style="color: var(--text-secondary);">Daftar Kontak Person (PIC)</h2>
+                            <p class="text-xs mt-0.5" style="color: var(--text-muted);">Kontak perwakilan yang dapat dihubungi di perusahaan ini</p>
+                        </div>
+                        <button type="button" onclick="addContactRow()"
+                            class="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+                            style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--accent-blue);">
+                            + Tambah Kontak
+                        </button>
+                    </div>
+
+                    <div id="contacts-container" class="space-y-4">
+                        {{-- Row Kontak Pertama (Default langsung siap diisi) --}}
+                        <div class="contact-row p-4 rounded-xl relative" style="background: var(--bg-secondary); border: 1px solid var(--border-color);" id="contact-row-0">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama PIC</label>
+                                    <input type="text" name="contacts[0][name]" value="{{ old('contacts.0.name') }}" placeholder="Contoh: Budi Santoso"
+                                        style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
+                                        onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Jabatan</label>
+                                    <input type="text" name="contacts[0][position]" value="{{ old('contacts.0.position') }}" placeholder="Purchasing Manager / Direktur"
+                                        style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
+                                        onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">WhatsApp / HP</label>
+                                    <input type="text" name="contacts[0][phone]" value="{{ old('contacts.0.phone') }}" placeholder="0812-xxxx-xxxx"
+                                        style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
+                                        onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Email</label>
+                                    <input type="email" name="contacts[0][email]" value="{{ old('contacts.0.email') }}" placeholder="pic@perusahaan.com"
+                                        style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
+                                        onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Divisi</label>
+                                    <input type="text" name="contacts[0][division]" value="{{ old('contacts.0.division') }}" placeholder="Procurement / IT / GA"
+                                        style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
+                                        onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
+                                </div>
+                                <div class="flex items-center gap-3 pt-5">
+                                    <label class="flex items-center gap-2 cursor-pointer text-xs font-medium" style="color: var(--text-secondary);">
+                                        <input type="checkbox" name="contacts[0][is_primary]" value="1" checked style="accent-color: var(--accent-blue);">
+                                        Kontak Utama
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p id="contacts-empty-msg" class="text-xs text-center py-4" style="color: var(--text-muted); display: none;">Belum ada kontak. Klik "+ Tambah Kontak" untuk menambahkan.</p>
+                </div>
+
                 {{-- Card: Lokasi & Alamat (Dependent Select) --}}
                 <div class="card p-6 animate-in" style="animation-delay: 0.15s;" x-data="regionSelector()">
                     <h2 class="text-sm font-semibold mb-4 pb-3" style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">
