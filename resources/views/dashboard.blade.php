@@ -342,8 +342,36 @@
      ════════════════════════════════════════ --}}
 @else
 
-    <!-- Stats Row 1: Customers -->
-    <section class="grid grid-cols-2 md:grid-cols-6 gap-4 animate-in mb-6" style="animation-delay: 0.1s;">
+    <!-- Row 1: Ringkasan Finansial & Bisnis (4 Cards) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in mb-4" style="animation-delay: 0.1s;">
+        <!-- Revenue Bulan Ini -->
+        <div class="card stat-card emerald p-4">
+            <div class="flex items-start justify-between mb-2">
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Revenue</span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(5,150,105,0.10);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-emerald);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">Rp {{ number_format($revenueThisMonth, 0, ',', '.') }}</p>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--accent-emerald);">Bulan Ini (GOAL)</div>
+        </div>
+
+        <!-- GOAL & Konversi -->
+        <div class="card stat-card blue p-4">
+            <div class="flex items-start justify-between mb-2">
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Deal Closing</span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(37,99,235,0.10);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($goalCountThisMonth) }} GOAL</p>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Konversi: <span class="font-semibold text-blue-600">{{ $conversionRate }}%</span></div>
+        </div>
+
         <!-- Total Customers -->
         <div class="card stat-card blue p-4">
             <div class="flex items-start justify-between mb-2">
@@ -357,40 +385,51 @@
             <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalCustomers) }}</p>
             <div class="flex items-center gap-1 text-[11px] growth-positive">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                All Time
+                Semua Mitra Perusahaan
             </div>
         </div>
 
-        <!-- Total RFQ -->
+        <!-- Total RFQ & Request Items -->
         <div class="card stat-card cyan p-4">
             <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Total RFQ</span>
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Total Permintaan RFQ</span>
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(13,148,136,0.10);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #0d9488;">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalRFQ) }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">All Time</div>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalRFQ) }} RFQ</p>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">{{ number_format($totalRfqItems) }} total item penawaran</div>
         </div>
+    </section>
 
-        <!-- Total Item RFQ -->
-        <div class="card stat-card cyan p-4">
+    <!-- Row 2: Antrean Operasional & Approval (4 Cards Clickable) -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in mb-6" style="animation-delay: 0.12s;">
+        <!-- Pending RFQ Leader (FOKUS UTAMA AUTH-03) -->
+        <a href="{{ route('rfq.index', ['status' => 'Pending Leader']) }}" class="card stat-card rose p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md block relative overflow-hidden group {{ $rfqPendingLeader > 0 ? 'ring-2 ring-rose-400 bg-rose-50/20' : '' }}">
             <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Total Item Request</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(13,148,136,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #0d9488;">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                <span class="text-xs font-bold uppercase tracking-wide text-rose-600 flex items-center gap-1">
+                    @if($rfqPendingLeader > 0)
+                        <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block mr-1"></span>
+                    @endif
+                    RFQ (Leader)
+                </span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center {{ $rfqPendingLeader > 0 ? 'bg-rose-500 text-white' : 'bg-rose-100 text-rose-600' }}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalRfqItems) }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Dalam semua Penawaran</div>
-        </div>
+            <p class="text-xl font-bold mb-1 text-rose-600">{{ number_format($rfqPendingLeader) }}</p>
+            <div class="flex items-center justify-between text-[11px]">
+                <span style="color: var(--text-muted);">Approval Margin</span>
+                <span class="font-bold text-rose-600 group-hover:underline">Review →</span>
+            </div>
+        </a>
 
         <!-- Pending RFQ Admin -->
-        <div class="card stat-card teal p-4">
+        <a href="{{ route('rfq.index', ['status' => 'Pending Admin']) }}" class="card stat-card teal p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md block group">
             <div class="flex items-start justify-between mb-2">
                 <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">RFQ (Admin)</span>
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(13,148,136,0.10);">
@@ -400,25 +439,31 @@
                 </div>
             </div>
             <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($rfqPendingAdmin) }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Menunggu diisi harga</div>
-        </div>
+            <div class="flex items-center justify-between text-[11px]">
+                <span style="color: var(--text-muted);">Menunggu diisi harga</span>
+                <span class="text-teal-600 font-semibold group-hover:underline">Lihat →</span>
+            </div>
+        </a>
 
-        <!-- Pending RFQ Leader -->
-        <div class="card stat-card rose p-4">
+        <!-- Pending Customers -->
+        <a href="{{ route('customers.index', ['status' => 'Pending']) }}" class="card stat-card amber p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md block group">
             <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">RFQ (Leader)</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(225,29,72,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-rose);">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Klien Pending</span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(217,119,6,0.10);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-amber);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($rfqPendingLeader) }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Menunggu approval harga</div>
-        </div>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($pendingApprovals) }}</p>
+            <div class="flex items-center justify-between text-[11px]">
+                <span style="color: var(--text-muted);">Menunggu verifikasi</span>
+                <span class="text-amber-600 font-semibold group-hover:underline">Review →</span>
+            </div>
+        </a>
 
-        <!-- Pending PO (New) -->
-        <div class="card stat-card violet p-4">
+        <!-- Pending PO -->
+        <a href="{{ route('po.index') }}" class="card stat-card violet p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md block group">
             <div class="flex items-start justify-between mb-2">
                 <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">PO (Admin)</span>
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(124,58,237,0.10);">
@@ -428,147 +473,234 @@
                 </div>
             </div>
             <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($poPending) }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">PO menunggu diproses Admin</div>
-        </div>
-
-        <!-- Revenue Bulan Ini -->
-        <div class="card stat-card emerald p-4">
-            <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Revenue</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(5,150,105,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-emerald);">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
+            <div class="flex items-center justify-between text-[11px]">
+                <span style="color: var(--text-muted);">PO diproses Admin</span>
+                <span class="text-violet-600 font-semibold group-hover:underline">Buka →</span>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">Rp {{ number_format($revenueThisMonth, 0, ',', '.') }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Bulan Ini</div>
-        </div>
+        </a>
     </section>
 
     <!-- Quick Actions (Horizontal) -->
-    <section class="mb-6 animate-in" style="animation-delay: 0.15s;">
+    <section class="mb-6 animate-in" style="animation-delay: 0.14s;">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <a href="{{ route('customers.create') }}" class="action-btn flex-col text-center justify-center py-4">
-                <svg class="w-6 h-6 mb-1" style="margin: 0 auto; color: var(--accent-blue);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                <span class="text-xs">Add Customer</span>
-            </a>
-            <a href="{{ route('rfq.index') }}" class="action-btn flex-col text-center justify-center py-4">
-                <svg class="w-6 h-6 mb-1" style="margin: 0 auto; color: var(--accent-emerald);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                <span class="text-xs">Lihat RFQ</span>
-            </a>
-            <a href="{{ route('customers.index', ['status' => 'Pending']) }}" class="action-btn flex-col text-center justify-center py-4 relative">
-                <svg class="w-6 h-6 mb-1" style="margin: 0 auto; color: var(--accent-amber);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span class="text-xs">Review Approvals</span>
-                @if($pendingApprovals > 0)
-                    <span class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center text-[10px] font-bold rounded-full shadow-sm" style="background: var(--accent-amber); color: white;">{{ $pendingApprovals }}</span>
+            <!-- Action 1: Approval RFQ Leader -->
+            <a href="{{ route('rfq.index', ['status' => 'Pending Leader']) }}" class="action-btn flex-col text-center justify-center py-4 relative group">
+                <svg class="w-6 h-6 mb-1 text-rose-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <span class="text-xs font-semibold">Approval RFQ (Leader)</span>
+                @if($rfqPendingLeader > 0)
+                    <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full shadow-sm bg-rose-500 text-white animate-pulse">
+                        {{ $rfqPendingLeader }}
+                    </span>
                 @endif
             </a>
-            <a href="{{ route('users.index') }}" class="action-btn flex-col text-center justify-center py-4">
-                <svg class="w-6 h-6 mb-1" style="margin: 0 auto; color: var(--accent-violet);" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                <span class="text-xs">User Management</span>
-            </a>
-        </div>
-    </section>
 
-    <section class="card p-4 mb-6 animate-in" style="animation-delay: 0.16s;">
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">Prioritas Tindak Lanjut</p>
-                <p class="text-2xl font-bold" style="color: var(--text-primary);">{{ number_format($actionQueueSummary['total'] ?? 0) }}</p>
-                <p class="text-xs mt-1" style="color: var(--text-secondary);">Butuh review</p>
-            </div>
-            <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background: rgba(217,119,6,0.10);">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-amber);">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            <!-- Action 2: Review Approval Klien -->
+            <a href="{{ route('customers.index', ['status' => 'Pending']) }}" class="action-btn flex-col text-center justify-center py-4 relative group">
+                <svg class="w-6 h-6 mb-1 text-amber-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
                 </svg>
-            </div>
-        </div>
-        <div class="grid grid-cols-3 gap-3 mt-4 text-sm">
-            <div class="rounded-lg p-3" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                <p class="text-[10px] uppercase tracking-wide" style="color: var(--text-muted);">Customer</p>
-                <p class="text-lg font-semibold mt-1" style="color: var(--text-primary);">{{ number_format($actionQueueSummary['pending_customers'] ?? 0) }}</p>
-            </div>
-            <div class="rounded-lg p-3" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                <p class="text-[10px] uppercase tracking-wide" style="color: var(--text-muted);">PO</p>
-                <p class="text-lg font-semibold mt-1" style="color: var(--text-primary);">{{ number_format($actionQueueSummary['pending_pos'] ?? 0) }}</p>
-            </div>
-            <div class="rounded-lg p-3" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                <p class="text-[10px] uppercase tracking-wide" style="color: var(--text-muted);">RFQ</p>
-                <p class="text-lg font-semibold mt-1" style="color: var(--text-primary);">{{ number_format($actionQueueSummary['pending_rfqs'] ?? 0) }}</p>
-            </div>
+                <span class="text-xs font-semibold">Approval Klien</span>
+                @if($pendingApprovals > 0)
+                    <span class="absolute top-2 right-2 px-1.5 py-0.5 text-[10px] font-bold rounded-full shadow-sm bg-amber-500 text-white">
+                        {{ $pendingApprovals }}
+                    </span>
+                @endif
+            </a>
+
+            <!-- Action 3: Lihat Semua RFQ & Projek -->
+            <a href="{{ route('rfq.index') }}" class="action-btn flex-col text-center justify-center py-4 group">
+                <svg class="w-6 h-6 mb-1 text-emerald-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span class="text-xs font-semibold">Semua RFQ & Projek</span>
+            </a>
+
+            <!-- Action 4: Role-specific action -->
+            @if($user->isSuperAdmin())
+                <a href="{{ route('users.index') }}" class="action-btn flex-col text-center justify-center py-4 group">
+                    <svg class="w-6 h-6 mb-1 text-violet-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <span class="text-xs font-semibold">User Management</span>
+                </a>
+            @else
+                <a href="#sales-performance" class="action-btn flex-col text-center justify-center py-4 group">
+                    <svg class="w-6 h-6 mb-1 text-blue-500 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <span class="text-xs font-semibold">Supervisi Tim Sales</span>
+                </a>
+            @endif
         </div>
     </section>
 
-    <section class="card p-5 mb-6 animate-in" style="animation-delay: 0.17s;">
-        <div class="flex items-center justify-between mb-4">
+    <!-- Leader Action & Priority Center -->
+    <div class="grid lg:grid-cols-12 gap-5 mb-6 animate-in" style="animation-delay: 0.16s;">
+        <!-- Left: Leader Bottleneck & Action Queue (7 Cols) -->
+        <section class="lg:col-span-7 card p-5 flex flex-col justify-between">
             <div>
-                <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">Rekomendasi Prioritas</p>
-                <p class="text-sm" style="color: var(--text-secondary);">Saran yang paling masuk akal berdasarkan backlog saat ini</p>
-            </div>
-        </div>
-        <div class="space-y-3">
-            @foreach($priorityRecommendations as $recommendation)
-                <div class="flex items-start gap-3 p-3 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                    <div class="w-2 h-2 rounded-full mt-2 @if($recommendation['priority'] === 'high') bg-amber-500 @elseif($recommendation['priority'] === 'medium') bg-blue-500 @else bg-emerald-500 @endif"></div>
-                    <div class="flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="text-sm font-semibold" style="color: var(--text-primary);">{{ $recommendation['title'] }}</p>
-                            <span class="text-[10px] px-2 py-1 rounded-full" style="background: rgba(37,99,235,0.08); color: var(--accent-blue);">
-                                {{ $recommendation['priority'] === 'high' ? 'Prioritas tinggi' : ($recommendation['priority'] === 'medium' ? 'Prioritas menengah' : 'Prioritas rendah') }}
-                            </span>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            Pusat Kendali & Antrean Tindak Lanjut
+                        </h2>
+                        <p class="text-xs" style="color: var(--text-secondary);">Item yang membutuhkan perhatian dan keputusan segera</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-bold {{ ($actionQueueSummary['total'] ?? 0) > 0 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800' }}">
+                        {{ number_format($actionQueueSummary['total'] ?? 0) }} Butuh Review
+                    </span>
+                </div>
+
+                <div class="space-y-3">
+                    <!-- Item RFQ Pending Leader -->
+                    <div class="p-3.5 rounded-xl flex items-center justify-between transition-all hover:bg-slate-50 border {{ $rfqPendingLeader > 0 ? 'border-rose-200 bg-rose-50/40' : 'border-slate-200' }}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center {{ $rfqPendingLeader > 0 ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400' }}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold" style="color: var(--text-primary);">Approval Margin & Harga RFQ</h4>
+                                <p class="text-xs" style="color: var(--text-secondary);">
+                                    @if($rfqPendingLeader > 0)
+                                        <span class="text-rose-600 font-semibold">{{ $rfqPendingLeader }} penawaran</span> menunggu persetujuan Leader sebelum diterbitkan.
+                                    @else
+                                        Semua RFQ sudah ditinjau, tidak ada antrean.
+                                    @endif
+                                </p>
+                            </div>
                         </div>
-                        <p class="text-xs mt-1" style="color: var(--text-secondary);">{{ $recommendation['description'] }}</p>
+                        <a href="{{ route('rfq.index', ['status' => 'Pending Leader']) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {{ $rfqPendingLeader > 0 ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                            {{ $rfqPendingLeader > 0 ? 'Review (' . $rfqPendingLeader . ') →' : 'Buka List' }}
+                        </a>
                     </div>
-                </div>
-            @endforeach
-        </div>
-    </section>
 
-    <section class="card p-5 mb-6 animate-in" style="animation-delay: 0.18s;">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">Potensi Nilai Tertinggi</p>
-                <p class="text-sm" style="color: var(--text-secondary);">Kegiatan yang paling berpotensi memberi nilai besar jika segera ditangani</p>
-            </div>
-        </div>
-        <div class="space-y-3">
-            @forelse($highValueOpportunities as $opportunity)
-                <div class="flex items-start justify-between gap-3 p-3 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                    <div>
-                        <p class="text-sm font-semibold" style="color: var(--text-primary);">{{ $opportunity['company_name'] }}</p>
-                        <p class="text-xs mt-1" style="color: var(--text-secondary);">{{ $opportunity['label'] }}</p>
+                    <!-- Item Customer Pending -->
+                    <div class="p-3.5 rounded-xl flex items-center justify-between transition-all hover:bg-slate-50 border {{ $pendingApprovals > 0 ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200' }}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center {{ $pendingApprovals > 0 ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-400' }}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold" style="color: var(--text-primary);">Approval Akun Klien Baru</h4>
+                                <p class="text-xs" style="color: var(--text-secondary);">
+                                    @if($pendingApprovals > 0)
+                                        <span class="text-amber-600 font-semibold">{{ $pendingApprovals }} pelanggan</span> menunggu verifikasi data & legalitas.
+                                    @else
+                                        Tidak ada pelanggan baru yang pending.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ route('customers.index', ['status' => 'Pending']) }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all {{ $pendingApprovals > 0 ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
+                            {{ $pendingApprovals > 0 ? 'Review (' . $pendingApprovals . ') →' : 'Buka List' }}
+                        </a>
                     </div>
-                    <div class="text-right">
-                        <p class="text-sm font-semibold" style="color: var(--accent-emerald);">Rp {{ number_format($opportunity['value'], 0, ',', '.') }}</p>
-                        <p class="text-[10px] mt-1" style="color: var(--text-muted);">Skor {{ $opportunity['score'] }}</p>
-                    </div>
-                </div>
-            @empty
-                <div class="p-3 text-sm" style="color: var(--text-secondary);">Tidak ada peluang bernilai tinggi saat ini.</div>
-            @endforelse
-        </div>
-    </section>
 
-    <section class="card p-5 mb-6 animate-in" style="animation-delay: 0.19s;">
-        <div class="flex items-center justify-between mb-4">
-            <div>
-                <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">Aksi Terbaik Berikutnya</p>
-                <p class="text-sm" style="color: var(--text-secondary);">Langkah paling masuk akal berdasarkan urgensi dan nilai kerja</p>
-            </div>
-        </div>
-        <div class="space-y-3">
-            @foreach($nextBestActions as $action)
-                <div class="flex items-start justify-between gap-3 p-3 rounded-lg" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                    <div>
-                        <p class="text-sm font-semibold" style="color: var(--text-primary);">{{ $action['title'] }}</p>
-                        <p class="text-xs mt-1" style="color: var(--text-secondary);">{{ $action['description'] }}</p>
+                    <!-- Item PO Pending -->
+                    <div class="p-3.5 rounded-xl flex items-center justify-between transition-all hover:bg-slate-50 border {{ $poPending > 0 ? 'border-violet-200 bg-violet-50/40' : 'border-slate-200' }}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center {{ $poPending > 0 ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-400' }}">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold" style="color: var(--text-primary);">Purchase Order Masuk</h4>
+                                <p class="text-xs" style="color: var(--text-secondary);">
+                                    @if($poPending > 0)
+                                        <span class="text-violet-600 font-semibold">{{ $poPending }} PO</span> sedang diproses verifikasi oleh tim Admin.
+                                    @else
+                                        Semua PO berjalan normal.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        <a href="{{ route('po.index') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
+                            Lihat PO →
+                        </a>
                     </div>
-                    <span class="text-[10px] px-2 py-1 rounded-full" style="background: rgba(37,99,235,0.08); color: var(--accent-blue);">Skor {{ $action['score'] }}</span>
                 </div>
-            @endforeach
-        </div>
-    </section>
+            </div>
+
+            <!-- Mini Summary Footer -->
+            <div class="grid grid-cols-3 gap-3 mt-4 pt-3 border-t border-slate-100 text-center">
+                <div class="p-2 rounded-lg bg-slate-50">
+                    <p class="text-[10px] text-slate-400 uppercase font-semibold">Klien Pending</p>
+                    <p class="text-base font-bold text-slate-700">{{ number_format($actionQueueSummary['pending_customers'] ?? 0) }}</p>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-50">
+                    <p class="text-[10px] text-slate-400 uppercase font-semibold">PO Pending</p>
+                    <p class="text-base font-bold text-slate-700">{{ number_format($actionQueueSummary['pending_pos'] ?? 0) }}</p>
+                </div>
+                <div class="p-2 rounded-lg bg-slate-50">
+                    <p class="text-[10px] text-slate-400 uppercase font-semibold">RFQ Pending</p>
+                    <p class="text-base font-bold text-slate-700">{{ number_format($actionQueueSummary['pending_rfqs'] ?? 0) }}</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right: Rekomendasi Prioritas & Peluang Bernilai Tinggi (5 Cols) -->
+        <section class="lg:col-span-5 card p-5 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold flex items-center gap-2" style="color: var(--text-primary);">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Saran Prioritas Strategis
+                        </h2>
+                        <p class="text-xs" style="color: var(--text-secondary);">Rekomendasi sistem untuk kelancaran closing</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    @forelse($priorityRecommendations as $recommendation)
+                        <div class="p-3 rounded-lg flex items-start gap-3 bg-slate-50 border border-slate-100">
+                            <span class="w-2 h-2 rounded-full mt-1.5 shrink-0 {{ $recommendation['priority'] === 'high' ? 'bg-amber-500' : 'bg-blue-500' }}"></span>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between gap-2">
+                                    <p class="text-xs font-bold text-slate-800 truncate">{{ $recommendation['title'] }}</p>
+                                    <span class="text-[9px] font-semibold px-2 py-0.5 rounded-full {{ $recommendation['priority'] === 'high' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }}">
+                                        {{ $recommendation['priority'] === 'high' ? 'Urgensi Tinggi' : 'Menengah' }}
+                                    </span>
+                                </div>
+                                <p class="text-[11px] text-slate-500 mt-1 leading-snug">{{ $recommendation['description'] }}</p>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-4 text-center text-xs text-slate-400">Momentum penjualan terjaga dengan baik.</div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Peluang Nilai Tertinggi Compact Block -->
+            <div class="mt-4 pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Peluang Nilai Tertinggi</span>
+                </div>
+                @forelse($highValueOpportunities as $opportunity)
+                    <div class="p-2.5 rounded-lg bg-emerald-50/50 border border-emerald-100 flex items-center justify-between mb-2">
+                        <div class="truncate mr-2">
+                            <p class="text-xs font-bold text-slate-800 truncate">{{ $opportunity['company_name'] }}</p>
+                            <p class="text-[10px] text-slate-500">{{ $opportunity['label'] }}</p>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <p class="text-xs font-bold text-emerald-600">Rp {{ number_format($opportunity['value'], 0, ',', '.') }}</p>
+                        </div>
+                    </div>
+                @empty
+                    <div class="px-3 py-2 rounded-lg bg-slate-50 text-[11px] text-slate-500 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Belum ada PO bernilai besar yang pending review saat ini.</span>
+                    </div>
+                @endforelse
+            </div>
+        </section>
+    </div>
 
     <!-- Today's Activity (Admin) -->
     <section class="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in mb-6" style="animation-delay: 0.17s;">
@@ -645,7 +777,7 @@
     <!-- Main Grid: KPI + Revenue Chart -->
     <div class="grid lg:grid-cols-3 gap-5 mb-6">
         <!-- Sales Marketing Performance KPIs -->
-        <section class="lg:col-span-1 card p-5 animate-in" style="animation-delay: 0.3s;">
+        <section class="lg:col-span-1 card p-5 animate-in scroll-mt-6" id="sales-performance" style="animation-delay: 0.3s;">
             <h2 class="text-base font-bold mb-5 flex items-center gap-2" style="color: var(--text-primary);">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
