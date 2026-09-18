@@ -66,7 +66,7 @@
             </div>
         @endif
 
-        @if ($errors->any())
+        @if (isset($errors) && $errors->any())
             <div class="p-4 mb-5 text-sm font-medium rounded-xl animate-in" style="background: rgba(244,63,94,0.12); color: var(--accent-rose); border: 1px solid rgba(244,63,94,0.25);">
                 <div class="font-bold mb-1">Perhatian:</div>
                 <ul class="list-disc list-inside space-y-1">

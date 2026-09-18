@@ -6,16 +6,26 @@ use Illuminate\Database\Eloquent\Model;
 
 class Mainpower extends Model
 {
-    protected $fillable = ['mp', 'thr', 'bpjs_kes', 'bpjs_tk', 'total'];
+    protected $fillable = [
+        'mp',
+        'thr',
+        'uang_makan',
+        'bpjs_kes',
+        'bpjs_kes_percent',
+        'bpjs_tk',
+        'bpjs_tk_percent',
+        'total',
+        'lembur_per_jam',
+    ];
 
     // Accessors to match the Phase 4 logic where I used $mp->bpjskes
-    public function getBpjskesAttribute()
+    public function getBpjskesAttribute(): float
     {
-        return $this->attributes['bpjs_kes'] ?? 0;
+        return (float) ($this->attributes['bpjs_kes'] ?? 0);
     }
 
-    public function getBpjstkAttribute()
+    public function getBpjstkAttribute(): float
     {
-        return $this->attributes['bpjs_tk'] ?? 0;
+        return (float) ($this->attributes['bpjs_tk'] ?? 0);
     }
 }

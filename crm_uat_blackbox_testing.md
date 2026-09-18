@@ -95,9 +95,9 @@ Gunakan 4 akun berikut sesuai role untuk menguji hak akses dan alur kerja antar 
 
 | ID | Skenario Uji | Langkah Aksi | Data Input | Hasil yang Diharapkan | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **MP-01** | Buka Portal Mainpower | Login Admin Purchase -> Buka menu `/mainpowers` | - | Halaman portal tarif teknisi terbuka (HTTP 200). | [ ] |
-| **MP-02** | Update Formula Tarif SDM | Ubah Gaji Pokok Harian, Uang Makan, BPJS Kesehatan, BPJS TK | Gaji: Rp 200.000, BPJS Kes: 4%, BPJS TK: 5.7%, Lembur/jam | Nilai Total Rate Harian terhitung otomatis sesuai formula internal Pedia. | [ ] |
-| **MP-03** | Verifikasi Accessor BPJS | Simpan tarif dan refresh halaman | - | Tidak terjadi crash PHP 8.2 (`bpjs_kes` accessor aman tanpa error 500). | [ ] |
+| **MP-01** | Buka Portal Mainpower | Login Admin Purchase -> Buka menu `/mainpowers` | - | Halaman portal tarif teknisi terbuka (HTTP 200). | [x] PASS |
+| **MP-02** | Update Formula Tarif SDM | Ubah Gaji Pokok Harian, Uang Makan, BPJS Kesehatan, BPJS TK | Gaji: Rp 200.000, BPJS Kes: 4%, BPJS TK: 5.7%, Lembur/jam | Nilai Total Rate Harian terhitung otomatis sesuai formula internal Pedia. | [x] PASS |
+| **MP-03** | Verifikasi Accessor BPJS | Simpan tarif dan refresh halaman | - | Tidak terjadi crash PHP 8.2 (`bpjs_kes` accessor aman tanpa error 500). | [x] PASS |
 
 ---
 

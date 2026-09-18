@@ -590,7 +590,7 @@ class RfqController extends Controller
         $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
         // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
         $mp = \App\Models\Mainpower::first();
-        $mpPediaRate = $mp ? ($mp->mp + $mp->thr + $mp->bpjskes + $mp->bpjstk) : 336179; // fallback
+        $mpPediaRate = $mp ? ($mp->total > 0 ? (float)$mp->total : ($mp->mp + $mp->thr + $mp->bpjskes + $mp->bpjstk)) : 336179; // fallback
 
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->with('creator:id,name')
