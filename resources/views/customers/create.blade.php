@@ -656,38 +656,63 @@
     document.addEventListener('DOMContentLoaded', function () {
         const nameInput = document.querySelector('input[name="company_name"]');
         const emailInput = document.querySelector('input[name="email"]');
+        let debounceTimer;
 
-        function checkDuplicate(field, value) {
-            if (!value || value.length < 3) return;
-            const url = `/api/customers/check-duplicate?${field}=${encodeURIComponent(value)}`;
-            
-            const existingMsg = document.getElementById(`duplicate-${field}-msg`);
+        function checkDuplicate(type, value) {
+            const existingMsg = document.getElementById(`duplicate-${type}-msg`);
             if (existingMsg) existingMsg.remove();
+
+            if (!value || value.trim().length < 3) return;
+
+            const fieldParam = type === 'name' ? 'q' : 'email';
+            const url = `/api/customers/check-duplicate?${fieldParam}=${encodeURIComponent(value.trim())}`;
 
             fetch(url)
                 .then(res => res.json())
                 .then(data => {
-                    if (data.length > 0) {
+                    const currentMsg = document.getElementById(`duplicate-${type}-msg`);
+                    if (currentMsg) currentMsg.remove();
+
+                    if (data && data.length > 0) {
+                        const targetInput = type === 'name' ? nameInput : emailInput;
+                        if (!targetInput || !targetInput.parentElement) return;
+
+                        const match = data[0];
+                        const isExact = match.is_exact;
                         const msg = document.createElement('div');
-                        msg.id = `duplicate-${field}-msg`;
+                        msg.id = `duplicate-${type}-msg`;
                         msg.className = 'mt-2 flex items-start gap-2 p-3 rounded-xl text-xs';
-                        msg.style.cssText = 'background: rgba(225,29,72,0.06); border: 1px solid rgba(225,29,72,0.20); color: var(--accent-rose);';
-                        msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                        <span><strong>Terduplikasi!</strong> "${data[0].company_name}" sudah terdaftar atas nama Sales <strong>${data[0].owner}</strong>. Silakan gunakan nama lain atau hubungi sales terkait.</span>`;
-                        
-                        const parent = document.querySelector(`input[name="${field}"]`).closest('.sm\\:col-span-2, div');
-                        (parent || document.querySelector(`input[name="${field}"]`).parentElement).appendChild(msg);
+
+                        if (isExact) {
+                            msg.style.cssText = 'background: rgba(225,29,72,0.08); border: 1px solid rgba(225,29,72,0.30); color: var(--accent-rose);';
+                            msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span><strong>Peringatan Duplikasi!</strong> "${match.company_name}" sudah terdaftar di sistem atas nama Sales <strong>${match.owner}</strong>. Pendaftaran dengan nama yang sama akan ditolak.</span>`;
+                        } else {
+                            msg.style.cssText = 'background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.30); color: var(--accent-amber);';
+                            msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span><strong>Kemiripan Terdeteksi!</strong> Ditemukan perusahaan serupa: <strong>"${match.company_name}"</strong> (Sales: <strong>${match.owner}</strong>). Pastikan tidak terjadi duplikasi akun.</span>`;
+                        }
+
+                        targetInput.parentElement.appendChild(msg);
                     }
                 })
-                .catch(() => {});
+                .catch(err => console.error('Duplicate check error:', err));
         }
 
         if (nameInput) {
+            nameInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => checkDuplicate('name', this.value), 350);
+            });
             nameInput.addEventListener('blur', function () {
-                checkDuplicate('q', this.value);
+                checkDuplicate('name', this.value);
             });
         }
         if (emailInput) {
+            emailInput.addEventListener('input', function () {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => checkDuplicate('email', this.value), 350);
+            });
             emailInput.addEventListener('blur', function () {
                 checkDuplicate('email', this.value);
             });

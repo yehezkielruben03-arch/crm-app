@@ -695,27 +695,38 @@ class CustomerController extends Controller
         }
 
         if (!empty($query)) {
-            // Smart Exact Match: Hilangkan awalan PT/CV dan semua spasi/tanda baca
-            $cleanInput = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', trim($query));
-            $cleanInput = strtolower(preg_replace('/[^a-z0-9]/i', '', $cleanInput));
+            // Bersihkan input: buang PT/CV di awal/akhir dan semua simbol non-alphanumeric
+            $rawClean = trim(preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $query));
+            $cleanInput = strtolower(preg_replace('/[^a-z0-9]/i', '', $rawClean));
+
+            if (strlen($cleanInput) < 3) {
+                return response()->json([]);
+            }
 
             $all = Customer::with('sales:id,name')->get(['id', 'company_name', 'email', 'sales_id']);
             $results = collect();
             
             foreach ($all as $c) {
-                $existingClean = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', trim($c->company_name));
-                $existingClean = strtolower(preg_replace('/[^a-z0-9]/i', '', $existingClean));
+                $existingRaw = trim(preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $c->company_name));
+                $existingClean = strtolower(preg_replace('/[^a-z0-9]/i', '', $existingRaw));
                 
-                if ($cleanInput === $existingClean) {
+                $isExact = ($cleanInput === $existingClean);
+                $isSimilar = str_contains($existingClean, $cleanInput) || str_contains($cleanInput, $existingClean);
+
+                if ($isExact || $isSimilar) {
                     $results->push([
                         'id'           => $c->id,
                         'company_name' => $c->company_name,
                         'email'        => $c->email,
                         'owner'        => $c->sales?->name ?? 'Admin',
+                        'is_exact'     => $isExact,
                     ]);
                 }
             }
-            return response()->json($results->values());
+
+            // Urutkan exact match paling atas, lalu ambil hasil unik berdasarkan company_name
+            $sorted = $results->sortByDesc('is_exact')->unique('company_name')->values();
+            return response()->json($sorted);
         }
 
         if (!empty($email)) {
@@ -728,6 +739,7 @@ class CustomerController extends Controller
                     'company_name' => $match->company_name,
                     'email'        => $match->email,
                     'owner'        => $match->sales?->name ?? 'Admin',
+                    'is_exact'     => true,
                 ]]);
             }
         }
