@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    /* Font default semua halaman pakai Inter */
+    body {
+        font-family: 'Inter', sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbar tipis untuk konten utama */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /*
+     * Alpine.js — x-cloak fix
+     * Menyembunyikan elemen SEBELUM Alpine selesai loading (hydrate).
+     * Tanpa ini, elemen yang pakai x-show/x-text akan "berkedip" atau
+     * tampil kosong sebentar saat halaman baru dibuka.
+     * Ini WAJIB ADA agar custom-select placeholder tampil dengan benar.
+     */
+    [x-cloak] { display: none !important; }
+}
+
+@layer components {
+    /* Animasi masuk halaman — setiap halaman muncul dengan smooth fade-up */
+    #main-content {
+        animation: fadeUp 0.25s ease-out;
+    }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Tombol Indigo standard — bisa dipakai ulang di mana saja */
+    .btn-primary {
+        @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 active:scale-95 transition-all shadow-sm;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 active:scale-95 transition-all;
+    }
+
+    /* Card standar */
+    .card {
+        @apply bg-white rounded-2xl border border-gray-100 shadow-sm;
+    }
+
+    /* Badge / Label status */
+    .badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+}
+
+@layer components {
+    .form-input, .form-textarea {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        outline: none;
+        background: var(--bg-secondary);
+        border: 1.5px solid var(--border-color);
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+    }
+    .form-input:focus, .form-textarea:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 0 3px rgba(37,99,235,0.10);
+    }
+    .form-input.error, .form-textarea.error {
+        border-color: var(--accent-rose);
+    }
+    .form-input:read-only, .form-textarea:read-only {
+        background: rgba(15,23,42,0.03);
+    }
+}

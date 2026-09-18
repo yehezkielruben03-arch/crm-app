@@ -1,0 +1,13 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # 1. Proteksi file sensitif dari akses publik langsung
+    <FilesMatch "^\.(env|git|gitignore)|composer\.(json|lock)|package\.json|package-lock\.json|artisan$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+
+    # 2. Redirect seluruh request ke folder public/
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

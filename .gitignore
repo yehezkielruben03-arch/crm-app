@@ -1,0 +1,62 @@
+# Logs and Cache
+*.log
+.phpunit.result.cache
+/.phpunit.cache
+
+# Environment & Sensitive Files
+.env
+.env.*
+!.env.example
+/auth.json
+
+# Dependencies
+/node_modules
+/vendor
+
+# Compiled Assets & Storage
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+.phpactor.json
+
+# Local Archives & SQL Backups (Prevent 100MB+ push rejection)
+*.zip
+*.tar.gz
+*.sql
+*.xlsx
+*.csv
+*.bak
+price_form_backup.blade.php
+
+# Scratch & Temporary Testing Scripts
+scratch/
+staging_zip/
+file sampling/
+check_login.php
+check_user.php
+sim_sales.php
+rename_manager.php
+repair_docx_headings.py
+tmp_check.py
+upload_list.txt
+fix_customer_controller.ps1
+.htaccess-root
+public/setup.php
+
+Homestead.json
+Homestead.yaml

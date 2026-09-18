@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+if (!function_exists('mb_split')) {
+    function mb_split(string $pattern, string $string, int $limit = -1): array|false {
+        $res = @preg_split('/' . str_replace('/', '\/', $pattern) . '/u', $string, $limit);
+        if ($res === false) {
+            $res = @preg_split('/' . str_replace('/', '\/', $pattern) . '/', $string, $limit);
+        }
+        return $res;
+    }
+}
+
+use Illuminate\Foundation\Application;
+use Symfony\Component\Console\Input\ArgvInput;
+
+define('LARAVEL_START', microtime(true));
+
+// Register the Composer autoloader...
+require __DIR__.'/vendor/autoload.php';
+
+// Bootstrap Laravel and handle the command...
+/** @var Application $app */
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+$status = $app->handleCommand(new ArgvInput);
+
+exit($status);
