@@ -100,9 +100,13 @@
         </form>
     </div>
 
-    <!-- Table -->
-    <form id="bulk-approve-form" method="POST" action="{{ route('customers.bulk-approve') }}">
+    <!-- Standalone Bulk Approve Form (mencegah nested form bug di HTML) -->
+    <form id="bulk-approve-form" method="POST" action="{{ route('customers.bulk-approve') }}" class="hidden">
         @csrf
+        <div id="bulk-inputs-container"></div>
+    </form>
+
+    <!-- Table Section -->
 
         @if(auth()->user()->isAdminOrAbove() && $customers->whereIn('status', ['Prospect', 'Pending'])->count() > 0)
         <div class="mb-3 flex justify-end">
@@ -294,7 +298,6 @@
             </div>
             @endif
         </div>
-    </form>
 
     <script>
         document.getElementById('selectAll')?.addEventListener('change', function() {
@@ -308,7 +311,17 @@
                 return;
             }
             if (confirm('Approve ' + checked.length + ' customer terpilih menjadi Active? Kode perusahaan akan dibuat otomatis.')) {
-                document.getElementById('bulk-approve-form').submit();
+                const form = document.getElementById('bulk-approve-form');
+                const container = document.getElementById('bulk-inputs-container');
+                container.innerHTML = '';
+                checked.forEach(cb => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'customer_ids[]';
+                    input.value = cb.value;
+                    container.appendChild(input);
+                });
+                form.submit();
             }
         }
     </script>
