@@ -255,7 +255,7 @@
                                                 onblur="this.style.borderColor='#e2e8f0'">
                                         </td>
                                         <td class="px-3 py-2" style="vertical-align: middle;">
-                                            <input type="text" :name="`items[${item.id}][unit]`"
+                                            <input type="text" list="unit-options" :name="`items[${item.id}][unit]`"
                                                 x-model="item.unit"
                                                 placeholder="pcs, unit..."
                                                 style="width:100%; padding: 0.45rem 0.6rem; border-radius: 0.5rem; font-size: 0.8rem; outline: none; background: #ffffff; border: 1px solid #e2e8f0; color: var(--text-primary);"
@@ -606,6 +606,10 @@
                         } else {
                             // Masuk ke Projek → kosongkan items Non Projek agar tidak bocor
                             this.nonProjekItems = [];
+                            const total = this.categories.reduce((acc, c) => acc + c.items.length, 0);
+                            if (total === 0) {
+                                this.addProjekItem('Hardware');
+                            }
                         }
                     });
                 }

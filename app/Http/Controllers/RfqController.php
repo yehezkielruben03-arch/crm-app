@@ -452,13 +452,18 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
+            $status = ($this->authUser()->isAdminOrAbove() && $validated['type'] === 'Projek')
+                ? Rfq::STATUS_PENDING_LEADER
+                : Rfq::STATUS_PENDING_ADMIN;
+
             $rfq->update([
                 'customer_id'         => $validated['customer_id'],
                 'customer_contact_id' => $validated['customer_contact_id'],
                 'need_date'           => $validated['need_date'] ?? null,
                 'type'                => $validated['type'],
+                'priority'            => $validated['priority'] ?? 'Normal',
                 'notes'               => $validated['notes'] ?? null,
-                'status'              => Rfq::STATUS_PENDING_ADMIN,
+                'status'              => $status,
             ]);
 
             $rfq->items()->delete();

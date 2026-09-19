@@ -22,18 +22,51 @@
                 </div>
                 @endif
                 
-                @foreach(['Hardware', 'Jasa Pemasangan', 'Material Support'] as $categoryName)
+                @php
+                    $blocks = [];
+                    if ($rfq->type === 'Non Projek') {
+                        $blocks[] = [
+                            'title' => 'Daftar Item RFQ Non-Projek',
+                            'items' => $rfq->items,
+                            'categoryName' => null,
+                        ];
+                    } else {
+                        foreach (['Hardware', 'Jasa Pemasangan', 'Material Support'] as $cat) {
+                            $catItems = $rfq->items->filter(function($it) use ($cat) {
+                                return \App\Models\RfqItem::normalizeCategory($it->category) === $cat;
+                            });
+                            if ($catItems->count() > 0) {
+                                $blocks[] = [
+                                    'title' => 'Blok ' . $cat,
+                                    'items' => $catItems,
+                                    'categoryName' => $cat,
+                                ];
+                            }
+                        }
+                        $uncat = $rfq->items->filter(function($it) {
+                            return empty($it->category);
+                        });
+                        if ($uncat->count() > 0) {
+                            $blocks[] = [
+                                'title' => 'Item Lainnya',
+                                'items' => $uncat,
+                                'categoryName' => null,
+                            ];
+                        }
+                    }
+                @endphp
+
+                @foreach($blocks as $block)
                 @php 
-                    $categoryItems = $rfq->items->filter(function($it) use ($categoryName) {
-                        return \App\Models\RfqItem::normalizeCategory($it->category) === $categoryName;
-                    }); 
+                    $categoryName = $block['categoryName'];
+                    $categoryItems = $block['items'];
                 @endphp
                 
                 @if($categoryItems->count() > 0)
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6 bg-white border-b border-gray-200">
                         <h3 class="text-lg font-bold mb-4 text-blue-600 border-b pb-2 flex items-center justify-between">
-                            <span>Blok {{ $categoryName }}</span>
+                            <span>{{ $block['title'] }}</span>
                             <span class="text-xs bg-blue-100 text-blue-800 font-normal px-2.5 py-1 rounded-full">{{ $categoryItems->count() }} Item</span>
                         </h3>
                         
