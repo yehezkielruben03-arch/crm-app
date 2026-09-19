@@ -609,7 +609,7 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove(), 403);
         abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
-        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga hanya bisa diisi ulang saat RFQ masih dalam tahap Pending Admin.');
+        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa diubah dari status saat ini.');
 
         $rfq->load(['items', 'customer']);
         
@@ -652,7 +652,9 @@ class RfqController extends Controller
         ]);
 
         $oldStatus = $rfq->status;
-        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq) {
+        $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser) {
             foreach ($validated['items'] as $itemId => $data) {
                 $item = $rfq->items()->find($itemId);
                 if ($item) {
@@ -692,12 +694,16 @@ class RfqController extends Controller
                 ]);
             }
 
-            if ($rfq->canTransitionTo(Rfq::STATUS_PENDING_LEADER)) {
-                $rfq->update(['status' => Rfq::STATUS_PENDING_LEADER]);
+            // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved
+            // Jika Admin yang merevisi, alihkan ke Pending Leader agar disetujui ulang oleh Leader
+            $targetStatus = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
+                ? Rfq::STATUS_APPROVED
+                : Rfq::STATUS_PENDING_LEADER;
+
+            if ($rfq->canTransitionTo($targetStatus)) {
+                $rfq->update(['status' => $targetStatus]);
             }
         });
-
-        $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);

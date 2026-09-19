@@ -56,6 +56,8 @@ class Rfq extends Model
                 self::STATUS_PENDING_LEADER,
             ],
             self::STATUS_APPROVED => [
+                self::STATUS_PENDING_LEADER,
+                self::STATUS_APPROVED,
                 self::STATUS_QUOTATION_CREATED,
                 self::STATUS_QUOTATION_SENT,
                 self::STATUS_GOAL,
@@ -63,12 +65,18 @@ class Rfq extends Model
                 self::STATUS_PO_PENDING_ADMIN,
             ],
             self::STATUS_QUOTATION_CREATED => [
+                self::STATUS_PENDING_LEADER,
+                self::STATUS_APPROVED,
+                self::STATUS_QUOTATION_CREATED,
                 self::STATUS_QUOTATION_SENT,
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PO_PENDING_ADMIN,
             ],
             self::STATUS_QUOTATION_SENT => [
+                self::STATUS_PENDING_LEADER,
+                self::STATUS_APPROVED,
+                self::STATUS_QUOTATION_SENT,
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PO_PENDING_ADMIN,
@@ -87,7 +95,13 @@ class Rfq extends Model
 
     public function canBePriceSubmitted(): bool
     {
-        return in_array($this->status, [self::STATUS_PENDING_ADMIN, self::STATUS_PENDING_LEADER], true);
+        return in_array($this->status, [
+            self::STATUS_PENDING_ADMIN,
+            self::STATUS_PENDING_LEADER,
+            self::STATUS_APPROVED,
+            self::STATUS_QUOTATION_CREATED,
+            self::STATUS_QUOTATION_SENT,
+        ], true);
     }
 
     public function getNextActionLabel(): string

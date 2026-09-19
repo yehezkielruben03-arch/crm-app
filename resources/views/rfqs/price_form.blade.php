@@ -262,7 +262,15 @@
                 <div class="flex justify-end mt-4 mb-8">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        {{ $rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER ? 'Simpan & Sesuaikan HPP (Leader)' : 'Submit HPP ke Leader' }}
+                        @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
+                            Simpan & Sesuaikan HPP (Leader)
+                        @elseif($rfq->isPendingAdmin())
+                            Submit HPP ke Leader
+                        @elseif($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER)
+                            Simpan & Update HPP
+                        @else
+                            Simpan & Ajukan Revisi HPP ke Leader
+                        @endif
                     </button>
                 </div>
             </form>

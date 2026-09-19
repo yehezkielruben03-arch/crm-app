@@ -180,14 +180,14 @@
                 </a>
             @endif
 
-            @if(($rfq->isPendingAdmin() && auth()->user()->isAdminOrAbove()) || ($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER && (auth()->user()->isLeader() || auth()->user()->isSuperAdmin())))
+            @if((auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && !in_array($rfq->status, [\App\Models\Rfq::STATUS_GOAL, \App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER]))
                 <a href="{{ route('rfq.price_form', $rfq) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 12px rgba(5,150,105,0.30);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                     </svg>
-                    {{ $rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER ? 'Edit / Sesuaikan HPP' : 'Input HPP / Kalkulasi Harga' }}
+                    {{ $rfq->isPendingAdmin() ? 'Input HPP / Kalkulasi Harga' : 'Edit HPP / Sesuaikan Harga' }}
                 </a>
             @endif
         </div>
@@ -260,9 +260,20 @@
                         <h2 class="text-sm font-semibold" style="color: var(--text-secondary);">Detail Item</h2>
                         <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $rfq->items->count() }} item &mdash; {{ $rfq->type }}</p>
                     </div>
-                    <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background: rgba(37,99,235,0.08); color: var(--accent-blue); border: 1px solid rgba(37,99,235,0.15);">
-                        {{ $rfq->items->count() }} Item
-                    </span>
+                    <div class="flex items-center gap-2">
+                        @if((auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && !in_array($rfq->status, [\App\Models\Rfq::STATUS_GOAL, \App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER]))
+                        <a href="{{ route('rfq.price_form', $rfq) }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg transition-all hover:opacity-90"
+                           style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 2px 6px rgba(5,150,105,0.25);">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            Edit HPP
+                        </a>
+                        @endif
+                        <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background: rgba(37,99,235,0.08); color: var(--accent-blue); border: 1px solid rgba(37,99,235,0.15);">
+                            {{ $rfq->items->count() }} Item
+                        </span>
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
@@ -479,8 +490,9 @@
             </a>
             @endif
 
-            @if($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER && (auth()->user()->isLeader() || auth()->user()->isSuperAdmin()))
+            @if($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER)
             <div class="flex flex-col gap-2">
+                @if(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
                 <a href="{{ route('rfq.price_form', $rfq) }}" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                     style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 14px rgba(2,132,199,0.35);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,6 +500,9 @@
                     </svg>
                     Edit / Sesuaikan HPP
                 </a>
+                @endif
+
+                @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
                 <form action="{{ route('rfq.approve', $rfq) }}" method="POST" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
@@ -505,6 +520,7 @@
                     </svg>
                     Reject / Minta Revisi
                 </button>
+                @endif
             </div>
             @endif
 
@@ -528,6 +544,17 @@
                     Download PDF
                 </a>
             </div>
+
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()))
+            <a href="{{ route('rfq.price_form', $rfq) }}"
+               class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
+               style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 14px rgba(2,132,199,0.30);">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Edit HPP / Revisi Penawaran
+            </a>
+            @endif
 
             @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created']))
             <form action="{{ route('rfq.mark_quotation_sent', $rfq) }}" method="POST" class="w-full">
