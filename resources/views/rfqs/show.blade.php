@@ -180,14 +180,14 @@
                 </a>
             @endif
 
-            @if($rfq->isPendingAdmin() && auth()->user()->isAdminOrAbove())
+            @if(($rfq->isPendingAdmin() && auth()->user()->isAdminOrAbove()) || ($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER && (auth()->user()->isLeader() || auth()->user()->isSuperAdmin())))
                 <a href="{{ route('rfq.price_form', $rfq) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 12px rgba(5,150,105,0.30);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    Input HPP / Kalkulasi Harga
+                    {{ $rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER ? 'Edit / Sesuaikan HPP' : 'Input HPP / Kalkulasi Harga' }}
                 </a>
             @endif
         </div>
@@ -310,9 +310,22 @@
                                                     <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
                                                 @endif
                                                 <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                                <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
-                                                <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>
-                                                <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">Jual: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b></span>
+                                                <span class="rfq-grid__hpp-line">
+                                                    @if($item->biaya_kirim > 0 && $item->ongkir_pedia > 0)
+                                                        Ongkir: <b>Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }}</b> <span style="font-size:0.5625rem; color:var(--text-muted);">(Vdr: {{ number_format($item->biaya_kirim, 0, ',', '.') }} + Pedia: {{ number_format($item->ongkir_pedia, 0, ',', '.') }})</span>
+                                                    @elseif($item->biaya_kirim > 0)
+                                                        Ongkir (Vendor): <b>Rp {{ number_format($item->biaya_kirim, 0, ',', '.') }}</b>
+                                                    @else
+                                                        Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b>
+                                                    @endif
+                                                </span>
+                                                <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</b> / Ceil: {{ number_format((float) ($item->custom_ceiling ?: $item->ceiling), 0, ',', '.') }}</span>
+                                                <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">
+                                                    Jual/Unit: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b>
+                                                    @if($item->qty > 1)
+                                                        <br><span style="color: #059669; font-weight:700;">Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}</span>
+                                                    @endif
+                                                </span>
                                             </span>
                                         @else
                                             <span class="rfq-grid__badge">
@@ -349,9 +362,22 @@
                                                 <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
                                             @endif
                                             <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                            <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
-                                            <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>
-                                            <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">Jual: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b></span>
+                                            <span class="rfq-grid__hpp-line">
+                                                @if($item->biaya_kirim > 0 && $item->ongkir_pedia > 0)
+                                                    Ongkir: <b>Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }}</b> <span style="font-size:0.5625rem; color:var(--text-muted);">(Vdr: {{ number_format($item->biaya_kirim, 0, ',', '.') }} + Pedia: {{ number_format($item->ongkir_pedia, 0, ',', '.') }})</span>
+                                                @elseif($item->biaya_kirim > 0)
+                                                    Ongkir (Vendor): <b>Rp {{ number_format($item->biaya_kirim, 0, ',', '.') }}</b>
+                                                @else
+                                                    Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b>
+                                                @endif
+                                            </span>
+                                            <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</b> / Ceil: {{ number_format((float) ($item->custom_ceiling ?: $item->ceiling), 0, ',', '.') }}</span>
+                                            <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">
+                                                Jual/Unit: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b>
+                                                @if($item->qty > 1)
+                                                    <br><span style="color: #059669; font-weight:700;">Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}</span>
+                                                @endif
+                                            </span>
                                         </span>
                                     @else
                                         <span class="rfq-grid__badge">
@@ -370,11 +396,11 @@
                         @endif
 
                         {{-- Footer total --}}
-                        @if(auth()->user()->isAdminOrAbove() && $rfq->items->sum('price_after_margin') > 0)
+                        @if(auth()->user()->isAdminOrAbove() && $rfq->grand_total > 0)
                         <div class="rfq-grid__row rfq-grid__foot">
                             <span class="rfq-grid__cell">
                                 Total Harga Jual
-                                <span class="rfq-grid__foot-total">Rp {{ number_format($rfq->items->sum('price_after_margin'), 0, ',', '.') }}</span>
+                                <span class="rfq-grid__foot-total">Rp {{ number_format($rfq->grand_total, 0, ',', '.') }}</span>
                             </span>
                         </div>
                         @endif
@@ -414,7 +440,7 @@
                         <div class="flex justify-between text-sm mb-1">
                             <span style="color: var(--text-muted);">Estimasi Harga Jual</span>
                             <span class="font-bold" style="color: var(--text-primary);">
-                                Rp {{ number_format($rfq->items->sum('price_after_margin'), 0, ',', '.') }}
+                                Rp {{ number_format($rfq->grand_total, 0, ',', '.') }}
                             </span>
                         </div>
                         @endif
@@ -455,6 +481,13 @@
 
             @if($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER && (auth()->user()->isLeader() || auth()->user()->isSuperAdmin()))
             <div class="flex flex-col gap-2">
+                <a href="{{ route('rfq.price_form', $rfq) }}" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
+                    style="background: linear-gradient(135deg, #0284c7, #0369a1); box-shadow: 0 4px 14px rgba(2,132,199,0.35);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    </svg>
+                    Edit / Sesuaikan HPP
+                </a>
                 <form action="{{ route('rfq.approve', $rfq) }}" method="POST" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"

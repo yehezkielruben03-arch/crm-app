@@ -53,6 +53,7 @@ class Rfq extends Model
             self::STATUS_PENDING_LEADER => [
                 self::STATUS_APPROVED,
                 self::STATUS_PENDING_ADMIN,
+                self::STATUS_PENDING_LEADER,
             ],
             self::STATUS_APPROVED => [
                 self::STATUS_QUOTATION_CREATED,
@@ -86,7 +87,7 @@ class Rfq extends Model
 
     public function canBePriceSubmitted(): bool
     {
-        return $this->status === self::STATUS_PENDING_ADMIN;
+        return in_array($this->status, [self::STATUS_PENDING_ADMIN, self::STATUS_PENDING_LEADER], true);
     }
 
     public function getNextActionLabel(): string

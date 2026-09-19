@@ -811,4 +811,23 @@ class CustomerController extends Controller
             'contact' => $contact
         ]);
     }
+
+    public function updateContactAjax(Request $request, Customer $customer, \App\Models\CustomerContact $contact)
+    {
+        abort_if($contact->customer_id !== $customer->id, 404, 'Kontak tidak sesuai dengan Customer.');
+
+        $validated = $request->validate([
+            'name'     => 'required|string|max:150',
+            'position' => 'nullable|string|max:100',
+            'phone'    => 'nullable|string|max:50',
+            'email'    => 'nullable|email|max:100',
+        ]);
+
+        $contact->update($validated);
+
+        return response()->json([
+            'status'  => 'success',
+            'contact' => $contact
+        ]);
+    }
 }

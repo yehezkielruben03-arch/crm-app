@@ -149,10 +149,15 @@ class RfqItem extends Model
         
         $withMargin = $baseCost;
         if ($this->margin_type === 'nominal') {
-            $withMargin = $baseCost + $this->margin_value;
+            $withMargin = $baseCost + (float) $this->margin_value;
         } else {
-            $multiplier = 1 + ($this->margin_value / 100);
-            $withMargin = $baseCost * $multiplier;
+            $marginVal = (float) $this->margin_value;
+            $profit = $baseCost * ($marginVal / 100);
+            // Aturan minimum estimasi untung: Rp 50.000 jika terdapat modal dasar
+            if ($baseCost > 0 && $profit < 50000) {
+                $profit = 50000;
+            }
+            $withMargin = $baseCost + $profit;
         }
 
         $ceiling = $this->custom_ceiling > 0 ? $this->custom_ceiling : ($this->ceiling > 0 ? $this->ceiling : 1);

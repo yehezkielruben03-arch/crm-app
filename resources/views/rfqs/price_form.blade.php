@@ -86,7 +86,6 @@
                                     <tr class="border-b hover:bg-gray-50">
                                         <td class="px-4 py-4 align-top">
                                             <input type="hidden" name="items[{{ $item->id }}][category]" value="{{ $categoryName }}">
-                                            <input type="hidden" name="items[{{ $item->id }}][ongkir_pedia]" value="{{ (float) $item->ongkir_pedia }}" id="ongkir-pedia-{{ $item->id }}">
                                             
                                             <input type="text" name="items[{{ $item->id }}][product_name]" value="{{ old('items.'.$item->id.'.product_name', $item->product_name) }}" class="w-full text-sm border-gray-300 rounded-md mb-2 font-bold" required>
                                             <textarea name="items[{{ $item->id }}][description]" rows="2" class="w-full text-xs border-gray-300 rounded-md mb-2" placeholder="Deskripsi Singkat">{{ old('items.'.$item->id.'.description', $item->description) }}</textarea>
@@ -124,21 +123,25 @@
                                                 <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}" value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger font-semibold" required min="0" placeholder="0">
                                             </div>
                                             
-                                            <div class="flex gap-2 mb-2">
-                                                <div class="w-1/2">
-                                                    <label class="text-xs text-gray-700 font-semibold block">Ongkir dari Pedia</label>
-                                                    <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}" value="{{ old('items.'.$item->id.'.biaya_kirim', (float) (($item->biaya_kirim && $item->biaya_kirim > 0) ? $item->biaya_kirim : ($rfq->customer->ongkir_pedia ?? 0))) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0">
+                                            <div class="grid grid-cols-2 gap-2 mb-2">
+                                                <div>
+                                                    <label class="text-[11px] text-gray-700 font-semibold block">Ongkir ke Pedia (Vendor)</label>
+                                                    <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}" value="{{ old('items.'.$item->id.'.biaya_kirim', (float) ($item->biaya_kirim ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0" placeholder="0">
                                                 </div>
-                                                <div class="w-1/2">
-                                                    <label class="text-xs text-gray-500 block">Fee EU</label>
-                                                    <input type="number" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}" value="{{ old('items.'.$item->id.'.fee_eu', (float) ($item->fee_eu ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0">
+                                                <div>
+                                                    <label class="text-[11px] text-blue-700 font-semibold block">Ongkir dari Pedia (Customer)</label>
+                                                    <input type="number" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}" value="{{ old('items.'.$item->id.'.ongkir_pedia', (float) (($item->ongkir_pedia && $item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0))) }}" class="w-full text-sm border-blue-300 bg-blue-50/50 rounded-md calc-trigger font-semibold" min="0">
                                                 </div>
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="text-[11px] text-gray-500 block">Fee EU (Opsional)</label>
+                                                <input type="number" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}" value="{{ old('items.'.$item->id.'.fee_eu', (float) ($item->fee_eu ?? 0)) }}" class="w-full text-xs border-gray-300 rounded-md calc-trigger" min="0" placeholder="0">
                                             </div>
                                             
                                             <div class="text-xs text-blue-600 font-semibold bg-blue-50 p-2 rounded border border-blue-100">
                                                 Total Modal: Rp <span id="total-modal-{{ $item->id }}">0</span>
                                                 @if(($rfq->customer->ongkir_pedia ?? 0) > 0)
-                                                    <br><small class="text-gray-500 font-normal">(Termasuk Ongkir Customer Rp {{ number_format($rfq->customer->ongkir_pedia, 0, ',', '.') }})</small>
+                                                    <br><small class="text-gray-500 font-normal">(Ongkir default customer: Rp {{ number_format($rfq->customer->ongkir_pedia, 0, ',', '.') }})</small>
                                                 @endif
                                             </div>
                                         </td>
@@ -154,7 +157,7 @@
                                                 </div>
                                                 <div class="w-2/3">
                                                     <label class="text-xs text-gray-500 block">Nilai Margin</label>
-                                                    <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}" value="{{ old('items.'.$item->id.'.margin_value', (float) ($item->margin_value ?? $item->margin ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" required min="0" step="any">
+                                                    <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}" value="{{ old('items.'.$item->id.'.margin_value', (float) (($item->margin_value && $item->margin_value > 0) ? $item->margin_value : (($item->margin && $item->margin > 0) ? $item->margin : 12.5))) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger font-semibold" required min="0" step="any">
                                                 </div>
                                             </div>
                                             
@@ -168,9 +171,10 @@
                                                     <label class="text-xs text-gray-500 block">Pembulatan (Ceiling)</label>
                                                 </div>
                                                 <div class="flex gap-1 mb-1.5">
-                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1)" class="px-2 py-0.5 text-[11px] bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 text-gray-700">1 (Bebas)</button>
-                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">1.000 (Ribuan)</button>
-                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 10000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">10.000 (Puluh Rb)</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1)" class="px-2 py-0.5 text-[11px] bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 text-gray-700">1</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">1k</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 10000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">10k</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 50000)" class="px-2 py-0.5 text-[11px] bg-amber-50 hover:bg-amber-100 rounded border border-amber-200 text-amber-800 font-semibold">50k</button>
                                                 </div>
                                                 <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}" value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? $item->ceiling ?? 1)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0" placeholder="1000">
                                             </div>
@@ -258,7 +262,7 @@
                 <div class="flex justify-end mt-4 mb-8">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200 flex items-center gap-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Submit HPP ke Leader
+                        {{ $rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER ? 'Simpan & Sesuaikan HPP (Leader)' : 'Submit HPP ke Leader' }}
                     </button>
                 </div>
             </form>
@@ -307,12 +311,17 @@
             if (marginType === 'nominal') {
                 priceWithMargin = baseModal + marginVal;
                 profitRp = marginVal;
+                document.getElementById('margin-rp-preview-' + itemId).value = formatRupiah(profitRp);
             } else {
                 profitRp = baseModal * (marginVal / 100);
+                let isMinApplied = false;
+                if (baseModal > 0 && profitRp < 50000) {
+                    profitRp = 50000;
+                    isMinApplied = true;
+                }
                 priceWithMargin = baseModal + profitRp;
+                document.getElementById('margin-rp-preview-' + itemId).value = formatRupiah(profitRp) + (isMinApplied ? ' (Min. Rp 50.000)' : '');
             }
-            
-            document.getElementById('margin-rp-preview-' + itemId).value = formatRupiah(profitRp);
 
             // 3. Hitung Ceiling (Pembulatan)
             const finalCeiling = ceiling > 0 ? ceiling : 1;

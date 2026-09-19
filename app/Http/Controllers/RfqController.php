@@ -697,36 +697,56 @@ class RfqController extends Controller
             }
         });
 
+        $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
+
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
 
             $isRevision = $oldStatus !== Rfq::STATUS_PENDING_ADMIN;
-            $actionWord = $isRevision ? 'diubah (revisi)' : 'diisi';
+            $actionWord = $isRevision ? 'disesuaikan' : 'diisi';
+            $byWhom     = $isLeaderUser ? 'Leader' : 'Admin Purchase';
 
-            // EVENT 4 — Admin mengubah/mengisi harga → notif ke dashboard SALES terkait
+            // Notifikasi ke Sales Marketing
             \App\Models\Notification::send(
                 $rfq->sales_id,
                 'info',
-                'Harga RFQ ' . ($isRevision ? 'Diubah' : 'Diisi') . ' Admin',
-                'Harga untuk RFQ ' . $rfq->rfq_number . ' telah ' . $actionWord . ' oleh Admin Purchase. Menunggu persetujuan Leader.',
+                'Harga RFQ ' . ($isRevision ? 'Disesuaikan' : 'Diisi') . ' ' . $byWhom,
+                'Harga untuk RFQ ' . $rfq->rfq_number . ' telah ' . $actionWord . ' oleh ' . $byWhom . '.',
                 route('rfq.show', $rfq)
             );
 
-            // EVENT 2 — Admin selesai isi HPP/Ongkir/Margin → notif + tanda merah di lonceng LEADER untuk Approval
-            $leaders = \App\Models\User::where('role', 'Leader')->get();
-            foreach ($leaders as $leader) {
-                \App\Models\Notification::send(
-                    userId:  $leader->id,
-                    type:    'warning',
-                    title:   'RFQ Membutuhkan Approval',
-                    message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
-                    link:    route('rfq.show', $rfq)
-                );
+            // Jika yang submit adalah Admin, kirim notif ke Leader untuk Approval
+            if (!$isLeaderUser) {
+                $leaders = \App\Models\User::where('role', 'Leader')->get();
+                foreach ($leaders as $leader) {
+                    \App\Models\Notification::send(
+                        userId:  $leader->id,
+                        type:    'warning',
+                        title:   'RFQ Membutuhkan Approval',
+                        message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+            } else {
+                // Jika Leader yang menyesuaikan harga, kirim info ke Admin
+                $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+                foreach ($admins as $admin) {
+                    \App\Models\Notification::send(
+                        userId:  $admin->id,
+                        type:    'info',
+                        title:   'HPP Disesuaikan oleh Leader',
+                        message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan HPP untuk RFQ ' . $rfq->rfq_number . '.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
             }
         }
 
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disimpan dan diteruskan ke Leader untuk di-approve.');
+        $successMsg = $isLeaderUser
+            ? 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disesuaikan oleh Leader.'
+            : 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disimpan dan diteruskan ke Leader untuk di-approve.';
+
+        return redirect()->route('rfq.show', $rfq)->with('success', $successMsg);
     }
 
     public function approve(Rfq $rfq)

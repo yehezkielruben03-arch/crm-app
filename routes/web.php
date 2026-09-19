@@ -134,6 +134,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/api/customers/suggestions', [CustomerController::class, 'suggestions'])->name('customers.suggestions');
         Route::get('/api/customers/check-duplicate', [CustomerController::class, 'checkDuplicate'])->name('customers.check-duplicate');
         Route::post('/api/customers/{customer}/contacts', [CustomerController::class, 'storeContactAjax'])->name('customers.storeContactAjax');
+        Route::put('/api/customers/{customer}/contacts/{contact}', [CustomerController::class, 'updateContactAjax'])->name('customers.updateContactAjax');
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::get('/customers/create', [CustomerController::class, 'create'])->name('customers.create');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');

@@ -91,15 +91,22 @@
                                     <label class="block text-xs font-semibold" style="color: var(--text-secondary);">
                                         PIC Tujuan <span style="color: var(--accent-rose);">*</span>
                                     </label>
-                                    <button type="button" onclick="openInlinePicModal()" id="btn-add-inline-pic"
-                                        class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 transition">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                        + Tambah Kontak Baru
-                                    </button>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="openInlinePicModal(false)" id="btn-add-inline-pic"
+                                            class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                            + Tambah PIC
+                                        </button>
+                                        <button type="button" onclick="openInlinePicModal(true)" id="btn-edit-inline-pic" style="display: none;"
+                                            class="text-xs text-amber-600 hover:text-amber-800 font-semibold flex items-center gap-1 transition">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                            Edit PIC
+                                        </button>
+                                    </div>
                                 </div>
-                                <select name="customer_contact_id" id="contact-select" required
+                                <select name="customer_contact_id" id="contact-select" required onchange="checkSelectedPic()"
                                     style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: #f8fafc; border: 1px solid #e2e8f0; color: var(--text-primary);">
-                                    <option value="">Pilih PIC (Pilih Customer Dulu)</option>
+                                    <option value="">Pilih Customer Terlebih Dahulu</option>
                                 </select>
                                 @error('customer_contact_id')<p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p>@enderror
                             </div>
@@ -828,17 +835,20 @@
                                 </div>
                             `;
 
-                            contactSelect.innerHTML = '<option value="">Pilih PIC Tujuan</option>';
-                            if(data.contacts && data.contacts.length > 0) {
-                                data.contacts.forEach(contact => {
+                            window.customerContactsData = data.contacts || [];
+                            contactSelect.innerHTML = '';
+                            if(window.customerContactsData.length > 0) {
+                                window.customerContactsData.forEach((contact, idx) => {
                                     const option = document.createElement('option');
                                     option.value = contact.id;
-                                    option.text = contact.name + ' (' + (contact.position || '-') + ')';
-                                    if(contact.is_primary) option.selected = true;
+                                    option.text = contact.name + (contact.position ? ' (' + contact.position + ')' : '');
+                                    if(contact.is_primary || idx === 0) option.selected = true;
                                     contactSelect.appendChild(option);
                                 });
+                                checkSelectedPic();
                             } else {
-                                contactSelect.innerHTML = '<option value="">Tidak ada PIC (Silakan tambah di menu Customer)</option>';
+                                contactSelect.innerHTML = '<option value="">Belum ada PIC (Klik "+ Tambah PIC")</option>';
+                                checkSelectedPic();
                             }
                         })
                         .catch(() => {
@@ -848,13 +858,53 @@
             }
         });
 
-        function openInlinePicModal() {
+        let isEditingPic = false;
+        let editingContactId = null;
+
+        function checkSelectedPic() {
+            const select = document.getElementById('contact-select');
+            const editBtn = document.getElementById('btn-edit-inline-pic');
+            if (select && select.value && window.customerContactsData && window.customerContactsData.some(c => c.id == select.value)) {
+                if (editBtn) editBtn.style.display = 'inline-flex';
+            } else {
+                if (editBtn) editBtn.style.display = 'none';
+            }
+        }
+
+        function openInlinePicModal(isEdit = false) {
             const customerId = document.querySelector('input[name="customer_id"]')?.value;
             if (!customerId) {
-                alert('Silakan pilih Customer terlebih dahulu sebelum menambahkan PIC!');
+                alert('Silakan pilih Customer terlebih dahulu sebelum menambahkan atau mengedit PIC!');
                 return;
             }
+
+            isEditingPic = isEdit;
             const modal = document.getElementById('inline-pic-modal');
+            const modalTitle = document.getElementById('inline-pic-modal-title');
+            const saveBtn = document.getElementById('btn-save-inline-pic');
+
+            if (isEdit) {
+                const select = document.getElementById('contact-select');
+                const contactId = select.value;
+                const contact = (window.customerContactsData || []).find(c => c.id == contactId);
+                if (!contact) {
+                    alert('Silakan pilih PIC yang valid untuk diedit.');
+                    return;
+                }
+                editingContactId = contact.id;
+                document.getElementById('inline_pic_name').value = contact.name || '';
+                document.getElementById('inline_pic_position').value = contact.position || '';
+                document.getElementById('inline_pic_phone').value = contact.phone || '';
+                document.getElementById('inline_pic_email').value = contact.email || '';
+                modalTitle.innerText = 'Edit Kontak PIC';
+                saveBtn.innerText = 'Simpan Perubahan';
+            } else {
+                editingContactId = null;
+                document.getElementById('inline-pic-form').reset();
+                modalTitle.innerText = 'Tambah PIC Instan';
+                saveBtn.innerText = 'Simpan PIC';
+            }
+
             modal.classList.remove('hidden');
             modal.classList.add('flex');
             document.getElementById('inline_pic_name').focus();
@@ -884,8 +934,13 @@
                 _token: '{{ csrf_token() }}'
             };
 
-            fetch(`/api/customers/${customerId}/contacts`, {
-                method: 'POST',
+            const url = isEditingPic
+                ? `/api/customers/${customerId}/contacts/${editingContactId}`
+                : `/api/customers/${customerId}/contacts`;
+            const method = isEditingPic ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
@@ -896,16 +951,30 @@
             .then(res => res.json())
             .then(data => {
                 btn.disabled = false;
-                btn.innerText = 'Simpan PIC';
+                btn.innerText = isEditingPic ? 'Simpan Perubahan' : 'Simpan PIC';
                 if (data.status === 'success') {
                     const select = document.getElementById('contact-select');
-                    const option = document.createElement('option');
-                    option.value = data.contact.id;
-                    option.text = data.contact.name + (data.contact.position ? ` (${data.contact.position})` : '');
-                    option.selected = true;
-                    select.appendChild(option);
+                    const label = data.contact.name + (data.contact.position ? ` (${data.contact.position})` : '');
+                    
+                    if (isEditingPic) {
+                        const existingOpt = select.querySelector(`option[value="${data.contact.id}"]`);
+                        if (existingOpt) existingOpt.text = label;
+                        const idx = (window.customerContactsData || []).findIndex(c => c.id == data.contact.id);
+                        if (idx !== -1) window.customerContactsData[idx] = data.contact;
+                    } else {
+                        if (select.options.length === 1 && !select.options[0].value) {
+                            select.innerHTML = '';
+                        }
+                        const option = document.createElement('option');
+                        option.value = data.contact.id;
+                        option.text = label;
+                        option.selected = true;
+                        select.appendChild(option);
+                        if (!window.customerContactsData) window.customerContactsData = [];
+                        window.customerContactsData.push(data.contact);
+                    }
                     select.value = data.contact.id;
-                    select.dispatchEvent(new Event('change'));
+                    checkSelectedPic();
                     closeInlinePicModal();
                 } else {
                     alert('Gagal menyimpan kontak PIC: ' + (data.message || 'Terjadi kesalahan'));
@@ -913,19 +982,19 @@
             })
             .catch(err => {
                 btn.disabled = false;
-                btn.innerText = 'Simpan PIC';
+                btn.innerText = isEditingPic ? 'Simpan Perubahan' : 'Simpan PIC';
                 alert('Gagal menyimpan kontak PIC');
             });
         }
     </script>
 
-    {{-- Modal Tambah PIC Instan (Blueprint 1.2) --}}
+    {{-- Modal Tambah / Edit PIC Instan (Blueprint 1.2) --}}
     <div id="inline-pic-modal" class="fixed inset-0 z-50 bg-black/50 hidden items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
             <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
                 <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
-                    Tambah PIC Instan
+                    <span id="inline-pic-modal-title">Tambah PIC Instan</span>
                 </h3>
                 <button type="button" onclick="closeInlinePicModal()" class="text-slate-400 hover:text-slate-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

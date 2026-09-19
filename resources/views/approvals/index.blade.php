@@ -109,10 +109,14 @@
                             {{ $rfq->sales_name }}
                         </td>
                         <td class="py-3 font-bold" style="color: var(--accent-blue);">
-                            Rp {{ number_format($rfq->items->sum('price_after_margin'), 0, ',', '.') }}
+                            Rp {{ number_format($rfq->grand_total, 0, ',', '.') }}
                         </td>
                         <td class="py-3 text-right">
                             <div class="flex justify-end gap-2 items-center">
+                                <a href="{{ route('rfq.price_form', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(2,132,199,0.3); color: #0284c7;" title="Edit / Sesuaikan HPP">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    Edit HPP
+                                </a>
                                 <a href="{{ route('rfq.show', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(37,99,235,0.3); color: var(--accent-blue);" title="Review Detail">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Review
