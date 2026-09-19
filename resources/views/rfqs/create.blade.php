@@ -11,8 +11,8 @@
             </svg>
         </a>
         <div>
-            <h1 class="text-xl font-bold" style="color: var(--text-primary);">Buat RFQ Baru</h1>
-            <p class="text-sm mt-0.5" style="color: var(--text-muted);">Buat request quotation untuk klien</p>
+            <h1 class="text-xl font-bold" style="color: var(--text-primary);">{{ request('type') === 'Projek' ? 'Buat RFQ Projek' : 'Buat RFQ Baru' }}</h1>
+            <p class="text-sm mt-0.5" style="color: var(--text-muted);">{{ request('type') === 'Projek' ? 'Buat RFQ projek dengan 3 blok kategori dan pricing langsung' : 'Buat request quotation untuk klien' }}</p>
         </div>
     </div>
 
@@ -471,7 +471,7 @@
         }
         
         function rfqForm() {
-            let initialType = '{{ old("type", "Non Projek") }}';
+            let initialType = '{{ old("type", request("type", "Non Projek")) }}';
             let nonProj = [];
             let catItems = {
                 'Hardware': [],
@@ -481,8 +481,23 @@
 
             let globId = 1;
 
-            // OLD_ITEMS is empty for create, but keep logic similar to edit
-            if (initialType !== 'Projek') {
+            // Initialize default items based on type
+            if (initialType === 'Projek') {
+                catItems['Hardware'].push({
+                    id: globId++,
+                    product_name: '',
+                    qty: 1,
+                    unit: '',
+                    detail_item: '',
+                    description: '',
+                    hpp: '',
+                    ongkir_pedia: '',
+                    ongkir_pelanggan: '',
+                    margin: 25,
+                    ceiling: '10000',
+                    validity_days: 7
+                });
+            } else {
                 nonProj.push({ id: globId++, product_name: '', qty: 1, unit: '', description: '' });
             }
 
@@ -497,6 +512,17 @@
                     { name: 'Jasa Pemasangan', label: 'II. Jasa Pemasangan', items: catItems['Jasa Pemasangan'] },
                     { name: 'Material Support', label: 'III. Material Support', items: catItems['Material Support'] }
                 ],
+                
+                init() {
+                    this.$watch('type', val => {
+                        if (val === 'Projek') {
+                            const total = this.categories.reduce((acc, c) => acc + c.items.length, 0);
+                            if (total === 0) {
+                                this.addProjekItem('Hardware');
+                            }
+                        }
+                    });
+                },
                 
                 addNonProjekItem() {
                     this.globalId++;

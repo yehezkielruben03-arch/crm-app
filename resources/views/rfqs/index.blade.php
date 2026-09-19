@@ -13,7 +13,7 @@
         </div>
         <div class="flex items-center gap-2">
             @if(in_array(auth()->user()->role, ['Admin', 'Super Admin']))
-            <a href="{{ route('rfq.create_project') }}"
+            <a href="{{ route('rfq.create', ['type' => 'Projek']) }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-md"
                style="background: linear-gradient(135deg, var(--accent-emerald), #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.30);">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

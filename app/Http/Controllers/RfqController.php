@@ -47,8 +47,7 @@ class RfqController extends Controller
     public function createProject()
     {
         abort_if(!$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdmin(), 403);
-        $customers = Customer::where('status', 'Active')->orderBy('company_name')->get();
-        return view('rfqs.create_project', compact('customers'));
+        return redirect()->route('rfq.create', ['type' => 'Projek']);
     }
 
     public function storeProject(Request $request)
@@ -230,6 +229,10 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
+            $status = ($this->authUser()->isAdminOrAbove() && $validated['type'] === 'Projek')
+                ? Rfq::STATUS_PENDING_LEADER
+                : Rfq::STATUS_PENDING_ADMIN;
+
             $rfq = Rfq::create([
                 'rfq_number'          => Rfq::generateRfqNumber(),
                 'customer_id'         => $customer->id,
@@ -242,7 +245,7 @@ class RfqController extends Controller
                 'sales_name'          => $salesName,
                 'rfq_date'            => now()->format('Y-m-d'),
                 'notes'               => $validated['notes'] ?? null,
-                'status'              => Rfq::STATUS_PENDING_ADMIN,
+                'status'              => $status,
             ]);
 
             foreach ($validated['items'] as $item) {
@@ -294,24 +297,37 @@ class RfqController extends Controller
         }
 
         // ============================================================
-        // EVENT 1 — Sales selesai membuat RFQ (Non-Projek)
-        // → Notifikasi + tanda merah di lonceng ADMIN PURCHASE
+        // EVENT 1 — Notifikasi RFQ Baru
+        // → Leader jika RFQ Projek oleh Admin, atau Admin jika dibuat oleh Sales
         // ============================================================
         try {
-            $recipients = User::whereIn('role', [
-                'Admin Purchase',
-                'Admin',
-                'Super Admin',
-            ])->get();
+            if ($status === Rfq::STATUS_PENDING_LEADER) {
+                $leaders = User::where('role', 'Leader')->get();
+                foreach ($leaders as $leader) {
+                    Notification::send(
+                        userId:  $leader->id,
+                        type:    'warning',
+                        title:   'Approval Harga RFQ Projek',
+                        message: 'Admin telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+            } else {
+                $recipients = User::whereIn('role', [
+                    'Admin Purchase',
+                    'Admin',
+                    'Super Admin',
+                ])->get();
 
-            foreach ($recipients as $recipient) {
-                Notification::send(
-                    userId:  $recipient->id,
-                    type:    'warning',
-                    title:   'RFQ Baru Diterima',
-                    message: 'RFQ Baru diterima dari Sales ' . $rfq->sales_name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.',
-                    link:    route('rfq.show', $rfq)
-                );
+                foreach ($recipients as $recipient) {
+                    Notification::send(
+                        userId:  $recipient->id,
+                        type:    'warning',
+                        title:   'RFQ Baru Diterima',
+                        message: 'RFQ Baru diterima dari Sales ' . $rfq->sales_name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
             }
         } catch (\Throwable $e) {
             \Log::warning('Gagal mengirim notifikasi RFQ baru: ' . $e->getMessage());
