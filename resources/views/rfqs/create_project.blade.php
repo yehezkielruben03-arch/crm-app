@@ -188,22 +188,29 @@
                             </div>
 
                             {{-- Baris 3: Ceiling --}}
+                            <datalist id="ceiling-options">
+                                <option value="1">1 - Tanpa Pembulatan</option>
+                                <option value="10">10 - Puluhan</option>
+                                <option value="100">100 - Ratusan</option>
+                                <option value="1000">1.000 - Ribuan</option>
+                                <option value="5000">5.000 - Rp 5.000</option>
+                                <option value="10000">10.000 - Puluh Ribuan</option>
+                                <option value="50000">50000 - Rp 50.000</option>
+                                <option value="100000">100.000 - Rp 100.000</option>
+                                <option value="500000">500.000 - Rp 500.000</option>
+                            </datalist>
                             <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 mb-3">
-                                <div class="sm:col-span-3">
+                                <div class="sm:col-span-5">
                                     <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Ceiling (Pembulatan)</label>
-                                    <select name="items[0][ceiling]"
-                                        style="width:100%;padding:0.85rem 0.95rem;border-radius:1rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);height:3.4rem;box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
+                                    <div class="flex items-center gap-1 mb-1.5">
+                                        <button type="button" onclick="document.getElementById('ceiling_0').value = 1" class="px-2 py-0.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300">1 (Bebas)</button>
+                                        <button type="button" onclick="document.getElementById('ceiling_0').value = 1000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">1k (Ribuan)</button>
+                                        <button type="button" onclick="document.getElementById('ceiling_0').value = 10000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">10k (Puluh Rb)</button>
+                                        <button type="button" onclick="document.getElementById('ceiling_0').value = 50000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">50k</button>
+                                    </div>
+                                    <input type="number" id="ceiling_0" name="items[0][ceiling]" list="ceiling-options" value="1000" min="1" step="1" placeholder="1000"
+                                        style="width:100%;padding:0.65rem 0.95rem;border-radius:0.75rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
                                         onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='rgba(148,163,184,0.24)'">
-                                        <option value="1">Tanpa Pembulatan</option>
-                                        <option value="10">Puluhan</option>
-                                        <option value="100">Ratusan</option>
-                                        <option value="1000" selected>Ribuan</option>
-                                        <option value="5000">Rp 5.000</option>
-                                        <option value="10000">Puluh Ribuan</option>
-                                        <option value="50000">Rp 50.000</option>
-                                        <option value="100000">Rp 100.000</option>
-                                        <option value="500000">Rp 500.000</option>
-                                    </select>
                                 </div>
                             </div>
 
@@ -350,21 +357,17 @@
                 </div>
 
                 <div class="grid grid-cols-2 sm:grid-cols-12 gap-3 mb-3">
-                    <div class="sm:col-span-3">
+                    <div class="sm:col-span-5">
                         <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Ceiling (Pembulatan)</label>
-                        <select name="items[${idx}][ceiling]"
-                            style="width:100%;padding:0.85rem 0.95rem;border-radius:1rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);height:3.4rem;box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
-                            onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='rgba(148,163,184,0.24)'>
-                            <option value="1">Tanpa Pembulatan</option>
-                            <option value="10">Puluhan</option>
-                            <option value="100">Ratusan</option>
-                            <option value="1000" selected>Ribuan</option>
-                            <option value="5000">Rp 5.000</option>
-                            <option value="10000">Puluh Ribuan</option>
-                            <option value="50000">Rp 50.000</option>
-                            <option value="100000">Rp 100.000</option>
-                            <option value="500000">Rp 500.000</option>
-                        </select>
+                        <div class="flex items-center gap-1 mb-1.5">
+                            <button type="button" onclick="document.getElementById('ceiling_${idx}').value = 1" class="px-2 py-0.5 text-[11px] bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300">1 (Bebas)</button>
+                            <button type="button" onclick="document.getElementById('ceiling_${idx}').value = 1000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">1k (Ribuan)</button>
+                            <button type="button" onclick="document.getElementById('ceiling_${idx}').value = 10000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">10k (Puluh Rb)</button>
+                            <button type="button" onclick="document.getElementById('ceiling_${idx}').value = 50000" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded border border-blue-200 font-semibold">50k</button>
+                        </div>
+                        <input type="number" id="ceiling_${idx}" name="items[${idx}][ceiling]" list="ceiling-options" value="1000" min="1" step="1" placeholder="1000"
+                            style="width:100%;padding:0.65rem 0.95rem;border-radius:0.75rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
+                            onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='rgba(148,163,184,0.24)'">
                     </div>
                 </div>
 

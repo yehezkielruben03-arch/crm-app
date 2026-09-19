@@ -117,6 +117,7 @@ class RfqController extends Controller
                     'ongkir_pelanggan'   => $ongkir_pelanggan,
                     'margin_type'        => 'percentage', // Default untuk projek
                     'margin_value'       => $marginPct,
+                    'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
                     'validity_days'      => $itemData['validity_days'] ?? 7,
                     'price_after_margin' => 0, // Akan dihitung ulang di bawah
@@ -268,6 +269,7 @@ class RfqController extends Controller
                     'ongkir_pelanggan'   => $ongkirPelanggan,
                     'margin'             => $marginPct,
                     'ceiling'            => $ceiling,
+                    'custom_ceiling'     => $ceiling,
                     'validity_days'      => (int)($item['validity_days'] ?? 7),
                     'price_after_margin' => $priceAfterMargin,
                 ]);
@@ -467,6 +469,7 @@ class RfqController extends Controller
                     'ongkir_pelanggan'   => $ongkirPelanggan,
                     'margin'             => $marginPct,
                     'ceiling'            => $ceiling,
+                    'custom_ceiling'     => $ceiling,
                     'validity_days'      => (int)($item['validity_days'] ?? 7),
                     'price_after_margin' => $priceAfterMargin,
                 ]);
