@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="space-y-6">
 
         {{-- Header Breadcrumb & Actions --}}
         <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between animate-in">
@@ -140,242 +140,249 @@
                             </div>
                         </div>
 
-                        {{-- Card Body: 4 Clean Columns Grid --}}
-                        <div class="p-5 lg:p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+                        {{-- Card Body: 3 Clean Balanced Columns Grid --}}
+                        <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                             
-                            {{-- COL 1: Info Barang & Vendor (4 cols) --}}
-                            <div class="lg:col-span-4 space-y-3">
-                                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                        1. Deskripsi &amp; Vendor
-                                    </span>
-                                </div>
-
-                                <input type="hidden" name="items[{{ $item->id }}][category]" value="{{ $categoryName }}">
-
-                                <div>
-                                    <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Nama Item / Produk <span class="text-rose-500">*</span></label>
-                                    <input type="text" name="items[{{ $item->id }}][product_name]" value="{{ old('items.'.$item->id.'.product_name', $item->product_name) }}"
-                                           class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                           oninput="document.getElementById('display-name-{{ $item->id }}').innerText = this.value" required>
-                                </div>
-
-                                <div>
-                                    <div class="flex items-center justify-between mb-1">
-                                        <label class="text-[11px] font-semibold text-slate-600 block">Vendor Supplier</label>
-                                        @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
-                                            <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
-                                                ⚡ Tarif MP Pedia (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
-                                            </button>
-                                        @endif
+                            {{-- COL 1: Info Barang & Vendor --}}
+                            <div class="space-y-3 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            1. Deskripsi &amp; Vendor
+                                        </span>
                                     </div>
-                                    <select name="items[{{ $item->id }}][vendor_id]" class="w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
-                                        <option value="">-- Tanpa Vendor / Non-Vendor --</option>
-                                        @foreach($vendors as $v)
-                                            <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>
-                                                {{ $v->nama_vendor }} ({{ $v->kategori }})
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                </div>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Qty <span class="text-rose-500">*</span></label>
-                                        <input type="number" name="items[{{ $item->id }}][qty]" id="qty-{{ $item->id }}" value="{{ old('items.'.$item->id.'.qty', (int) $item->qty) }}"
-                                               class="w-full text-xs font-bold text-center border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                               oninput="document.getElementById('badge-qty-{{ $item->id }}').innerText = this.value" required min="1">
-                                    </div>
-                                    <div>
-                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
-                                        <input type="text" name="items[{{ $item->id }}][unit]" value="{{ old('items.'.$item->id.'.unit', $item->unit) }}"
-                                               class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Pcs">
-                                    </div>
-                                </div>
+                                    <input type="hidden" name="items[{{ $item->id }}][category]" value="{{ $categoryName }}">
 
-                                <div class="space-y-2">
                                     <div>
-                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Deskripsi Singkat</label>
-                                        <textarea name="items[{{ $item->id }}][description]" rows="1"
-                                                  class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                                  placeholder="Deskripsi singkat barang...">{{ old('items.'.$item->id.'.description', $item->description) }}</textarea>
+                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Nama Item / Produk <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="items[{{ $item->id }}][product_name]" value="{{ old('items.'.$item->id.'.product_name', $item->product_name) }}"
+                                               class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                               oninput="document.getElementById('display-name-{{ $item->id }}').innerText = this.value" required>
                                     </div>
+
                                     <div>
-                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi Detail</label>
-                                        <textarea name="items[{{ $item->id }}][detail_item]" rows="2"
-                                                  class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs font-mono text-[11px]"
-                                                  placeholder="Part number, spesifikasi teknis...">{{ old('items.'.$item->id.'.detail_item', $item->detail_item) }}</textarea>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-[11px] font-semibold text-slate-600 block">Vendor Supplier</label>
+                                            @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
+                                                <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
+                                                    ⚡ Tarif MP Pedia (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
+                                                </button>
+                                            @endif
+                                        </div>
+                                        <select name="items[{{ $item->id }}][vendor_id]" class="w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                                            <option value="">-- Tanpa Vendor / Non-Vendor --</option>
+                                            @foreach($vendors as $v)
+                                                <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>
+                                                    {{ $v->nama_vendor }} ({{ $v->kategori }})
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-2.5">
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Qty <span class="text-rose-500">*</span></label>
+                                            <input type="number" name="items[{{ $item->id }}][qty]" id="qty-{{ $item->id }}" value="{{ old('items.'.$item->id.'.qty', (int) $item->qty) }}"
+                                                   class="w-full text-xs font-bold text-center border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                                   oninput="document.getElementById('badge-qty-{{ $item->id }}').innerText = this.value" required min="1">
+                                        </div>
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
+                                            <input type="text" name="items[{{ $item->id }}][unit]" value="{{ old('items.'.$item->id.'.unit', $item->unit) }}"
+                                                   class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Pcs">
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Deskripsi Singkat</label>
+                                            <textarea name="items[{{ $item->id }}][description]" rows="1"
+                                                      class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                                      placeholder="Deskripsi singkat barang...">{{ old('items.'.$item->id.'.description', $item->description) }}</textarea>
+                                        </div>
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi Detail</label>
+                                            <textarea name="items[{{ $item->id }}][detail_item]" rows="2"
+                                                      class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs font-mono text-[11px]"
+                                                      placeholder="Part number, spesifikasi teknis...">{{ old('items.'.$item->id.'.detail_item', $item->detail_item) }}</textarea>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {{-- COL 2: Modal & Biaya Logistik (HPP Components) (3 cols) --}}
-                            <div class="lg:col-span-3 space-y-3 bg-slate-50/50 p-4 rounded-xl border border-slate-200/60">
-                                <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
-                                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                        2. Biaya Modal (HPP)
-                                    </span>
-                                </div>
-
-                                <div>
-                                    <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
-                                    <div class="relative rounded-xl shadow-2xs">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
-                                        <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}"
-                                               value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}"
-                                               class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                               required min="0" placeholder="0">
+                            {{-- COL 2: Modal & Biaya Logistik (HPP Components) --}}
+                            <div class="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                            2. Biaya Modal (HPP)
+                                        </span>
                                     </div>
-                                </div>
 
-                                <div class="space-y-2">
                                     <div>
-                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block flex items-center justify-between">
-                                            <span>Ongkir ke Pedia <span class="text-[10px] text-slate-400 font-normal">(dari Vendor)</span></span>
-                                            <span class="text-[10px] text-slate-400">Inbound</span>
-                                        </label>
+                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
                                         <div class="relative rounded-xl shadow-2xs">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                            <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.biaya_kirim', (float) ($item->biaya_kirim ?? 0)) }}"
-                                                   class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                                   min="0" placeholder="0">
+                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                                            <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}"
+                                                   value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}"
+                                                   class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                   required min="0" placeholder="0">
                                         </div>
                                     </div>
 
-                                    <div>
-                                        <label class="text-[11px] font-semibold text-blue-700 mb-1 block flex items-center justify-between">
-                                            <span>Ongkir dari Pedia <span class="text-[10px] text-blue-500 font-normal">(ke Customer)</span></span>
-                                            <span class="text-[10px] text-blue-500 font-normal">Outbound</span>
-                                        </label>
-                                        <div class="relative rounded-xl shadow-2xs">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
-                                            <input type="number" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.ongkir_pedia', (float) (($item->ongkir_pedia && $item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0))) }}"
-                                                   class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                                   min="0">
+                                    <div class="space-y-2.5">
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
+                                                <span>Ongkir ke Pedia <span class="text-[10px] text-slate-400 font-normal">(dari Vendor)</span></span>
+                                                <span class="text-[10px] bg-slate-200/80 px-1.5 py-0.5 rounded text-slate-600 font-mono">Inbound</span>
+                                            </label>
+                                            <div class="relative rounded-xl shadow-2xs">
+                                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
+                                                <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}"
+                                                       value="{{ old('items.'.$item->id.'.biaya_kirim', (float) ($item->biaya_kirim ?? 0)) }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                       min="0" placeholder="0">
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <label class="text-[11px] font-semibold text-slate-500 mb-1 block flex items-center justify-between">
-                                            <span>Fee End-User <span class="text-[10px] text-slate-400 font-normal">(Opsional)</span></span>
-                                        </label>
-                                        <div class="relative rounded-xl shadow-2xs">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                            <input type="number" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.fee_eu', (float) ($item->fee_eu ?? 0)) }}"
-                                                   class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                                   min="0" placeholder="0">
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-blue-700 mb-1 flex items-center justify-between">
+                                                <span>Ongkir dari Pedia <span class="text-[10px] text-blue-500 font-normal">(ke Customer)</span></span>
+                                                <span class="text-[10px] bg-blue-100 px-1.5 py-0.5 rounded text-blue-700 font-mono font-medium">Outbound</span>
+                                            </label>
+                                            <div class="relative rounded-xl shadow-2xs">
+                                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
+                                                <input type="number" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}"
+                                                       value="{{ old('items.'.$item->id.'.ongkir_pedia', (float) (($item->ongkir_pedia && $item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0))) }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
+                                                       min="0">
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-500 mb-1 block flex items-center justify-between">
+                                                <span>Fee End-User <span class="text-[10px] text-slate-400 font-normal">(Opsional)</span></span>
+                                            </label>
+                                            <div class="relative rounded-xl shadow-2xs">
+                                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
+                                                <input type="number" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}"
+                                                       value="{{ old('items.'.$item->id.'.fee_eu', (float) ($item->fee_eu ?? 0)) }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                       min="0" placeholder="0">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {{-- Total Modal Box --}}
-                                <div class="p-3 bg-blue-50/80 rounded-xl border border-blue-200/80 flex items-center justify-between">
+                                <div class="p-3 bg-blue-50/90 rounded-xl border border-blue-200/90 flex items-center justify-between mt-2">
                                     <div>
-                                        <span class="text-[10px] font-bold text-blue-700 uppercase tracking-wider block">Total Modal Satuan</span>
-                                        <span class="text-[10px] text-slate-500">HPP + Ongkir + Fee</span>
+                                        <span class="text-[10px] font-bold text-blue-800 uppercase tracking-wider block">Total Modal Satuan</span>
+                                        <span class="text-[10px] text-slate-500 font-normal">HPP + Ongkir + Fee</span>
                                     </div>
                                     <div class="text-right">
-                                        <span class="text-sm font-bold font-mono text-blue-900">Rp <span id="total-modal-{{ $item->id }}">0</span></span>
+                                        <span class="text-sm font-bold font-mono text-blue-950">Rp <span id="total-modal-{{ $item->id }}">0</span></span>
                                     </div>
                                 </div>
                             </div>
 
-                            {{-- COL 3: Margin & Ceiling (2.5 cols) --}}
-                            <div class="lg:col-span-2.5 space-y-3">
-                                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
-                                    <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                                        3. Margin &amp; Ceiling
-                                    </span>
-                                </div>
+                            {{-- COL 3: Margin, Ceiling & Penawaran Klien --}}
+                            <div class="space-y-3 flex flex-col justify-between">
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                                            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                                            3. Margin, Ceiling &amp; Penawaran
+                                        </span>
+                                    </div>
 
-                                <div>
-                                    <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Tipe &amp; Nilai Margin</label>
-                                    <div class="grid grid-cols-5 gap-1.5">
-                                        <div class="col-span-2">
-                                            <select name="items[{{ $item->id }}][margin_type]" id="margin-type-{{ $item->id }}"
-                                                    class="w-full text-xs font-bold text-slate-700 border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
-                                                <option value="percentage" {{ ($item->margin_type ?? 'percentage') == 'percentage' ? 'selected' : '' }}>%</option>
-                                                <option value="nominal" {{ ($item->margin_type ?? 'percentage') == 'nominal' ? 'selected' : '' }}>Rp</option>
-                                            </select>
+                                    {{-- Margin & Profit row --}}
+                                    <div class="grid grid-cols-12 gap-2">
+                                        <div class="col-span-6">
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Tipe &amp; Nilai Margin</label>
+                                            <div class="flex rounded-xl shadow-2xs overflow-hidden border border-slate-200 bg-white">
+                                                <select name="items[{{ $item->id }}][margin_type]" id="margin-type-{{ $item->id }}"
+                                                        class="text-xs font-bold text-slate-700 border-0 bg-slate-50 focus:ring-0 w-16 py-1.5 pl-2 pr-6 calc-trigger">
+                                                    <option value="percentage" {{ ($item->margin_type ?? 'percentage') == 'percentage' ? 'selected' : '' }}>%</option>
+                                                    <option value="nominal" {{ ($item->margin_type ?? 'percentage') == 'nominal' ? 'selected' : '' }}>Rp</option>
+                                                </select>
+                                                <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}"
+                                                       value="{{ old('items.'.$item->id.'.margin_value', (float) (($item->margin_value && $item->margin_value > 0) ? $item->margin_value : (($item->margin && $item->margin > 0) ? $item->margin : 12.5))) }}"
+                                                       class="w-full text-xs font-bold text-right border-0 border-l border-slate-200 focus:ring-0 py-1.5 pr-2.5 calc-trigger"
+                                                       required min="0" step="any">
+                                            </div>
                                         </div>
-                                        <div class="col-span-3">
-                                            <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.margin_value', (float) (($item->margin_value && $item->margin_value > 0) ? $item->margin_value : (($item->margin && $item->margin > 0) ? $item->margin : 12.5))) }}"
-                                                   class="w-full text-xs font-bold text-right border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                                   required min="0" step="any">
+
+                                        <div class="col-span-6">
+                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Untung / Unit</label>
+                                            <div class="p-2 bg-emerald-50/90 border border-emerald-200/90 rounded-xl flex items-center justify-between h-[36px]">
+                                                <span class="text-[10px] font-bold text-emerald-700 uppercase">Profit</span>
+                                                <span class="text-xs font-bold font-mono text-emerald-800" id="margin-rp-preview-{{ $item->id }}">Rp 0</span>
+                                            </div>
+                                            <input type="hidden" id="margin-rp-raw-{{ $item->id }}" value="0">
+                                        </div>
+                                    </div>
+
+                                    {{-- Ceiling Section --}}
+                                    <div>
+                                        <div class="flex items-center justify-between mb-1">
+                                            <label class="text-[11px] font-semibold text-slate-600">Pembulatan (Ceiling)</label>
+                                            <span class="text-[10px] text-slate-400">Bulatkan harga ke atas</span>
+                                        </div>
+                                        <div class="grid grid-cols-4 gap-1.5">
+                                            <button type="button" onclick="setCeiling('{{ $item->id }}', 1)" id="btn-ceil-{{ $item->id }}-1"
+                                                    class="ceil-btn-{{ $item->id }} py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">1</button>
+                                            <button type="button" onclick="setCeiling('{{ $item->id }}', 1000)" id="btn-ceil-{{ $item->id }}-1000"
+                                                    class="ceil-btn-{{ $item->id }} py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">1k</button>
+                                            <button type="button" onclick="setCeiling('{{ $item->id }}', 10000)" id="btn-ceil-{{ $item->id }}-10000"
+                                                    class="ceil-btn-{{ $item->id }} py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">10k</button>
+                                            <button type="button" onclick="setCeiling('{{ $item->id }}', 50000)" id="btn-ceil-{{ $item->id }}-50000"
+                                                    class="ceil-btn-{{ $item->id }} py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">50k</button>
+                                        </div>
+                                        <div class="relative rounded-xl shadow-2xs mt-1.5">
+                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
+                                            <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}"
+                                                   value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? $item->ceiling ?? 50000)) }}"
+                                                   class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
+                                                   min="0" placeholder="Custom ceiling">
                                         </div>
                                     </div>
                                 </div>
 
-                                {{-- Estimasi Untung Box --}}
-                                <div>
-                                    <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Estimasi Untung / Unit</label>
-                                    <div class="p-2.5 bg-emerald-50/80 border border-emerald-200/90 rounded-xl flex items-center justify-between">
-                                        <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Profit</span>
-                                        <span class="text-xs font-bold font-mono text-emerald-800" id="margin-rp-preview-{{ $item->id }}">Rp 0</span>
-                                    </div>
-                                    <input type="hidden" id="margin-rp-raw-{{ $item->id }}" value="0">
-                                </div>
-
-                                {{-- Ceiling Section --}}
-                                <div class="space-y-1.5">
-                                    <label class="text-[11px] font-semibold text-slate-600 block">Pembulatan (Ceiling)</label>
-                                    <div class="grid grid-cols-4 gap-1">
-                                        <button type="button" onclick="setCeiling('{{ $item->id }}', 1)" id="btn-ceil-{{ $item->id }}-1"
-                                                class="ceil-btn-{{ $item->id }} py-1 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">1</button>
-                                        <button type="button" onclick="setCeiling('{{ $item->id }}', 1000)" id="btn-ceil-{{ $item->id }}-1000"
-                                                class="ceil-btn-{{ $item->id }} py-1 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">1k</button>
-                                        <button type="button" onclick="setCeiling('{{ $item->id }}', 10000)" id="btn-ceil-{{ $item->id }}-10000"
-                                                class="ceil-btn-{{ $item->id }} py-1 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">10k</button>
-                                        <button type="button" onclick="setCeiling('{{ $item->id }}', 50000)" id="btn-ceil-{{ $item->id }}-50000"
-                                                class="ceil-btn-{{ $item->id }} py-1 text-[11px] font-semibold rounded-lg border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 transition shadow-2xs text-center">50k</button>
-                                    </div>
-                                    <div class="relative rounded-xl shadow-2xs mt-1">
-                                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[11px] font-medium text-slate-400">Rp</span>
-                                        <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}"
-                                               value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? $item->ceiling ?? 50000)) }}"
-                                               class="w-full pl-8 pr-2.5 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                               min="0" placeholder="Custom ceiling">
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- COL 4: Executive Pricing Summary Card (2.5 cols) --}}
-                            <div class="lg:col-span-2.5 flex flex-col justify-between p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700">
-                                <div>
-                                    <div class="flex items-center justify-between mb-1.5">
+                                {{-- Executive Pricing Result Card --}}
+                                <div class="p-4 rounded-xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700 mt-2">
+                                    <div class="flex items-center justify-between mb-1">
                                         <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                                             Harga Jual Klien
                                         </span>
-                                        <span class="text-[10px] text-slate-400 font-mono">Per Unit</span>
+                                        <span class="text-[10px] bg-slate-800/90 px-2 py-0.5 rounded border border-slate-700 text-slate-300 font-mono">Per Unit</span>
                                     </div>
 
-                                    <div class="text-xl font-bold font-mono text-emerald-400 tracking-tight my-1">
-                                        Rp <span id="final-price-{{ $item->id }}">0</span>
+                                    <div class="text-2xl font-extrabold font-mono text-emerald-400 tracking-tight my-1.5 flex items-baseline gap-1">
+                                        <span class="text-base text-emerald-400/80">Rp</span>
+                                        <span id="final-price-{{ $item->id }}">0</span>
                                     </div>
 
-                                    <p class="text-[10px] text-slate-400 mt-1 leading-snug">
+                                    <p class="text-[10px] text-slate-400 leading-snug">
                                         Setelah margin &amp; pembulatan ceiling.
                                     </p>
+
+                                    <div class="pt-2.5 border-t border-slate-700/80 mt-2.5 flex items-center justify-between text-xs">
+                                        <div>
+                                            <span class="text-slate-400 block text-[10px]">Subtotal Item:</span>
+                                            <span class="font-bold font-mono text-white text-sm">Rp <span id="final-total-{{ $item->id }}">0</span></span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-slate-400 block text-[10px]">Est. Laba Item:</span>
+                                            <span class="font-semibold font-mono text-emerald-300 text-xs" id="final-profit-row-{{ $item->id }}">+Rp 0</span>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                <div class="pt-3 border-t border-slate-700/80 mt-4 space-y-1.5">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-400">Subtotal Baris:</span>
-                                        <span class="font-bold font-mono text-white text-sm">Rp <span id="final-total-{{ $item->id }}">0</span></span>
-                                    </div>
-                                    <div class="flex justify-between items-center text-[11px]">
-                                        <span class="text-slate-400">Estimasi Untung:</span>
-                                        <span class="font-semibold font-mono text-emerald-300" id="final-profit-row-{{ $item->id }}">+Rp 0</span>
-                                    </div>
-                                </div>
                             </div>
 
                         </div>
