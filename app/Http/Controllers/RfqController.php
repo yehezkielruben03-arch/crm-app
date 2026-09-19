@@ -1006,6 +1006,18 @@ class RfqController extends Controller
             $this->clearDashboardCacheForSales($rfq->sales_id);
         }
 
+        // Kirim notifikasi ke Leader agar segera approve GOAL
+        $leaders = \App\Models\User::where('role', 'Leader')->get();
+        foreach ($leaders as $leader) {
+            \App\Models\Notification::send(
+                userId:  $leader->id,
+                type:    'warning',
+                title:   'PO Membutuhkan Approval GOAL',
+                message: 'Admin telah memverifikasi bukti PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu persetujuan GOAL dari Anda.',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
         return redirect()->route('rfq.show', $rfq)
             ->with('success', 'PO untuk RFQ ' . $rfq->rfq_number . ' berhasil diverifikasi. Menunggu approval Leader.');
     }
