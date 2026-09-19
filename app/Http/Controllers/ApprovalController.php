@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\PurchaseOrder;
+use App\Models\Rfq;
 use Illuminate\Http\Request;
 
 class ApprovalController extends Controller
@@ -28,6 +29,12 @@ class ApprovalController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('approvals.index', compact('pendingCustomers', 'pendingPOs', 'revisiPOs'));
+        // Get all RFQs that need Leader approval (Pending Leader)
+        $pendingRfqs = Rfq::with(['customer', 'sales', 'items'])
+            ->where('status', Rfq::STATUS_PENDING_LEADER)
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return view('approvals.index', compact('pendingCustomers', 'pendingPOs', 'revisiPOs', 'pendingRfqs'));
     }
 }

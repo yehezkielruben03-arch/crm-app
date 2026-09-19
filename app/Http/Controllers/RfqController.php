@@ -711,7 +711,7 @@ class RfqController extends Controller
         abort_if($rfq->status !== Rfq::STATUS_PENDING_LEADER, 403, 'RFQ hanya bisa di-approve saat status Pending Leader.');
 
         if (!$rfq->canTransitionTo(Rfq::STATUS_APPROVED)) {
-            return redirect()->route('rfq.show', $rfq)
+            return redirect()->back()
                 ->with('error', 'RFQ ini tidak bisa disetujui dari status saat ini.');
         }
 
@@ -729,7 +729,7 @@ class RfqController extends Controller
             );
         }
 
-        return redirect()->route('rfq.show', $rfq)
+        return redirect()->back()
             ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil disetujui. Dokumen Quotation sudah bisa di-generate.');
     }
 
@@ -739,11 +739,21 @@ class RfqController extends Controller
         abort_if($rfq->status !== Rfq::STATUS_PENDING_LEADER, 403, 'RFQ hanya bisa di-reject saat status Pending Leader.');
 
         if (!$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
-            return redirect()->route('rfq.show', $rfq)
+            return redirect()->back()
                 ->with('error', 'RFQ ini tidak bisa dikembalikan ke Admin Purchase dari status saat ini.');
         }
 
-        $rfq->update(['status' => Rfq::STATUS_PENDING_ADMIN]);
+        $validated = $request->validate([
+            'notes'          => 'nullable|string|max:2000',
+            'revision_notes' => 'nullable|string|max:2000',
+        ]);
+
+        $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
+
+        $rfq->update([
+            'status'         => Rfq::STATUS_PENDING_ADMIN,
+            'revision_notes' => $notes,
+        ]);
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
@@ -751,14 +761,26 @@ class RfqController extends Controller
             \App\Models\Notification::send(
                 $rfq->sales_id,
                 'error',
-                'Quotation Ditolak',
-                'Quotation ' . $rfq->rfq_number . ' ditolak oleh Leader. Harga perlu direvisi.',
+                'RFQ Perlu Revisi Harga',
+                'RFQ ' . $rfq->rfq_number . ' dikembalikan oleh Leader untuk revisi harga. Alasan: ' . ($notes ?: '-'),
                 route('rfq.show', $rfq)
             );
         }
 
-        return redirect()->route('rfq.show', $rfq)
-            ->with('error', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase.');
+        // Notif ke Admin Purchase
+        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'warning',
+                'Revisi HPP Diperlukan: ' . $rfq->rfq_number,
+                'Leader meminta revisi harga RFQ ' . $rfq->rfq_number . '. Catatan: ' . ($notes ?: '-'),
+                route('rfq.price_form', $rfq)
+            );
+        }
+
+        return redirect()->back()
+            ->with('warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
     }
 
     public function downloadQuotation(Rfq $rfq)

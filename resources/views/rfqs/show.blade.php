@@ -229,12 +229,12 @@
                 @endif
 
                 @if($rfq->revision_notes)
-                <div class="mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900">
-                    <div class="flex items-center gap-1.5 font-bold text-xs text-amber-800 mb-1">
-                        <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        Catatan Revisi Terakhir (Dari Sales):
+                <div class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-sm animate-in">
+                    <div class="flex items-center gap-2 font-bold text-sm text-amber-800 mb-1">
+                        <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Catatan Revisi dari Leader:
                     </div>
-                    <p class="text-xs text-amber-800 leading-relaxed">{{ $rfq->revision_notes }}</p>
+                    <p class="text-xs text-amber-800 leading-relaxed font-medium pl-7">{{ $rfq->revision_notes }}</p>
                 </div>
                 @endif
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 mt-4 pt-4" style="border-top: 1px solid #e2e8f0;">
@@ -445,26 +445,23 @@
 
             @if($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER && (auth()->user()->isLeader() || auth()->user()->isSuperAdmin()))
             <div class="flex flex-col gap-2">
-                <form action="{{ route('rfq.approve', $rfq) }}" method="POST">
+                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
-                        style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                        style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 14px rgba(5,150,105,0.35);">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        Approve RFQ
+                        Approve HPP
                     </button>
                 </form>
-                <form action="{{ route('rfq.reject', $rfq) }}" method="POST" onsubmit="return confirm('Yakin ingin mengembalikan RFQ ini ke Admin Purchase untuk revisi harga?');">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
-                        style="background: rgba(225,29,72,0.1); color: var(--accent-rose); border: 1px solid rgba(225,29,72,0.2);">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Tolak & Kembalikan
-                    </button>
-                </form>
+                <button type="button" onclick="openRejectModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}')" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
+                    style="background: rgba(225,29,72,0.1); color: var(--accent-rose); border: 1px solid rgba(225,29,72,0.2);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Reject / Minta Revisi
+                </button>
             </div>
             @endif
 
@@ -568,5 +565,58 @@
             @endif
         </div>
     </div>
+
+    <!-- MODAL REJECT RFQ -->
+    <div id="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Tolak & Minta Revisi HPP
+                </h3>
+                <button type="button" onclick="closeRejectModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-600 mb-4" id="rejectModalSubtitle">Masukkan catatan revisi untuk Admin Purchase:</p>
+            <form id="rejectForm" method="POST" action="">
+                @csrf
+                <div class="mb-4">
+                    <label for="modalRevisionNotes" class="block text-xs font-semibold text-gray-700 mb-1">Alasan / Catatan Revisi:</label>
+                    <textarea id="modalRevisionNotes" name="revision_notes" rows="4" required class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Margin item hardware terlalu tipis, tolong nego vendor turun 5%"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm">Kirim & Minta Revisi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openRejectModal(rfqId, rfqNumber) {
+            const modal = document.getElementById('rejectModal');
+            const form = document.getElementById('rejectForm');
+            const subtitle = document.getElementById('rejectModalSubtitle');
+            const textarea = document.getElementById('modalRevisionNotes');
+
+            form.action = '/rfqs/' + rfqId + '/reject';
+            subtitle.textContent = 'Masukkan catatan revisi untuk Admin Purchase terkait RFQ ' + rfqNumber + ':';
+            textarea.value = '';
+            modal.classList.remove('hidden');
+            setTimeout(() => textarea.focus(), 100);
+        }
+
+        function closeRejectModal() {
+            document.getElementById('rejectModal').classList.add('hidden');
+        }
+
+        // Close on backdrop click
+        document.getElementById('rejectModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeRejectModal();
+        });
+    </script>
 
 </x-app-layout>
