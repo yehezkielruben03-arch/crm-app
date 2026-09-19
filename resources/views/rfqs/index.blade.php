@@ -54,6 +54,7 @@
                 'Pending Leader' => 'Pending Leader',
                 'Approved' => 'Approved',
                 'Quotation Created' => 'Quotation Created',
+                'Quotation Sent' => 'Quotation Sent',
                 'PO Received (Pending Admin)' => 'PO Received',
                 'GOAL' => 'GOAL',
                 'Cancelled' => 'Cancelled',
@@ -110,7 +111,7 @@
                         <td>
                             @php
                                 $badgeClass = match($rfq->status) {
-                                    'Converted' => 'approved',
+                                    'Approved', 'Quotation Created', 'Quotation Sent', 'Converted', 'GOAL' => 'approved',
                                     'Cancelled' => 'rejected',
                                     default     => 'pending',
                                 };

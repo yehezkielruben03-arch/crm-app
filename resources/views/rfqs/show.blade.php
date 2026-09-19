@@ -169,7 +169,7 @@
         </div>
 
         <div class="flex gap-2">
-            @if(in_array($rfq->status, ['Pending Admin', 'Approved', 'Quotation Created']) && (auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
+            @if(in_array($rfq->status, ['Pending Admin', 'Approved', 'Quotation Created', 'Quotation Sent']) && (auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
                 <a href="{{ route('rfq.edit', $rfq) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.30);">
@@ -383,7 +383,7 @@
                 <div class="space-y-3">
                     @php
                         $badgeClass = match($rfq->status) {
-                            'Approved', 'Quotation Created' => 'approved',
+                            'Approved', 'Quotation Created', 'Quotation Sent' => 'approved',
                             'Cancelled' => 'rejected',
                             default     => 'pending',
                         };
@@ -465,7 +465,7 @@
             </div>
             @endif
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'GOAL']))
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent', 'GOAL']))
             <div class="flex gap-2 w-full">
                 <a href="{{ route('rfq.preview_quotation', $rfq) }}" target="_blank"
                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
@@ -486,6 +486,27 @@
                 </a>
             </div>
 
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created']))
+            <form action="{{ route('rfq.mark_quotation_sent', $rfq) }}" method="POST" class="w-full">
+                @csrf
+                <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
+                        style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                    Mark Quotation Sent to Client
+                </button>
+            </form>
+            @elseif($rfq->status === \App\Models\Rfq::STATUS_QUOTATION_SENT)
+            <div class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl"
+                 style="background: rgba(16,185,129,0.1); color: #059669; border: 1px solid rgba(16,185,129,0.25);">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                Quotation Sent to Client
+            </div>
+            @endif
+
             @if(auth()->user()->isSales() || auth()->user()->hasPermission('CRUD'))
             <a href="{{ route('rfq.edit_qty', $rfq) }}"
                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
@@ -496,7 +517,7 @@
                 Revisi QTY
             </a>
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created']))
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Upload PO Customer (Menjadi GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Jika klien setuju, silakan upload bukti PO di sini untuk diproses menjadi GOAL.</p>

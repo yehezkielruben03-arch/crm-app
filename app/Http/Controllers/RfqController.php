@@ -809,17 +809,14 @@ class RfqController extends Controller
 
     public function downloadQuotation(Rfq $rfq)
     {
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
 
         if ($rfq->status === Rfq::STATUS_APPROVED) {
-            if (!$rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
-                return redirect()->route('rfq.show', $rfq)
-                    ->with('error', 'Quotation belum bisa di-generate dari status RFQ saat ini.');
-            }
-
-            $rfq->update(['status' => Rfq::STATUS_QUOTATION_CREATED]);
-            if ($rfq->sales_id) {
-                $this->clearDashboardCacheForSales($rfq->sales_id);
+            if ($rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
+                $rfq->update(['status' => Rfq::STATUS_QUOTATION_CREATED]);
+                if ($rfq->sales_id) {
+                    $this->clearDashboardCacheForSales($rfq->sales_id);
+                }
             }
         }
 
@@ -829,14 +826,14 @@ class RfqController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount'));
 
-        $filename = str_replace('RFQ', 'QUO', $rfq->rfq_number) . '.pdf';
+        $filename = str_replace(['/', '\\'], '-', $rfq->quotation_number) . '.pdf';
 
         return $pdf->download($filename);
     }
 
     public function previewQuotation(Rfq $rfq)
     {
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
 
         $rfq->load(['customer', 'customerContact', 'items', 'sales']);
         
@@ -845,10 +842,25 @@ class RfqController extends Controller
         return view('rfqs.preview_quotation', compact('rfq', 'revisionCount'));
     }
 
+    public function markQuotationSent(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403, 'Anda tidak memiliki izin menandai penawaran terkirim.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Hanya RFQ yang sudah disetujui / terbit quotation yang dapat ditandai terkirim ke klien.');
+
+        if ($rfq->status !== Rfq::STATUS_QUOTATION_SENT) {
+            $rfq->update(['status' => Rfq::STATUS_QUOTATION_SENT]);
+            if ($rfq->sales_id) {
+                $this->clearDashboardCacheForSales($rfq->sales_id);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Quotation ' . $rfq->quotation_number . ' berhasil ditandai sebagai Terkirim ke Klien (Quotation Sent)!');
+    }
+
     public function editQty(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_GOAL]), 403, 'Revisi QTY hanya bisa dilakukan setelah di-approve.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Revisi QTY hanya bisa dilakukan setelah di-approve.');
 
         $rfq->load('items');
         return view('rfqs.edit_qty', compact('rfq'));
@@ -857,7 +869,7 @@ class RfqController extends Controller
     public function updateQty(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_GOAL]), 403);
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403);
 
         $request->validate([
             'items'                 => 'nullable|array',
@@ -975,7 +987,7 @@ class RfqController extends Controller
     public function uploadPo(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED]), 403, 'Upload PO hanya bisa dilakukan saat status Approved atau Quotation Created.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Upload PO hanya bisa dilakukan saat status Approved, Quotation Created, atau Quotation Sent.');
 
         $request->validate([
             'po_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',

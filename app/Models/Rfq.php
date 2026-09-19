@@ -26,6 +26,7 @@ class Rfq extends Model
     public const STATUS_PENDING_LEADER = 'Pending Leader';
     public const STATUS_APPROVED = 'Approved';
     public const STATUS_QUOTATION_CREATED = 'Quotation Created';
+    public const STATUS_QUOTATION_SENT = 'Quotation Sent';
     public const STATUS_CANCELLED = 'Cancelled';
     
     // Alur PO & GOAL
@@ -55,12 +56,21 @@ class Rfq extends Model
             ],
             self::STATUS_APPROVED => [
                 self::STATUS_QUOTATION_CREATED,
+                self::STATUS_QUOTATION_SENT,
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
+                self::STATUS_PO_PENDING_ADMIN,
             ],
             self::STATUS_QUOTATION_CREATED => [
+                self::STATUS_QUOTATION_SENT,
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
+                self::STATUS_PO_PENDING_ADMIN,
+            ],
+            self::STATUS_QUOTATION_SENT => [
+                self::STATUS_GOAL,
+                self::STATUS_PENDING_ADMIN,
+                self::STATUS_PO_PENDING_ADMIN,
             ],
             self::STATUS_PO_PENDING_ADMIN => [
                 self::STATUS_PO_PENDING_LEADER,
@@ -86,6 +96,7 @@ class Rfq extends Model
             self::STATUS_PENDING_LEADER => 'Menunggu approval Leader',
             self::STATUS_APPROVED => 'Siap membuat quotation',
             self::STATUS_QUOTATION_CREATED => 'Quotation sudah dibuat',
+            self::STATUS_QUOTATION_SENT => 'Quotation terkirim ke klien',
             self::STATUS_PO_PENDING_ADMIN => 'Menunggu verifikasi PO Admin',
             self::STATUS_PO_PENDING_LEADER => 'Menunggu approval GOAL Leader',
             self::STATUS_GOAL => 'Sudah menjadi GOAL',
@@ -100,6 +111,7 @@ class Rfq extends Model
             self::STATUS_PENDING_LEADER => 40,
             self::STATUS_APPROVED => 60,
             self::STATUS_QUOTATION_CREATED => 70,
+            self::STATUS_QUOTATION_SENT => 75,
             self::STATUS_PO_PENDING_ADMIN => 80,
             self::STATUS_PO_PENDING_LEADER => 90,
             self::STATUS_GOAL => 100,
@@ -114,6 +126,7 @@ class Rfq extends Model
             self::STATUS_PENDING_LEADER => 'Tahap 2 - Menunggu leader',
             self::STATUS_APPROVED => 'Tahap 3 - RFQ disetujui',
             self::STATUS_QUOTATION_CREATED => 'Tahap 4 - Quotation dibuat',
+            self::STATUS_QUOTATION_SENT => 'Tahap 4 - Penawaran terkirim',
             self::STATUS_PO_PENDING_ADMIN => 'Tahap 5 - Menunggu verifikasi PO',
             self::STATUS_PO_PENDING_LEADER => 'Tahap 6 - Menunggu GOAL',
             self::STATUS_GOAL => 'Tahap 7 - GOAL selesai',
@@ -167,5 +180,17 @@ class Rfq extends Model
         return $this->items->sum(function($item) {
             return $item->qty * $item->price_after_margin;
         });
+    }
+
+    public function getQuotationNumberAttribute(): string
+    {
+        $date = $this->rfq_date ? \Carbon\Carbon::parse($this->rfq_date) : ($this->created_at ?? now());
+        $seq = '0001';
+        if ($this->rfq_number && preg_match('/(\d+)$/', $this->rfq_number, $matches)) {
+            $seq = str_pad($matches[1], 4, '0', STR_PAD_LEFT);
+        } else {
+            $seq = str_pad((string) ($this->id ?? 1), 4, '0', STR_PAD_LEFT);
+        }
+        return 'QUO/PT/' . $date->format('Y/m') . '/' . $seq;
     }
 }

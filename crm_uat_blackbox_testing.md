@@ -137,11 +137,11 @@ Gunakan 4 akun berikut sesuai role untuk menguji hak akses dan alur kerja antar 
 
 | ID | Skenario Uji | Langkah Aksi | Data Input | Hasil yang Diharapkan | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **APP-01** | Antrian Approval Leader | Login Leader (`laras@crm.com`) -> Buka menu `/approvals` | - | RFQ yang disubmit Admin muncul di antrian *"Menunggu Approval"*. | [ ] |
-| **APP-02** | Skenario Reject (Minta Revisi) | Klik tombol **Reject / Minta Revisi** | Catatan: *"Margin item hardware terlalu tipis, tolong nego vendor turun 5%"* | Status RFQ berubah jadi **"Revision Required"** (atau `Pending Admin`). | [ ] |
-| **APP-03** | Tampilan Kotak Catatan Revisi | Login Admin Purchase -> Buka RFQ yang ditolak tadi | - | Muncul **Alert Box Amber khusus**: menampilkan teks alasan revisi dari Leader! | [ ] |
-| **APP-04** | Admin Perbaiki HPP & Resubmit | Admin ubah harga vendor sesuai arahan -> Klik Submit lagi | Harga disesuaikan | Status RFQ kembali menjadi **"Pending Leader"**. | [ ] |
-| **APP-05** | Skenario Approve HPP | Leader buka RFQ -> Klik tombol hijau **"Approve HPP"** | - | Status RFQ berubah menjadi **"Approved"** (Siap cetak Quotation). | [ ] |
+| **APP-01** | Antrian Approval Leader | Login Leader (`laras@crm.com`) -> Buka menu `/approvals` | - | RFQ yang disubmit Admin muncul di antrian *"Menunggu Approval"*. | [x] PASS |
+| **APP-02** | Skenario Reject (Minta Revisi) | Klik tombol **Reject / Minta Revisi** | Catatan: *"Margin item hardware terlalu tipis, tolong nego vendor turun 5%"* | Status RFQ berubah jadi **"Revision Required"** (atau `Pending Admin`). | [x] PASS |
+| **APP-03** | Tampilan Kotak Catatan Revisi | Login Admin Purchase -> Buka RFQ yang ditolak tadi | - | Muncul **Alert Box Amber khusus**: menampilkan teks alasan revisi dari Leader! | [x] PASS |
+| **APP-04** | Admin Perbaiki HPP & Resubmit | Admin ubah harga vendor sesuai arahan -> Klik Submit lagi | Harga disesuaikan | Status RFQ kembali menjadi **"Pending Leader"**. | [x] PASS |
+| **APP-05** | Skenario Approve HPP | Leader buka RFQ -> Klik tombol hijau **"Approve HPP"** | - | Status RFQ berubah menjadi **"Approved"** (Siap cetak Quotation). | [x] PASS |
 
 ---
 
@@ -149,12 +149,12 @@ Gunakan 4 akun berikut sesuai role untuk menguji hak akses dan alur kerja antar 
 
 | ID | Skenario Uji | Langkah Aksi | Data Input | Hasil yang Diharapkan | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **QUO-01** | Web Preview Quotation | Buka RFQ Approved -> Klik **"Preview Quotation"** | - | Tampilan Web Penawaran resmi terbuka dengan Kop Surat Pedia Technology. | [ ] |
-| **QUO-02** | Nomor Quotation Resmi | Cek nomor penawaran di dokumen | - | Terbit nomor otomatis (contoh: `QUO/PT/2026/09/XXXX`). | [ ] |
-| **QUO-03** | Footer Bilingual & T&C | Scroll ke bawah halaman preview | - | Termuat Terms & Condition bilingual (Indonesia & English), rekening bank resmi PT. | [ ] |
-| **QUO-04** | Kerahasiaan Modal di PDF | Cek seluruh isi tabel preview/PDF | - | **Hanya memuat Harga Jual ke Klien. Kolom HPP & Margin 100% GHAIB dari dokumen!** | [ ] |
-| **QUO-05** | Download PDF Quotation | Klik tombol **"Download PDF"** | - | File `.pdf` terunduh dengan layout halaman A4 yang presisi dan rapi. | [ ] |
-| **QUO-06** | Tandai Penawaran Terkirim | Klik tombol **"Mark Quotation Sent to Client"** | - | Status RFQ berubah menjadi **"Quotation Sent"**. | [ ] |
+| **QUO-01** | Web Preview Quotation | Buka RFQ Approved -> Klik **"Preview Quotation"** | - | Tampilan Web Penawaran resmi terbuka dengan Kop Surat Pedia Technology. | [x] PASS |
+| **QUO-02** | Nomor Quotation Resmi | Cek nomor penawaran di dokumen | - | Terbit nomor otomatis (contoh: `QUO/PT/2026/09/XXXX`). | [x] PASS |
+| **QUO-03** | Footer Bilingual & T&C | Scroll ke bawah halaman preview | - | Termuat Terms & Condition bilingual (Indonesia & English), rekening bank resmi PT. | [x] PASS |
+| **QUO-04** | Kerahasiaan Modal di PDF | Cek seluruh isi tabel preview/PDF | - | **Hanya memuat Harga Jual ke Klien. Kolom HPP & Margin 100% GHAIB dari dokumen!** | [x] PASS |
+| **QUO-05** | Download PDF Quotation | Klik tombol **"Download PDF"** | - | File `.pdf` terunduh dengan layout halaman A4 yang presisi dan rapi. | [x] PASS |
+| **QUO-06** | Tandai Penawaran Terkirim | Klik tombol **"Mark Quotation Sent to Client"** | - | Status RFQ berubah menjadi **"Quotation Sent"**. | [x] PASS |
 
 ---
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview Quotation {{ str_replace('RFQ', 'QUO', $rfq->rfq_number) }}</title>
+    <title>Preview Quotation {{ $rfq->quotation_number }}</title>
     <!-- Gunakan CDN untuk preview karena ini halaman terpisah dari app layout -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,14 +17,30 @@
 <body class="bg-gray-200 flex flex-col items-center py-8">
 
     <!-- Tombol Action (Tidak ikut tercetak saat di-print/PDF) -->
-    <div class="no-print mb-6 flex gap-4 w-[210mm] justify-between">
-        <a href="{{ route('rfq.show', $rfq->id) }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow-md text-sm font-bold transition">
+    <div class="no-print mb-6 flex gap-4 w-[210mm] justify-between items-center">
+        <a href="{{ route('rfq.show', $rfq->id) }}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded shadow-md text-sm font-bold transition flex items-center">
             &larr; Kembali ke Detail RFQ
         </a>
-        <a href="{{ route('rfq.download_quotation', $rfq->id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-md text-sm font-bold transition flex items-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-            Download PDF
-        </a>
+        <div class="flex items-center gap-3">
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, \App\Models\Rfq::STATUS_QUOTATION_CREATED]))
+            <form action="{{ route('rfq.mark_quotation_sent', $rfq->id) }}" method="POST" class="inline m-0">
+                @csrf
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded shadow-md text-sm font-bold transition flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    Mark Quotation Sent to Client
+                </button>
+            </form>
+            @elseif($rfq->status === \App\Models\Rfq::STATUS_QUOTATION_SENT)
+            <div class="bg-emerald-100 border border-emerald-300 text-emerald-800 text-xs font-bold px-3 py-2 rounded flex items-center">
+                <svg class="w-4 h-4 mr-1.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                Quotation Sent to Client
+            </div>
+            @endif
+            <a href="{{ route('rfq.download_quotation', $rfq->id) }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-md text-sm font-bold transition flex items-center">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download PDF
+            </a>
+        </div>
     </div>
 
     <!-- Kertas A4 -->
@@ -45,7 +61,7 @@
                     <span class="text-gray-700">TANGGAL</span>
                     <span>{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</span>
                     <span class="text-gray-700">No. Penawaran</span>
-                    <span>{{ str_replace('RFQ', 'QUO', $rfq->rfq_number) }}</span>
+                    <span class="font-bold">{{ $rfq->quotation_number }}</span>
                     
                     @if(isset($revisionCount) && $revisionCount > 0)
                     <span></span>
@@ -58,11 +74,11 @@
         <!-- INFO KLIEN & VALIDITY -->
         <div class="flex justify-between items-end mt-4 mb-3 text-xs">
             <div class="leading-snug">
-                <p>Kepada YTH</p>
+                <p>Kepada YTH / <span class="italic text-gray-500">To:</span></p>
                 <p class="font-bold text-base mt-1">{{ $rfq->customer->name ?? '-' }}</p>
                 <p class="whitespace-pre-line">{{ $rfq->customer->address ?? '-' }}</p>
                 <p>Telp : {{ $rfq->customer->phone ?? '-' }}</p>
-                <p>Up. {{ $rfq->customerContact->name ?? 'Bpk/Ibu' }}</p>
+                <p>Up. / <span class="italic text-gray-500">Attn:</span> {{ $rfq->customerContact->name ?? 'Bpk/Ibu' }}</p>
             </div>
             
             <div class="flex bg-gray-100 px-3 py-1 w-64 items-center justify-between border-b border-gray-300">
@@ -71,7 +87,7 @@
             </div>
         </div>
 
-        <p class="text-xs mb-1">Berikut penawaran dari kami・下記の通り御見積申し上げます。</p>
+        <p class="text-xs mb-1">Berikut penawaran dari kami / <span class="italic text-gray-500">We are pleased to submit our quotation as follows:</span></p>
 
         <!-- TABEL RINCIAN -->
         <table class="w-full text-xs border-collapse border border-gray-400 mb-4">
@@ -150,9 +166,9 @@
                     <td class="border-l border-r border-b border-gray-400 px-2"></td>
                     <td class="border-l border-r border-b border-gray-400 px-2 pb-4 leading-tight">
                         <div class="font-bold mb-1 mt-2">Note :</div>
-                        <div class="text-red-600 font-bold italic">- Unit READY LIMITED stok tidak mengikat</div>
-                        <div class="italic">- Harga dapat berubah tanpa pemberitahuan</div>
-                        <div class="italic">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                        <div class="text-red-600 font-bold italic">- Unit READY LIMITED stok tidak mengikat / <span class="font-normal text-gray-600">Stock is limited and subject to prior sales</span></div>
+                        <div class="italic">- Harga dapat berubah tanpa pemberitahuan / <span class="text-gray-600">Prices subject to change without prior notice</span></div>
+                        <div class="italic">- Mohon konfirmasi ketersediaan stok sebelum mengirim PO / <span class="text-gray-600">Please confirm stock availability before issuing PO</span></div>
                     </td>
                     <td class="border-l border-r border-b border-gray-400 px-2"></td>
                     <td class="border-l border-r border-b border-gray-400 px-2"></td>
@@ -183,64 +199,101 @@
             </tbody>
         </table>
 
-        <!-- TERMS & CONDITIONS -->
-        <div class="text-[11px] leading-tight mb-4">
-            <div class="flex items-start mb-2">
-                <span class="mr-2 font-bold text-blue-600">✓</span>
-                <div>
-                    <p>Sistem pembayaran 14 hari setelah invoice diterima</p>
-                    <p class="italic text-gray-500">お支払い条件は、請求書受領後14日以内となります。</p>
+        <!-- TERMS & CONDITIONS (Bilingual ID & EN) -->
+        <div class="text-[11px] leading-tight mb-3">
+            <div class="font-bold text-gray-800 mb-1.5 text-xs">Syarat & Ketentuan / <span class="italic font-normal text-gray-600">Terms & Conditions:</span></div>
+            <div class="space-y-1.5">
+                <div class="flex items-start">
+                    <span class="mr-2 font-bold text-blue-600">✓</span>
+                    <div>
+                        <p class="font-medium text-gray-800">Sistem pembayaran 14 hari kalender setelah invoice diterima / <span class="italic font-normal text-gray-500">Payment terms: 14 calendar days upon invoice receipt.</span></p>
+                    </div>
                 </div>
-            </div>
-            <div class="flex items-start">
-                <span class="mr-2 font-bold text-blue-600">✓</span>
-                <div>
-                    <p>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</p>
-                    <p class="italic text-gray-500">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</p>
+                <div class="flex items-start">
+                    <span class="mr-2 font-bold text-blue-600">✓</span>
+                    <div>
+                        <p class="font-medium text-gray-800">Harga sudah termasuk PPn 11% dan penawaran berlaku selama 7 hari kalender / <span class="italic font-normal text-gray-500">Price includes 11% VAT and quotation is valid for 7 calendar days.</span></p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <span class="mr-2 font-bold text-blue-600">✓</span>
+                    <div>
+                        <p class="font-medium text-gray-800">Ketersediaan stok tidak mengikat sebelum terbitnya Purchase Order (PO) resmi / <span class="italic font-normal text-gray-500">Stock availability is subject to prior sales until official PO.</span></p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <span class="mr-2 font-bold text-blue-600">✓</span>
+                    <div>
+                        <p class="font-medium text-gray-800">Dengan menandatangani penawaran ini, Pemesan menyetujui rincian harga, kuantiti, dan ketentuan yang berlaku / <span class="italic font-normal text-gray-500">By signing this quotation, the Client agrees to the quantities, pricing, and terms.</span></p>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <p class="text-[10px] text-gray-600 mb-8 leading-relaxed">
-            Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi saya di nomor telp : {{ $rfq->sales->phone ?? '0812-xxxx-xxxx' }} atau e-mail {{ $rfq->sales->email ?? 'sales@pedia-group.com' }}. Atas perhatian dan kepercayaan nya kami ucapkan Terima Kasih.
+        <!-- REKENING BANK RESMI PT -->
+        <div class="mb-4 p-3 bg-slate-50 border border-slate-300 rounded-lg text-xs">
+            <div class="font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                <span>Informasi Rekening Resmi Pembayaran / <span class="italic font-normal text-gray-600">Official Company Bank Accounts:</span></span>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-2.5 rounded border border-gray-200 border-l-4 border-l-blue-600 shadow-sm">
+                    <p class="font-bold text-blue-900 text-xs">Bank Central Asia (BCA)</p>
+                    <p class="font-mono text-sm font-bold text-gray-900 my-0.5">5415-888-999</p>
+                    <p class="text-[11px] font-semibold text-gray-700">A/N: PT. PEDIA TEKNOLOGI INDONESIA</p>
+                    <p class="text-[10px] text-gray-500">KCP Grand Galaxy City Bekasi</p>
+                </div>
+                <div class="bg-white p-2.5 rounded border border-gray-200 border-l-4 border-l-amber-600 shadow-sm">
+                    <p class="font-bold text-amber-900 text-xs">Bank Mandiri</p>
+                    <p class="font-mono text-sm font-bold text-gray-900 my-0.5">156-00-1789-8889</p>
+                    <p class="text-[11px] font-semibold text-gray-700">A/N: PT. PEDIA TEKNOLOGI INDONESIA</p>
+                    <p class="text-[10px] text-gray-500">KC Bekasi Juanda</p>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-[10px] text-gray-600 mb-6 leading-relaxed">
+            Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi sales kami di nomor telp: <span class="font-bold text-gray-800">{{ $rfq->sales->phone ?? '0812-xxxx-xxxx' }}</span> atau email: <span class="font-bold text-gray-800">{{ $rfq->sales->email ?? 'sales@pedia-technology.co.id' }}</span>. Atas perhatian dan kepercayaannya kami ucapkan terima kasih.
         </p>
 
         <!-- TANDA TANGAN -->
-        <div class="flex justify-between text-xs mb-16">
+        <div class="flex justify-between text-xs mb-12">
             <!-- TTD Pedia -->
             <div class="w-1/2 relative">
-                <p class="mb-4">Hormat Kami</p>
-                <div style="height: 60px;"></div> <!-- Ruang untuk tanda tangan manual -->
+                <p class="font-medium text-gray-700 mb-1">Hormat Kami / <span class="italic text-gray-500">Sincerely,</span></p>
+                <p class="font-bold text-gray-900">PT. PEDIA TEKNOLOGI INDONESIA</p>
+                <div style="height: 55px;"></div> <!-- Ruang untuk tanda tangan manual -->
                 
                 <p class="font-bold underline text-sm">{{ $rfq->sales->name ?? 'Sales Representative' }}</p>
                 <p class="italic text-gray-600">{{ $rfq->sales->role ?? 'Account Manager' }}</p>
             </div>
             <!-- TTD Klien -->
-            <div class="w-1/2 text-left pl-10 border-l border-gray-200">
-                <p>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</p>
-                <p class="italic mb-6 text-gray-500">上記の数量と価格に同意いたします。</p>
-                <p class="font-bold">{{ $rfq->customer->name ?? 'Klien' }}</p>
+            <div class="w-1/2 text-left pl-8 border-l border-gray-200">
+                <p class="font-medium text-gray-700 mb-1">Disetujui Oleh / <span class="italic text-gray-500">Accepted & Confirmed by:</span></p>
+                <p class="font-bold text-gray-900">{{ $rfq->customer->name ?? 'Klien' }}</p>
+                <p class="text-[11px] italic text-gray-500 mb-3">Kami menyetujui kuantiti dan harga di atas / <span class="italic">We agree to the quantities & pricing</span></p>
                 
-                <table class="mt-12 w-64">
-                    <tr><td class="w-16 py-1">Nama</td><td>: _________________</td></tr>
-                    <tr><td class="py-1">Jabatan</td><td>: _________________</td></tr>
+                <table class="mt-4 w-64 text-xs">
+                    <tr><td class="w-16 py-1 text-gray-600">Nama</td><td>: _________________</td></tr>
+                    <tr><td class="py-1 text-gray-600">Jabatan</td><td>: _________________</td></tr>
+                    <tr><td class="py-1 text-gray-600">Tanggal</td><td>: _________________</td></tr>
                 </table>
             </div>
         </div>
 
         <!-- FOOTER ALAMAT -->
-        <div class="absolute bottom-0 left-0 w-full text-center">
-            <div class="font-bold text-[11px] mb-2 text-blue-900">
+        <div class="mt-8 text-center border-t border-gray-200 pt-3">
+            <div class="font-bold text-[11px] mb-1 text-blue-900">
                 <p>THANK YOU FOR YOUR BUSINESS!</p>
-                <p class="text-[10px]">お買い上げくださってありがとうございます！</p>
+                <p class="text-[10px] font-normal text-gray-600">Terima kasih atas kerja sama dan kepercayaan Anda kepada PT. Pedia Teknologi Indonesia.</p>
             </div>
-            <p class="text-[10px] leading-tight mb-3 text-gray-600">
+            <p class="text-[10px] leading-tight mb-2 text-gray-600">
                 Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,<br>
                 Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147<br>
-                Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175
+                Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175 | Email : info@pedia-technology.co.id
             </p>
             <!-- Blue Banner -->
-            <div class="bg-[#005a9c] text-white text-xs py-2 tracking-wide font-medium rounded-b-lg">
+            <div class="bg-[#005a9c] text-white text-xs py-1.5 tracking-wide font-medium rounded-b-lg">
                 website : https://pedia-technology.co.id
             </div>
         </div>
