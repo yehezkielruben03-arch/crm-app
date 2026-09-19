@@ -133,6 +133,11 @@ class RfqItem extends Model
         return $this->belongsTo(Rfq::class);
     }
 
+    public function vendor(): BelongsTo
+    {
+        return $this->belongsTo(Vendor::class);
+    }
+
     /**
      * Calculate price after margin and ceiling.
      * Margin disimpan dalam format PERSEN (cth: 25 = 25%).

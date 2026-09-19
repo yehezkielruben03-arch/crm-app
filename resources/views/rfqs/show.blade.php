@@ -304,6 +304,11 @@
                                     <span class="rfq-grid__cell rfq-grid__status">
                                         @if($item->price_after_margin > 0)
                                             <span class="rfq-grid__hpp">
+                                                @if($item->vendor)
+                                                    <span class="rfq-grid__hpp-line" style="color: #4338ca;">Vendor: <b>{{ $item->vendor->nama_vendor }}</b></span>
+                                                @elseif($item->category === 'Jasa Pemasangan')
+                                                    <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
+                                                @endif
                                                 <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
                                                 <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
                                                 <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>
@@ -338,6 +343,11 @@
                                 <span class="rfq-grid__cell rfq-grid__status">
                                     @if($item->price_after_margin > 0)
                                         <span class="rfq-grid__hpp">
+                                            @if($item->vendor)
+                                                <span class="rfq-grid__hpp-line" style="color: #4338ca;">Vendor: <b>{{ $item->vendor->nama_vendor }}</b></span>
+                                            @elseif($item->category === 'Jasa Pemasangan')
+                                                <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
+                                            @endif
                                             <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
                                             <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
                                             <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>

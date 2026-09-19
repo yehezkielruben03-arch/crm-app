@@ -103,8 +103,8 @@
                                             <div class="mb-2">
                                                 <div class="flex items-center justify-between mb-1">
                                                     <label class="text-xs text-gray-600 font-medium block">Vendor Supplier</label>
-                                                    @if($categoryName == 'Jasa Pemasangan')
-                                                        <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="bg-blue-100 text-blue-700 text-[11px] px-2 py-0.5 rounded border border-blue-300 hover:bg-blue-200 font-semibold transition">
+                                                    @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
+                                                        <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="bg-blue-100 text-blue-700 text-[11px] px-2 py-0.5 rounded border border-blue-300 hover:bg-blue-200 font-semibold transition" title="Tarik tarif standar teknisi dari Portal Mainpower">
                                                             ⚡ Gunakan Tarif MP (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
                                                         </button>
                                                     @endif

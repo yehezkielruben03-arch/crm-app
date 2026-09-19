@@ -351,7 +351,7 @@ class RfqController extends Controller
             abort(403);
         }
 
-        $rfq->load(['customer', 'sales', 'items']);
+        $rfq->load(['customer', 'sales', 'items.vendor']);
 
         return view('rfqs.show', compact('rfq'));
     }
