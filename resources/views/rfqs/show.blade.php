@@ -187,7 +187,7 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                     </svg>
-                    Isi Harga Modal & Margin
+                    Input HPP / Kalkulasi Harga
                 </a>
             @endif
         </div>
@@ -305,8 +305,8 @@
                                         @if($item->price_after_margin > 0)
                                             <span class="rfq-grid__hpp">
                                                 <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                                <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
-                                                <span class="rfq-grid__hpp-line">Margin: <b>{{ round((float) $item->margin) }}%</b> / Ceil: {{ $item->ceiling }}</span>
+                                                <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
+                                                <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>
                                                 <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">Jual: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b></span>
                                             </span>
                                         @else
@@ -339,8 +339,8 @@
                                     @if($item->price_after_margin > 0)
                                         <span class="rfq-grid__hpp">
                                             <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                            <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
-                                            <span class="rfq-grid__hpp-line">Margin: <b>{{ round((float) $item->margin) }}%</b> / Ceil: {{ $item->ceiling }}</span>
+                                            <span class="rfq-grid__hpp-line">Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->biaya_kirim + $item->ongkir_pelanggan, 0, ',', '.') }}</b></span>
+                                            <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : round((float) ($item->margin_value ?: $item->margin)) . '%' }}</b> / Ceil: {{ $item->custom_ceiling ?: $item->ceiling }}</span>
                                             <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">Jual: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b></span>
                                         </span>
                                     @else

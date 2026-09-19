@@ -629,24 +629,11 @@ class RfqController extends Controller
 
         $oldStatus = $rfq->status;
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq) {
-            // Snapshot History (Versioning)
-            $currentData = $rfq->items()->get()->toArray();
-            $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
-            
-            if (count($currentData) > 0) {
-                \App\Models\RfqPriceHistory::create([
-                    'rfq_id'       => $rfq->id,
-                    'version'      => $lastVersion + 1,
-                    'history_data' => $currentData,
-                    'created_by'   => $this->authUser()->id,
-                ]);
-            }
-
             foreach ($validated['items'] as $itemId => $data) {
                 $item = $rfq->items()->find($itemId);
                 if ($item) {
                     $item->category         = $data['category'] ?? $item->category;
-                    $item->vendor_id        = $data['vendor_id'] ?? null;
+                    $item->vendor_id        = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
                     $item->product_name     = $data['product_name'];
                     $item->qty              = $data['qty'];
                     $item->unit             = $data['unit'] ?? null;
@@ -658,12 +645,27 @@ class RfqController extends Controller
                     $item->fee_eu           = (float) ($data['fee_eu'] ?? 0);
                     $item->margin_type      = $data['margin_type'] ?? 'percentage';
                     $item->margin_value     = (float) ($data['margin_value'] ?? 0);
+                    $item->margin           = (float) ($data['margin_value'] ?? 0);
                     $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
+                    $item->ceiling          = (int) ($data['custom_ceiling'] > 0 ? $data['custom_ceiling'] : 10000);
                     $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 7));
 
                     $item->price_after_margin = $item->calculatePriceAfterMargin();
                     $item->save();
                 }
+            }
+
+            // Snapshot History (Versioning) — simpan data item setelah dihitung HPP & Margin
+            $updatedData = $rfq->items()->get()->toArray();
+            $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
+            
+            if (count($updatedData) > 0) {
+                \App\Models\RfqPriceHistory::create([
+                    'rfq_id'       => $rfq->id,
+                    'version'      => $lastVersion + 1,
+                    'history_data' => $updatedData,
+                    'created_by'   => $this->authUser()->id,
+                ]);
             }
 
             if ($rfq->canTransitionTo(Rfq::STATUS_PENDING_LEADER)) {

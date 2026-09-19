@@ -121,15 +121,15 @@ Gunakan 4 akun berikut sesuai role untuk menguji hak akses dan alur kerja antar 
 
 | ID | Skenario Uji | Langkah Aksi | Data Input | Hasil yang Diharapkan | Status |
 | :--- | :--- | :--- | :--- | :--- | :---: |
-| **HPP-01** | Proteksi Form HPP dari Sales | Login Sales -> Coba buka `/rfqs/{id}/price` secara paksa | URL langsung | **Dicegat 403 Forbidden!** Sales dilarang akses form kalkulasi HPP. | [ ] |
-| **HPP-02** | Buka Form HPP (Admin) | Login Admin Purchase -> Buka RFQ tadi -> Klik **"Input HPP / Kalkulasi Harga"** | - | Halaman Form HPP 3 Blok terbuka menampilkan item Hardware, Jasa, Material. | [ ] |
-| **HPP-03** | Auto-Fill Ongkir Pedia | Cek baris `Ongkir dari Pedia` di form HPP | - | Otomatis terisi nilai `Rp 150.000` (ditarik dari data profile Customer). | [ ] |
-| **HPP-04** | Input Modal Hardware & Margin % | Pilih Vendor, isi Harga Modal: `Rp 10.000.000`, Margin: `20%` | Modal: 10jt, Margin: 20% | Harga jual terhitung otomatis: `Rp 12.000.000` + ongkir terdistribusi. | [ ] |
-| **HPP-05** | Input Modal Jasa dari Mainpower | Pilih sumber Mainpower Pedia untuk item Jasa | Tarif harian MP | Nilai HPP Jasa terisi otomatis dari tarif Portal Mainpower. | [ ] |
-| **HPP-06** | Margin Nominal (Rupiah Langsung) | Pada item Material, isi Margin Nominal bukan % | Margin Nominal: `Rp 25.000` | Harga jual menjadi Harga Modal + Rp 25.000. | [ ] |
-| **HPP-07** | Fitur Pembulatan (Ceiling) | Masukkan harga modal yang menghasilkan angka ganjil (misal: Rp 1.234.567) lalu aktifkan Pembulatan | Centang Pembulatan Ribuan | Harga jual dibulatkan ke atas menjadi `Rp 1.235.000` atau kelipatan yang rapi. | [ ] |
-| **HPP-08** | Submit HPP ke Leader | Klik tombol **"Submit HPP ke Leader"** | - | Status RFQ berubah otomatis menjadi **"Pending Leader"**. | [ ] |
-| **HPP-09** | Snapshot Histori Versi 1 | Cek database tabel `rfq_price_histories` | - | Tercatat snapshot HPP Versi 1 lengkap dengan rincian harga per item. | [ ] |
+| **HPP-01** | Proteksi Form HPP dari Sales | Login Sales -> Coba buka `/rfqs/{id}/price` secara paksa | URL langsung | **Dicegat 403 Forbidden!** Sales dilarang akses form kalkulasi HPP. | [x] PASS |
+| **HPP-02** | Buka Form HPP (Admin) | Login Admin Purchase -> Buka RFQ tadi -> Klik **"Input HPP / Kalkulasi Harga"** | - | Halaman Form HPP 3 Blok terbuka menampilkan item Hardware, Jasa, Material. | [x] PASS |
+| **HPP-03** | Auto-Fill Ongkir Pedia | Cek baris `Ongkir dari Pedia` di form HPP | - | Otomatis terisi nilai `Rp 150.000` (ditarik dari data profile Customer). | [x] PASS |
+| **HPP-04** | Input Modal Hardware & Margin % | Pilih Vendor, isi Harga Modal: `Rp 10.000.000`, Margin: `20%` | Modal: 10jt, Margin: 20% | Harga jual terhitung otomatis: `Rp 12.000.000` + ongkir terdistribusi. | [x] PASS |
+| **HPP-05** | Input Modal Jasa dari Mainpower | Pilih sumber Mainpower Pedia untuk item Jasa | Tarif harian MP | Nilai HPP Jasa terisi otomatis dari tarif Portal Mainpower. | [x] PASS |
+| **HPP-06** | Margin Nominal (Rupiah Langsung) | Pada item Material, isi Margin Nominal bukan % | Margin Nominal: `Rp 25.000` | Harga jual menjadi Harga Modal + Rp 25.000. | [x] PASS |
+| **HPP-07** | Fitur Pembulatan (Ceiling) | Masukkan harga modal yang menghasilkan angka ganjil (misal: Rp 1.234.567) lalu aktifkan Pembulatan | Centang Pembulatan Ribuan | Harga jual dibulatkan ke atas menjadi `Rp 1.235.000` atau kelipatan yang rapi. | [x] PASS |
+| **HPP-08** | Submit HPP ke Leader | Klik tombol **"Submit HPP ke Leader"** | - | Status RFQ berubah otomatis menjadi **"Pending Leader"**. | [x] PASS |
+| **HPP-09** | Snapshot Histori Versi 1 | Cek database tabel `rfq_price_histories` | - | Tercatat snapshot HPP Versi 1 lengkap dengan rincian harga per item. | [x] PASS |
 
 ---
 

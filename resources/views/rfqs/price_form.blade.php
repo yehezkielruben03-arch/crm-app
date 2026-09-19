@@ -12,13 +12,18 @@
                 
                 @foreach(['Hardware', 'Jasa Pemasangan', 'Material Support'] as $categoryName)
                 @php 
-                    $categoryItems = $rfq->items->where('category', $categoryName); 
+                    $categoryItems = $rfq->items->filter(function($it) use ($categoryName) {
+                        return \App\Models\RfqItem::normalizeCategory($it->category) === $categoryName;
+                    }); 
                 @endphp
                 
-                @if($categoryItems->count() > 0 || $categoryName == 'Hardware')
+                @if($categoryItems->count() > 0)
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6">
                     <div class="p-6 bg-white border-b border-gray-200">
-                        <h3 class="text-lg font-bold mb-4 text-blue-600 border-b pb-2">{{ $categoryName }}</h3>
+                        <h3 class="text-lg font-bold mb-4 text-blue-600 border-b pb-2 flex items-center justify-between">
+                            <span>Blok {{ $categoryName }}</span>
+                            <span class="text-xs bg-blue-100 text-blue-800 font-normal px-2.5 py-1 rounded-full">{{ $categoryItems->count() }} Item</span>
+                        </h3>
                         
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm text-left text-gray-500">
@@ -26,7 +31,7 @@
                                     <tr>
                                         <th class="px-4 py-3">Item Description</th>
                                         <th class="px-4 py-3 text-center">Qty / Unit</th>
-                                        <th class="px-4 py-3">Detail HPP (Modal)</th>
+                                        <th class="px-4 py-3">Detail HPP (Modal & Vendor)</th>
                                         <th class="px-4 py-3 w-48">Margin & Ceiling</th>
                                         <th class="px-4 py-3 text-right">Harga Jual / Unit</th>
                                     </tr>
@@ -49,26 +54,34 @@
                                         </td>
                                         
                                         <td class="px-4 py-4 align-top">
-                                            @if($categoryName == 'Jasa Pemasangan')
-                                                <div class="flex gap-2 mb-2">
-                                                    <select name="items[{{ $item->id }}][vendor_id]" class="text-xs border-gray-300 rounded-md flex-1">
-                                                        <option value="">-- Pilih Vendor --</option>
-                                                        @foreach($vendors as $v)
-                                                            <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>{{ $v->nama_vendor }}</option>
-                                                        @endforeach
-                                                    </select>
-                                                    <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="bg-blue-100 text-blue-700 text-xs px-2 rounded border border-blue-300 hover:bg-blue-200">Gunakan MP</button>
+                                            {{-- Pilihan Vendor Supplier untuk semua kategori --}}
+                                            <div class="mb-2">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <label class="text-xs text-gray-600 font-medium block">Vendor Supplier</label>
+                                                    @if($categoryName == 'Jasa Pemasangan')
+                                                        <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="bg-blue-100 text-blue-700 text-[11px] px-2 py-0.5 rounded border border-blue-300 hover:bg-blue-200 font-semibold transition">
+                                                            ⚡ Gunakan Tarif MP (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
+                                                        </button>
+                                                    @endif
                                                 </div>
-                                            @endif
+                                                <select name="items[{{ $item->id }}][vendor_id]" class="w-full text-xs border-gray-300 rounded-md">
+                                                    <option value="">-- Pilih Vendor Supplier --</option>
+                                                    @foreach($vendors as $v)
+                                                        <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>
+                                                            {{ $v->nama_vendor }} ({{ $v->kategori }})
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                             
                                             <div class="mb-2">
-                                                <label class="text-xs text-gray-500 block">HPP Dasar (Rp)</label>
-                                                <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}" value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" required min="0">
+                                                <label class="text-xs text-gray-600 font-medium block">HPP Dasar / Modal (Rp)</label>
+                                                <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}" value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger font-semibold" required min="0" placeholder="0">
                                             </div>
                                             
                                             <div class="flex gap-2 mb-2">
                                                 <div class="w-1/2">
-                                                    <label class="text-xs text-gray-500 block">Biaya Kirim</label>
+                                                    <label class="text-xs text-gray-700 font-semibold block">Ongkir dari Pedia</label>
                                                     <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}" value="{{ old('items.'.$item->id.'.biaya_kirim', (float) (($item->biaya_kirim && $item->biaya_kirim > 0) ? $item->biaya_kirim : ($rfq->customer->ongkir_pedia ?? 0))) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0">
                                                 </div>
                                                 <div class="w-1/2">
@@ -77,10 +90,10 @@
                                                 </div>
                                             </div>
                                             
-                                            <div class="text-xs text-blue-600 font-semibold bg-blue-50 p-2 rounded">
+                                            <div class="text-xs text-blue-600 font-semibold bg-blue-50 p-2 rounded border border-blue-100">
                                                 Total Modal: Rp <span id="total-modal-{{ $item->id }}">0</span>
-                                                @if($item->ongkir_pedia > 0)
-                                                    <br><small class="text-gray-500">(Termasuk Ongkir Customer Rp {{ number_format($item->ongkir_pedia, 0, ',', '.') }})</small>
+                                                @if(($rfq->customer->ongkir_pedia ?? 0) > 0)
+                                                    <br><small class="text-gray-500 font-normal">(Termasuk Ongkir Customer Rp {{ number_format($rfq->customer->ongkir_pedia, 0, ',', '.') }})</small>
                                                 @endif
                                             </div>
                                         </td>
@@ -96,18 +109,25 @@
                                                 </div>
                                                 <div class="w-2/3">
                                                     <label class="text-xs text-gray-500 block">Nilai Margin</label>
-                                                    <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}" value="{{ old('items.'.$item->id.'.margin_value', (float) ($item->margin_value ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" required min="0" step="any">
+                                                    <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}" value="{{ old('items.'.$item->id.'.margin_value', (float) ($item->margin_value ?? $item->margin ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" required min="0" step="any">
                                                 </div>
                                             </div>
                                             
                                             <div class="mb-2">
                                                 <label class="text-xs text-gray-500 block">Estimasi Untung (Rp)</label>
-                                                <input type="text" id="margin-rp-preview-{{ $item->id }}" class="w-full text-sm border-gray-100 bg-gray-50 rounded-md" readonly>
+                                                <input type="text" id="margin-rp-preview-{{ $item->id }}" class="w-full text-sm border-gray-100 bg-gray-50 rounded-md font-medium text-green-700" readonly>
                                             </div>
                                             
                                             <div>
-                                                <label class="text-xs text-gray-500 block">Custom Ceiling (Pembulatan)</label>
-                                                <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}" value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? 0)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0">
+                                                <div class="flex items-center justify-between mb-1">
+                                                    <label class="text-xs text-gray-500 block">Pembulatan (Ceiling)</label>
+                                                </div>
+                                                <div class="flex gap-1 mb-1.5">
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1)" class="px-2 py-0.5 text-[11px] bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 text-gray-700">1 (Bebas)</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 1000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">1.000 (Ribuan)</button>
+                                                    <button type="button" onclick="setCeiling('{{ $item->id }}', 10000)" class="px-2 py-0.5 text-[11px] bg-blue-50 hover:bg-blue-100 rounded border border-blue-200 text-blue-700 font-semibold">10.000 (Puluh Rb)</button>
+                                                </div>
+                                                <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}" value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? $item->ceiling ?? 1)) }}" class="w-full text-sm border-gray-300 rounded-md calc-trigger" min="0" placeholder="1000">
                                             </div>
                                         </td>
                                         
@@ -191,8 +211,9 @@
                 @endif
                 
                 <div class="flex justify-end mt-4 mb-8">
-                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200">
-                        Simpan Harga & Teruskan ke Leader
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition duration-200 flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Submit HPP ke Leader
                     </button>
                 </div>
             </form>
@@ -205,6 +226,14 @@
         function useMpPedia(itemId) {
             document.getElementById('hpp-' + itemId).value = mpPediaRate;
             calculateRow(itemId);
+        }
+
+        function setCeiling(itemId, val) {
+            const input = document.getElementById('ceiling-' + itemId);
+            if (input) {
+                input.value = val;
+                calculateRow(itemId);
+            }
         }
 
         function formatRupiah(number) {
