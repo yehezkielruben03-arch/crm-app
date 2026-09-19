@@ -150,7 +150,7 @@ class RfqItem extends Model
             $withMargin = $baseCost * $multiplier;
         }
 
-        $ceiling = $this->custom_ceiling > 0 ? $this->custom_ceiling : 1;
+        $ceiling = $this->custom_ceiling > 0 ? $this->custom_ceiling : ($this->ceiling > 0 ? $this->ceiling : 1);
         $calculated = ceil($withMargin / $ceiling) * $ceiling;
 
         return $calculated;

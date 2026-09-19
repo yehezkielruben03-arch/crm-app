@@ -383,17 +383,29 @@
                                                     </div>
                                                     <div>
                                                         <label class="pmx-band-label">Ceiling (Pembulatan)</label>
-                                                        <select :name="`items[${item.id}][ceiling]`" x-model="item.ceiling" class="pmx-input">
-                                                            <option value="1">Tanpa Pembulatan</option>
-                                                            <option value="10">Puluhan</option>
-                                                            <option value="100">Ratusan</option>
-                                                            <option value="1000">Ribuan</option>
-                                                            <option value="5000">Rp 5.000</option>
-                                                            <option value="10000">Puluh Ribuan</option>
-                                                            <option value="50000">Rp 50.000</option>
-                                                            <option value="100000">Rp 100.000</option>
-                                                            <option value="500000">Rp 500.000</option>
-                                                        </select>
+                                                        <div x-data="{ custom: !['1','10','100','1000','5000','10000','50000','100000','500000'].includes(String(item.ceiling || '10000')) }">
+                                                            <div x-show="!custom" class="flex items-center gap-1">
+                                                                <select x-model="item.ceiling" @change="if ($event.target.value === 'custom') { custom = true; item.ceiling = ''; }" class="pmx-input">
+                                                                    <option value="1">Tanpa Pembulatan</option>
+                                                                    <option value="10">Puluhan</option>
+                                                                    <option value="100">Ratusan</option>
+                                                                    <option value="1000">Ribuan</option>
+                                                                    <option value="5000">Rp 5.000</option>
+                                                                    <option value="10000">Puluh Ribuan</option>
+                                                                    <option value="50000">Rp 50.000</option>
+                                                                    <option value="100000">Rp 100.000</option>
+                                                                    <option value="500000">Rp 500.000</option>
+                                                                    <option value="custom">✏️ Custom...</option>
+                                                                </select>
+                                                                <input x-show="!custom" type="hidden" :name="`items[${item.id}][ceiling]`" :value="item.ceiling" :disabled="custom">
+                                                            </div>
+                                                            <div x-show="custom" class="flex items-center gap-1">
+                                                                <input type="number" :name="`items[${item.id}][ceiling]`" x-model="item.ceiling" min="1" step="1" placeholder="Nominal..." class="pmx-input pmx-input--center flex-1" :disabled="!custom">
+                                                                <button type="button" @click="custom = false; item.ceiling = '10000'" class="px-1.5 py-1 text-[10px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded border border-slate-200 whitespace-nowrap" title="Kembali ke Preset">
+                                                                    Preset
+                                                                </button>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         <label class="pmx-band-label">Masa Berlaku (hari)</label>
