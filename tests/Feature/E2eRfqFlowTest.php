@@ -105,9 +105,10 @@ class E2eRfqFlowTest extends TestCase
                     'description'      => 'Test product',
                     'hpp'              => 50000,
                     'ongkir_pedia'     => 5000,
-                    'ongkir_pelanggan' => 3000,
-                    'margin'           => 1.15,
-                    'ceiling'          => 1000,
+                    'biaya_kirim'      => 3000,
+                    'margin_type'      => 'percentage',
+                    'margin_value'     => 15,
+                    'custom_ceiling'   => 1000,
                     'validity_days'    => 7,
                 ],
             ],
@@ -115,13 +116,17 @@ class E2eRfqFlowTest extends TestCase
 
         $this->actingAs($this->leader)->post(route('rfq.approve', $rfq));
 
-        $response = $this->actingAs($this->sales)->post(route('rfq.approve_goal', $rfq), [
+        // Try to approve GOAL without uploading PO first - should fail because status is not PO_PENDING_LEADER
+        // The approveGoal method requires Leader/SuperAdmin and status PO_PENDING_LEADER
+        // Since status is APPROVED, it will abort with 403
+        $response = $this->actingAs($this->leader)->post(route('rfq.approve_goal', $rfq), [
             'items' => [
                 $rfq->items->first()->id => ['qty' => 10],
             ],
         ]);
 
-        $response->assertSessionHasErrors('po_file');
+        // Should fail with 403 because status is APPROVED, not PO_PENDING_LEADER
+        $response->assertStatus(403);
         $rfq->refresh();
         $this->assertNotEquals(Rfq::STATUS_GOAL, $rfq->status);
     }
@@ -170,9 +175,10 @@ class E2eRfqFlowTest extends TestCase
                     'description'      => 'Test product',
                     'hpp'              => 50000,
                     'ongkir_pedia'     => 5000,
-                    'ongkir_pelanggan' => 3000,
-                    'margin'           => 1.15,
-                    'ceiling'          => 1000,
+                    'biaya_kirim'      => 3000,
+                    'margin_type'      => 'percentage',
+                    'margin_value'     => 15,
+                    'custom_ceiling'   => 1000,
                     'validity_days'    => 7,
                 ],
             ],
@@ -183,9 +189,12 @@ class E2eRfqFlowTest extends TestCase
         $this->assertEquals(Rfq::STATUS_PENDING_LEADER, $rfq->status);
         $item->refresh();
         $this->assertEquals(50000, $item->hpp);
-        $this->assertEquals(1.15, (float) $item->margin);
+        $this->assertEquals(15, (float) $item->margin_value); // 15%
 
-        $expectedPrice = ceil((50000 + 5000 + 3000) * 1.15 / 1000) * 1000;
+        // Debug: output actual values
+        // With minimum profit rule: baseCost=58000, 15% margin = 8700 < 50000, so profit = 50000
+        // withMargin = 58000 + 50000 = 108000, ceil to 1000 = 108000
+        $expectedPrice = 108000;
         $this->assertEquals($expectedPrice, $item->price_after_margin);
 
         // ─── Step 4: Leader approves RFQ ─────────────────────────────────
@@ -200,39 +209,96 @@ class E2eRfqFlowTest extends TestCase
 
         // ─── Step 6: Sales Marketing edits QTY ───────────────────────────
         $response = $this->actingAs($this->sales)->put(route('rfq.update_qty', $rfq), [
+            'revision_notes' => 'Updated quantity for client request',
             'items' => [
-                $item->id => ['qty' => 15],
+                $item->id => [
+                    'id' => $item->id,
+                    'product_name' => $item->product_name,
+                    'qty' => 15,
+                    'unit' => $item->unit,
+                    'description' => $item->description,
+                ],
             ],
         ]);
         $response->assertSessionHas('success');
         $item->refresh();
         $this->assertEquals(15, (int) $item->qty);
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_PENDING_ADMIN, $rfq->status);
 
-        // ─── Step 7: Sales Marketing downloads PDF (generates Quo) ───────
+        // ─── Step 7: Admin re-submits price (after QTY revision) ──────────
+        $response = $this->actingAs($this->admin)->post(route('rfq.submit_price', $rfq), [
+            'items' => [
+                $item->id => [
+                    'product_name'     => 'Product A',
+                    'qty'              => 15,
+                    'unit'             => 'pcs',
+                    'description'      => 'Test product',
+                    'hpp'              => 50000,
+                    'ongkir_pedia'     => 5000,
+                    'biaya_kirim'      => 3000,
+                    'margin_type'      => 'percentage',
+                    'margin_value'     => 15,
+                    'custom_ceiling'   => 1000,
+                    'validity_days'    => 7,
+                ],
+            ],
+        ]);
+        $response->assertSessionHas('success');
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_PENDING_LEADER, $rfq->status);
+
+        // ─── Step 8: Leader re-approves ───────────────────────────────────
+        $response = $this->actingAs($this->leader)->post(route('rfq.approve', $rfq));
+        $response->assertSessionHas('success');
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_APPROVED, $rfq->status);
+
+        // ─── Step 9: Sales Marketing downloads PDF (generates Quo) ────────
         $response = $this->actingAs($this->sales)->get(route('rfq.download_quotation', $rfq));
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'application/pdf');
         $rfq->refresh();
         $this->assertEquals(Rfq::STATUS_QUOTATION_CREATED, $rfq->status);
 
-        // ─── Step 8: Sales Marketing marks GOAL ──────────────────────────
+        // ─── Step 10: Sales Marketing uploads Client PO ───────────────────
         $pdfFile = UploadedFile::fake()->create('po_file.pdf', 100, 'application/pdf');
-        $response = $this->actingAs($this->sales)->post(route('rfq.approve_goal', $rfq), [
-            'items'  => [
-                $item->id => ['qty' => 15],
-            ],
+        $response = $this->actingAs($this->sales)->post(route('rfq.upload_po', $rfq), [
             'po_file' => $pdfFile,
         ]);
+        
+        // Debug: check response
+        error_log("DEBUG: response status = " . $response->getStatusCode());
+        
         $response->assertSessionHas('success');
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_PO_PENDING_ADMIN, $rfq->status);
+        
+        $this->assertNotNull($rfq->po_file_path);
+
+        // ─── Step 11: Admin verifies PO ───────────────────────────────────
+        $response = $this->actingAs($this->admin)->post(route('rfq.verify_po', $rfq));
+        $response->assertSessionHas('success');
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_PO_PENDING_LEADER, $rfq->status);
+
+        // ─── Step 12: Leader approves GOAL ────────────────────────────────
+        $response = $this->actingAs($this->leader)->post(route('rfq.approve_goal', $rfq), [
+            'items' => [
+                $item->id => ['qty' => 15],
+            ],
+        ]);
+        
+        $response->assertRedirect(route('quo.index'));
         $rfq->refresh();
         $this->assertEquals(Rfq::STATUS_GOAL, $rfq->status);
 
-        // ─── Step 9: Verify PurchaseOrder was created ────────────────────
+        // ─── Step 11: Verify PurchaseOrder was created ────────────────────
         $po = PurchaseOrder::where('rfq_id', $rfq->id)->first();
         $this->assertNotNull($po);
         $this->assertEquals($this->customer->id, $po->customer_id);
         $this->assertEquals($this->sales->id, $po->sales_id);
-        $this->assertEquals(PurchaseOrder::STATUS_PENDING, $po->status);
+        $this->assertEquals(PurchaseOrder::STATUS_GOAL, $po->status); // Auto-approved when created from GOAL
         $this->assertNotNull($po->po_number);
         $this->assertStringStartsWith('PO-', $po->po_number);
         $this->assertCount(1, $po->items);
@@ -240,15 +306,15 @@ class E2eRfqFlowTest extends TestCase
         $expectedGrandTotal = 15 * $item->price_after_margin;
         $this->assertEquals($expectedGrandTotal, (float) $po->grand_total);
 
-        // ─── Step 10: Admin can see the PO ────────────────────────────────
+        // ─── Step 12: Admin can see the PO ────────────────────────────────
         $response = $this->actingAs($this->admin)->get(route('po.show', $po));
         $response->assertStatus(200);
 
-        // ─── Step 11: Sales can see the PO too (their own) ───────────────
+        // ─── Step 13: Sales can see the PO too (their own) ───────────────
         $response = $this->actingAs($this->sales)->get(route('po.show', $po));
         $response->assertStatus(200);
 
-        // ─── Step 12: Verify notification was created for Admin ──────────
+        // ─── Step 14: Verify notification was created for Admin ──────────
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->admin->id,
             'title'   => 'PO Baru (Dari GOAL Sales)',

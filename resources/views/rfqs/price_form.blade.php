@@ -453,6 +453,28 @@
             </div>
             @endif
 
+            {{-- Catatan Tambahan Penawaran (Quotation Note) --}}
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs mb-6">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="rfq-notes" class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                        Catatan Khusus Penawaran (Quotation Note)
+                    </label>
+                    <span class="text-xs text-slate-400">Opsional &bull; Akan tampil di lembar Quotation jika diisi</span>
+                </div>
+                <textarea 
+                    name="notes" 
+                    id="rfq-notes" 
+                    rows="3" 
+                    class="w-full text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-xl p-3 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition resize-y"
+                    placeholder="Tulis catatan jika diperlukan, misal:&#10;- Unit READY LIMITED stok tidak mengikat&#10;- Harga dapat berubah tanpa pemberitahuan&#10;- Garansi resmi 1 tahun sparepart & service">{{ old('notes', $rfq->notes) }}</textarea>
+                <p class="text-[11px] text-slate-400 mt-1.5 italic">
+                    * Catatan ini bersifat fleksibel. Jika dikosongkan, bagian Note pada lembar penawaran (Web Preview & PDF) tidak akan ditampilkan.
+                </p>
+            </div>
+
             {{-- Sticky Executive Grand Total Summary Bar --}}
             <div class="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
                 <div class="flex flex-wrap items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-slate-200 w-full md:w-auto">

@@ -13,88 +13,17 @@ use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RegionController;
 
-Route::get('/deploy', function () {
-    if (request('key') !== 'crm2026') {
-        abort(403, 'Key salah.');
-    }
-    $output = [];
-    $exitCode = Artisan::call('migrate', ['--force' => true]);
-    $output[] = 'Migrate: ' . ($exitCode === 0 ? 'OK' : 'GAGAL') . ' — ' . Artisan::output();
-
-    $exitCode = Artisan::call('db:seed', ['--class' => 'RolePermissionSeeder', '--force' => true]);
-    $output[] = 'Seed: ' . ($exitCode === 0 ? 'OK' : 'GAGAL') . ' — ' . Artisan::output();
-
-    // Seed user + customer + rfq kalau ada param &seed=all
-    if (request('seed') === 'all') {
-        $exitCode = Artisan::call('db:seed', ['--class' => 'UserSeeder', '--force' => true]);
-        $output[] = 'UserSeed: ' . ($exitCode === 0 ? 'OK' : 'GAGAL');
-
-        $exitCode = Artisan::call('db:seed', ['--class' => 'CustomerSeeder', '--force' => true]);
-        $output[] = 'CustomerSeed: ' . ($exitCode === 0 ? 'OK' : 'GAGAL');
-
-        $exitCode = Artisan::call('db:seed', ['--class' => 'RfqSeeder', '--force' => true]);
-        $output[] = 'RfqSeed: ' . ($exitCode === 0 ? 'OK' : 'GAGAL');
-    }
-
-    $exitCode = Artisan::call('storage:link', ['--force' => true]);
-    $output[] = 'Storage Link: ' . ($exitCode === 0 ? 'OK' : 'OK (maybe already exists)') . ' — ' . Artisan::output();
-
-    Artisan::call('optimize:clear');
-    $output[] = 'Cache Clear: OK';
-
-    echo '<pre>' . implode("\n\n", $output) . '</pre>';
-    echo '<p style="color:green;font-weight:bold;font-size:18px;">✅ DEPLOYMENT SELESAI! HAPUS FILE routes/web.php atau komen route ini ya!</p>';
-    exit;
-});
-
-Route::get('/force-sync', function () {
-    $customers = \App\Models\Customer::all();
-    $output = [];
-    $count = 0;
-    foreach ($customers as $c) {
-        $cleanedNotes = false;
-        $notes = $c->notes;
-        if (!empty($notes) && (str_contains(strtoupper($notes), '=IF(') || str_contains(strtoupper($notes), 'TODAY()'))) {
-            if (preg_match('/"([^"]+)"/', $notes, $matches)) {
-                $c->updateQuietly(['notes' => trim($matches[1])]);
-            } else {
-                $c->updateQuietly(['notes' => null]);
-            }
-            $cleanedNotes = true;
-        }
-
-        $migratedContact = false;
-        $cpName = $c->cp_name ?? '';
-        if (!empty(trim($cpName))) {
-            $exists = $c->contacts()->where('name', trim($cpName))->exists();
-            if (!$exists) {
-                $c->contacts()->create([
-                    'name' => trim($cpName),
-                    'position' => $c->cp_position ?? null,
-                    'email' => $c->cp_email ?? null,
-                    'phone' => $c->cp_phone ?? null,
-                    'office_phone' => $c->office_phone ?? null,
-                    'whatsapp' => $c->whatsapp ?? null,
-                    'division' => $c->division ?? null,
-                    'preferred_contact' => $c->preferred_contact ?? null,
-                    'is_primary' => true
-                ]);
-                $migratedContact = true;
-            }
-        }
-        
-        if ($cleanedNotes || $migratedContact) {
-            $count++;
-            $output[] = "Customer ID {$c->id} (" . ($c->company_name ?? 'Tanpa Nama') . "): " . 
-                        ($cleanedNotes ? '[Notes Dibersihkan] ' : '') . 
-                        ($migratedContact ? '[Kontak Dimigrasi]' : '');
-        }
-    }
-    
-    return '<h3>Force Sync Selesai</h3>' . 
-           '<p>Berhasil update ' . $count . ' data customer.</p>' . 
-           '<pre>' . (empty($output) ? 'Tidak ada data yang perlu diupdate (sudah bersih).' : implode("\n", $output)) . '</pre>';
-});
+// ============================================================
+// ⚠️  KEAMANAN PRODUCTION:
+// Route /deploy dan /force-sync sudah DIHAPUS karena berbahaya.
+// Gunakan Artisan command via SSH/terminal untuk deployment:
+//
+//   php artisan migrate --force
+//   php artisan db:seed --class=RolePermissionSeeder --force
+//   php artisan storage:link
+//   php artisan optimize
+//   php artisan crm:sync-contacts   (pengganti /force-sync)
+// ============================================================
 
 Route::get('/', function () {
     return auth()->check()
@@ -148,7 +77,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/customers/import/preview', [CustomerController::class, 'previewImport'])->name('customers.import.preview');
         Route::post('/customers/import/process', [CustomerController::class, 'processImport'])->name('customers.import.process');
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
-        Route::post('/customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore');
+        Route::post('/customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore')->withTrashed();
 
         // PO Routes
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('po.index');
@@ -221,8 +150,12 @@ Route::middleware('auth')->group(function () {
 
     // ─── Admin Purchase & Super Admin Only ───
     Route::middleware('role:Admin,Admin Purchase,Super Admin,Leader')->group(function () {
-        Route::resource('vendors', \App\Http\Controllers\VendorController::class);
-        Route::resource('mainpowers', \App\Http\Controllers\MainpowerController::class);
+        // Vendor: CRUD via modal/AJAX — hanya index, store, update, destroy yang ada di controller
+        Route::resource('vendors', \App\Http\Controllers\VendorController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
+        // Mainpower: hanya index & store yang ada di controller
+        Route::resource('mainpowers', \App\Http\Controllers\MainpowerController::class)
+            ->only(['index', 'store']);
 
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');

@@ -23,6 +23,7 @@ storage/framework/cache/*
 storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*
+storage/fonts/*
 
 # OS & Editor Files
 .DS_Store

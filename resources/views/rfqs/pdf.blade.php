@@ -4,262 +4,268 @@
     <meta charset="UTF-8">
     <title>Quotation {{ $rfq->quotation_number }}</title>
     <style>
+        @page {
+            margin: 25px 35px 20px 35px;
+            size: a4 portrait;
+        }
+        @font-face {
+            font-family: 'JapaneseFont';
+            src: url('{{ str_replace('\\', '/', public_path('fonts/msgothic.ttf')) }}') format('truetype');
+        }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 10px;
-            color: #333;
+            font-family: 'JapaneseFont', 'DejaVu Sans', sans-serif;
+            font-size: 9px;
+            color: #111;
             margin: 0;
             padding: 0;
+            line-height: 1.3;
         }
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        .header-table td { border: none; vertical-align: top; }
-        .company-info { text-align: right; font-size: 9px; line-height: 1.35; color: #475569; }
-        .title-doc { text-align: center; font-size: 18px; font-weight: bold; margin: 10px 0 5px 0; letter-spacing: 2px; color: #1e293b; text-transform: uppercase; }
-        .info-table { margin-bottom: 10px; }
-        .info-table td { border: none; vertical-align: top; padding: 2px 0; }
-        .info-table .label { width: 70px; font-weight: bold; color: #475569; }
-        .info-table .colon { width: 10px; }
-        
-        .items-table { margin-top: 5px; width: 100%; border: 1px solid #334155; }
-        .items-table th { background-color: #f1f5f9; font-weight: bold; text-align: center; padding: 6px 4px; border: 1px solid #334155; font-size: 9.5px; color: #1e293b; }
-        .items-table td { border: 1px solid #cbd5e1; padding: 5px 4px; vertical-align: top; line-height: 1.35; font-size: 9px; }
-        .items-table .text-center { text-align: center; }
-        .items-table .text-right { text-align: right; }
-        .items-table .group-row td { background-color: #e2e8f0; font-weight: bold; text-align: left; padding: 5px; color: #1e293b; border-top: 1px solid #334155; border-bottom: 1px solid #334155; }
-        
-        .summary-table td { border: none; padding: 4px; font-weight: bold; text-align: right; font-size: 9.5px; }
-        .summary-table .summary-value { border: 1px solid #334155; width: 120px; text-align: right; padding-right: 5px; background-color: #f8fafc; }
-        
-        .notes { font-size: 8.5px; margin-top: 8px; line-height: 1.35; color: #334155; }
-        .notes p { margin: 2px 0; }
-        .bilingual { font-style: italic; color: #64748b; }
-        
-        .bank-table { width: 100%; margin-top: 8px; border: 1px solid #cbd5e1; background-color: #f8fafc; }
-        .bank-table td { padding: 4px 8px; font-size: 8.5px; vertical-align: top; }
-        
-        .signature-table { margin-top: 15px; width: 100%; }
-        .signature-table td { border: none; vertical-align: top; font-size: 9px; line-height: 1.35; }
-        
-        .revision-banner { color: #dc2626; font-size: 12px; font-weight: bold; text-align: center; margin-top: -5px; margin-bottom: 8px; }
-        .footer-note { margin-top: 10px; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 5px; font-size: 8px; color: #64748b; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .font-bold { font-weight: bold; }
+        .italic { font-style: italic; }
     </style>
 </head>
 <body>
 
-    <table class="header-table">
+    <!-- HEADER TABLE -->
+    <table style="width: 100%; border: none;">
         <tr>
-            <td width="55%">
-                @if(file_exists(public_path('images/logo.png')))
-                    <img src="{{ public_path('images/logo.png') }}" alt="Logo Pedia" style="max-width: 170px; max-height: 45px;">
+            <td style="width: 55%; vertical-align: top; border: none;">
+                @if(file_exists(public_path('images/pedia_logo_hd.png')))
+                    <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="height: 48px;">
+                @elseif(file_exists(public_path('images/logo.png')))
+                    <img src="{{ public_path('images/logo.png') }}" style="height: 48px;">
                 @else
-                    <strong style="font-size: 15px; color: #005a9c;">PT. PEDIA TEKNOLOGI INDONESIA</strong>
+                    <strong style="font-size: 14px; color: #000;">PEDIA TECHNOLOGY</strong>
                 @endif
-                <div style="font-size: 9px; font-style: italic; color: #64748b; margin-top: 2px;">With Our Experience Everything Is Possible</div>
+                <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 4px; color: #000;">PT. PEDIA TEKNOLOGI INDONESIA</div>
+                <div style="font-style: italic; font-size: 9px; color: #555;">With Our Experience Everything Is Possible</div>
             </td>
-            <td width="45%" class="company-info">
-                <strong style="font-size: 11px; color: #005a9c;">PT. PEDIA TEKNOLOGI INDONESIA</strong><br>
-                Rukan Rose Garden Blok RRGB No. 93, Grand Galaxy City<br>
-                Kota Bekasi, Jawa Barat 17147<br>
-                Telp: (+62) 021-3971-2155 | Email: sales@pedia-technology.co.id<br>
-                Website: https://pedia-technology.co.id
+            <td style="width: 45%; vertical-align: top; text-align: right; border: none;">
+                <div style="font-size: 36px; color: #666; font-weight: normal; line-height: 1; margin-bottom: 6px;">Quotation</div>
+                <table style="width: auto; float: right; font-size: 9px; border-collapse: collapse;">
+                    <tr>
+                        <td style="font-weight: bold; padding-right: 12px; text-align: right; text-transform: uppercase;">TANGGAL</td>
+                        <td style="text-align: right;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight: bold; padding-right: 12px; text-align: right;">No. Penawaran</td>
+                        <td style="text-align: right;">{{ $rfq->quotation_number }}</td>
+                    </tr>
+                    @if(isset($revisionCount) && $revisionCount > 0)
+                    <tr>
+                        <td colspan="2" style="color: #dc2626; font-weight: bold; text-align: right; text-transform: uppercase; padding-top: 2px;">
+                            REVISI {{ $revisionCount }} : {{ date('d M Y') }}
+                        </td>
+                    </tr>
+                    @endif
+                </table>
             </td>
         </tr>
     </table>
 
-    <div class="title-doc">QUOTATION</div>
+    @php
+        $clientCompanyName = $rfq->customer?->company_name ?: ($rfq->customer_name ?: 'Pelanggan');
+        $custAddress       = trim($rfq->customer?->address ?? '');
+        $custPhone         = $rfq->customer?->phone ?: ($rfq->customerContact?->phone ?: $rfq->customerContact?->office_phone);
+        $custPic           = $rfq->customerContact?->name ?: ($rfq->customer?->cp_name ?: 'Bpk/Ibu');
+        $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
+        $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
+        $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
+        $salesRole         = $rfq->sales?->role ?: 'Sales Marketing';
+        $validityDays      = $rfq->items->max('validity_days') ?: 7;
+    @endphp
 
-    @if(isset($revisionCount) && $revisionCount > 0)
-        <div class="revision-banner">REVISI {{ $revisionCount }} : {{ date('d F Y') }}</div>
-    @endif
-
-    <table class="info-table">
+    <!-- INFO KLIEN & BERLAKU S/D -->
+    <table style="width: 100%; margin-top: 10px; margin-bottom: 4px; border: none;">
         <tr>
-            <td width="55%">
-                <table>
-                    <tr><td class="label">Kepada / To</td><td class="colon">:</td><td><strong>{{ $rfq->customer->name ?? '-' }}</strong></td></tr>
-                    <tr><td class="label">Attn / UP</td><td class="colon">:</td><td>{{ $rfq->customerContact->name ?? 'Bpk/Ibu' }}</td></tr>
-                    <tr><td class="label">Alamat / Addr</td><td class="colon">:</td><td>{{ $rfq->customer->address ?? '-' }}</td></tr>
-                    <tr><td class="label">Telepon</td><td class="colon">:</td><td>{{ $rfq->customer->phone ?? '-' }}</td></tr>
-                </table>
+            <td style="width: 60%; vertical-align: bottom; font-size: 9px; line-height: 1.35; border: none;">
+                <div style="color: #111;">Kepada YTH</div>
+                <div style="font-weight: bold; font-size: 11px; color: #000; margin-top: 1px;">{{ $clientCompanyName }}</div>
+                @if(!empty($custAddress))
+                <div style="color: #222;">{!! nl2br(e($custAddress)) !!}</div>
+                @endif
+                @if(!empty($custPhone))
+                <div style="color: #222;">Telp : {{ $custPhone }}</div>
+                @endif
+                <div style="color: #222;">Up. {{ $custPic }}</div>
             </td>
-            <td width="45%">
-                <table>
-                    <tr><td class="label">Tanggal / Date</td><td class="colon">:</td><td>{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d F Y') }}</td></tr>
-                    <tr><td class="label">No. Penawaran</td><td class="colon">:</td><td><strong>{{ $rfq->quotation_number }}</strong></td></tr>
-                    <tr><td class="label">Berlaku s/d</td><td class="colon">:</td><td>{{ \Carbon\Carbon::parse($rfq->rfq_date)->addDays(7)->format('d F Y') }}</td></tr>
-                    <tr><td class="label">Projek</td><td class="colon">:</td><td><strong>{{ $rfq->notes ?? 'Pengadaan Barang & Jasa' }}</strong></td></tr>
+            <td style="width: 40%; vertical-align: bottom; text-align: right; border: none;">
+                <table style="width: auto; float: right; border-collapse: collapse;">
+                    <tr>
+                        <td style="background-color: #f2f2f2; padding: 4px 10px; font-size: 9px; width: 190px;">
+                            <span style="font-style: italic; color: #333;">Berlaku s/d tgl :</span>
+                            <span style="float: right; font-weight: bold; color: #111;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->addDays($validityDays)->format('d M Y') }}</span>
+                        </td>
+                    </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <table class="items-table">
+    <!-- KALIMAT PEMBUKA -->
+    <div style="font-size: 9px; margin-top: 10px; margin-bottom: 6px; color: #111;">
+        Berikut penawaran dari kami ・ 下記の通り御見積申し上げます。
+    </div>
+
+    <!-- TABEL PENAWARAN -->
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid #888;">
         <thead>
-            <tr>
-                <th width="5%">No</th>
-                <th width="47%">Description & Specification</th>
-                <th width="7%">Qty</th>
-                <th width="9%">Unit</th>
-                <th width="15%">Unit Price (Rp)</th>
-                <th width="17%">Total Price (Rp)</th>
+            <tr style="background-color: #f2f2f2;">
+                <th style="border: 1px solid #888; padding: 5px; font-size: 9px; width: 55px; text-align: center; text-transform: uppercase;">JUMLAH</th>
+                <th style="border: 1px solid #888; padding: 5px; font-size: 9px; text-align: center; text-transform: uppercase;">DESKRIPSI</th>
+                <th style="border: 1px solid #888; padding: 5px; font-size: 9px; width: 95px; text-align: center; text-transform: uppercase;">HARGA</th>
+                <th style="border: 1px solid #888; padding: 5px; font-size: 9px; width: 110px; text-align: center; text-transform: uppercase;">JUMLAH HARGA</th>
             </tr>
         </thead>
         <tbody>
             @php 
                 $grandSubtotal = 0;
-                $no = 1;
-                $groups = $rfq->items->groupBy('category');
+                $totalQty = 0;
             @endphp
-            
-            @foreach(['Hardware', 'Jasa Pemasangan', 'Material Support'] as $catName)
-                @if(isset($groups[$catName]) && $groups[$catName]->count() > 0)
-                    <tr class="group-row">
-                        <td colspan="6">{{ strtoupper($catName) }}</td>
-                    </tr>
-                    @foreach($groups[$catName] as $item)
-                        @php
-                            $unitPrice = $item->price_after_margin;
-                            $rowTotal = $unitPrice * $item->qty;
-                            $grandSubtotal += $rowTotal;
-                        @endphp
-                        <tr>
-                            <td class="text-center">{{ $no++ }}</td>
-                            <td>
-                                <strong>{{ $item->product_name }}</strong><br>
-                                {!! nl2br(e($item->detail_item ?? $item->description)) !!}
-                            </td>
-                            <td class="text-center">{{ (int) $item->qty }}</td>
-                            <td class="text-center">{{ $item->unit }}</td>
-                            <td class="text-right">{{ number_format($unitPrice, 0, ',', '.') }}</td>
-                            <td class="text-right">{{ number_format($rowTotal, 0, ',', '.') }}</td>
-                        </tr>
-                    @endforeach
-                @endif
+            @foreach($rfq->items as $item)
+                @php
+                    $unitPrice = (float) $item->price_after_margin;
+                    $rowTotal = $unitPrice * $item->qty;
+                    $grandSubtotal += $rowTotal;
+                    $totalQty += $item->qty;
+                @endphp
+                <tr>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; text-align: center; font-weight: bold; font-size: 9px; vertical-align: top;">
+                        {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
+                    </td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px 8px; font-size: 9px; line-height: 1.35; vertical-align: top;">
+                        <div style="font-weight: bold; font-size: 9.5px;">{{ $item->product_name }}</div>
+                        @if($item->detail_item || $item->description)
+                        <div style="color: #333; margin-top: 2px;">{!! nl2br(e($item->detail_item ?? $item->description)) !!}</div>
+                        @endif
+                    </td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                </tr>
             @endforeach
 
-            @php
-                $handledCats = ['Hardware', 'Jasa Pemasangan', 'Material Support'];
-                $otherItems = $rfq->items->filter(function($item) use ($handledCats) {
-                    return !in_array($item->category, $handledCats);
-                });
-            @endphp
-            @if($otherItems->count() > 0)
-                <tr class="group-row">
-                    <td colspan="6">LAIN-LAIN / OTHER ITEMS</td>
-                </tr>
-                @foreach($otherItems as $item)
-                    @php
-                        $unitPrice = $item->price_after_margin;
-                        $rowTotal = $unitPrice * $item->qty;
-                        $grandSubtotal += $rowTotal;
-                    @endphp
-                    <tr>
-                        <td class="text-center">{{ $no++ }}</td>
-                        <td>
-                            <strong>{{ $item->product_name }}</strong><br>
-                            {!! nl2br(e($item->detail_item ?? $item->description)) !!}
-                        </td>
-                        <td class="text-center">{{ (int) $item->qty }}</td>
-                        <td class="text-center">{{ $item->unit }}</td>
-                        <td class="text-right">{{ number_format($unitPrice, 0, ',', '.') }}</td>
-                        <td class="text-right">{{ number_format($rowTotal, 0, ',', '.') }}</td>
-                    </tr>
-                @endforeach
+            @if(!empty(trim($rfq->notes ?? '')))
+            <tr>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 6px 8px; font-size: 8.5px; line-height: 1.35;">
+                    <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
+                    <div style="font-style: italic; color: #333;">{!! nl2br(e($rfq->notes)) !!}</div>
+                </td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px;"></td>
+            </tr>
             @endif
+
+            @php
+                $ppn = $grandSubtotal * 0.11;
+                $grandTotal = $grandSubtotal + $ppn;
+            @endphp
+
+            <!-- TOTAL ROW -->
+            <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px; text-align: center;">{{ (int) $totalQty }} Unit</td>
+                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL</td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;">
+                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
+                </td>
+            </tr>
+
+            <!-- PPN ROW -->
+            <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
+                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right;">PPn</td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;">
+                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($ppn, 0, ',', '.') }}</td></tr></table>
+                </td>
+            </tr>
+
+            <!-- TOTAL HARGA ROW -->
+            <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
+                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;">
+                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($grandTotal, 0, ',', '.') }}</td></tr></table>
+                </td>
+            </tr>
         </tbody>
     </table>
 
-    @php
-        $ppn = $grandSubtotal * 0.11;
-        $grandTotal = $grandSubtotal + $ppn;
-    @endphp
+    <!-- SYARAT & KETENTUAN (Persis Sampling) -->
+    <div style="font-size: 8.5px; line-height: 1.4; margin-top: 10px; margin-bottom: 8px;">
+        <table style="width: 100%; border: none;">
+            <tr>
+                <td style="width: 16px; vertical-align: top; font-weight: bold; border: none;">✓</td>
+                <td style="border: none;">
+                    <div>Sistem pembayaran 14 hari setelah invoice diterima</div>
+                    <div style="color: #555;">お支払い条件は、請求書受領後14日以内となります。</div>
+                </td>
+            </tr>
+            <tr>
+                <td style="width: 16px; vertical-align: top; font-weight: bold; padding-top: 4px; border: none;">✓</td>
+                <td style="padding-top: 4px; border: none;">
+                    <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                    <div style="color: #555;">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                </td>
+            </tr>
+        </table>
+    </div>
 
-    <table style="width: 100%; margin-top: 6px;">
+    <!-- PENUTUP -->
+    <div style="font-size: 8.5px; color: #222; margin-bottom: 12px; line-height: 1.35;">
+        Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi saya di nomor telp : <strong>{{ $salesPhone }}</strong> atau e-mail <strong>{{ $salesEmail }}</strong>. Atas perhatian dan kepercayaan nya kami ucapkan Terima Kasih.
+    </div>
+
+    <!-- TANDA TANGAN (Persis Sampling) -->
+    <table style="width: 100%; font-size: 9px; margin-top: 5px; margin-bottom: 15px; border: none;">
         <tr>
-            <td width="55%" style="vertical-align: top;">
-                <div style="font-size: 8px; color: #dc2626; font-style: italic; line-height: 1.3;">
-                    <strong>Catatan / Note:</strong><br>
-                    &bull; Stok unit terbatas dan tidak mengikat sebelum terbit PO resmi / <em>Stock is limited and subject to prior sales</em><br>
-                    &bull; Harga dapat berubah tanpa pemberitahuan / <em>Prices subject to change without prior notice</em>
+            <td style="width: 50%; vertical-align: top; border: none;">
+                <div>Hormat Kami</div>
+                <div style="margin: 2px 0;">
+                    @if(file_exists(public_path('images/pedia_ttd_stamp.png')))
+                        <img src="{{ public_path('images/pedia_ttd_stamp.png') }}" style="height: 52px;">
+                    @else
+                        <div style="height: 50px;"></div>
+                    @endif
                 </div>
+                <div style="font-weight: bold; font-size: 9.5px; margin-top: 2px;">{{ $salesName }}</div>
+                <div style="font-style: italic; color: #555;">{{ $salesRole }}</div>
             </td>
-            <td width="45%">
-                <table class="summary-table">
-                    <tr>
-                        <td>SUBTOTAL</td>
-                        <td class="summary-value">{{ number_format($grandSubtotal, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr>
-                        <td>PPN 11%</td>
-                        <td class="summary-value">{{ number_format($ppn, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr style="font-size: 10.5px;">
-                        <td style="color: #005a9c;">GRAND TOTAL</td>
-                        <td class="summary-value" style="color: #005a9c;"><strong>Rp {{ number_format($grandTotal, 0, ',', '.') }}</strong></td>
-                    </tr>
+            <td style="width: 50%; vertical-align: top; padding-left: 20px; border: none;">
+                <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
+                <div style="font-size: 8px; color: #555; margin-bottom: 3px;">上記の数量と価格に同意いたします。</div>
+                <div style="font-weight: bold; font-size: 9.5px; margin-bottom: 25px;">{{ $clientCompanyName }}</div>
+                
+                <table style="width: 100%; border: none;">
+                    <tr><td style="width: 50px; font-size: 8.5px; border: none; padding: 1px 0;">Nama</td><td style="font-size: 8.5px; border: none; padding: 1px 0;">: _________________</td></tr>
+                    <tr><td style="font-size: 8.5px; border: none; padding: 1px 0;">Jabatan</td><td style="font-size: 8.5px; border: none; padding: 1px 0;">: _________________</td></tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <!-- TERMS & CONDITIONS (BILINGUAL ID & EN) -->
-    <div class="notes">
-        <strong style="color: #1e293b;">Syarat & Ketentuan / Terms & Conditions:</strong>
-        <p>1. Sistem pembayaran 14 hari kalender setelah invoice diterima. <span class="bilingual">(Payment terms: 14 calendar days upon invoice receipt).</span></p>
-        <p>2. Harga sudah termasuk PPn 11% dan berlaku selama 7 hari kalender. <span class="bilingual">(Price is inclusive of 11% VAT and valid for 7 calendar days).</span></p>
-        <p>3. Ketersediaan stok tidak mengikat sebelum terbit PO resmi dari Pemesan. <span class="bilingual">(Stock is not binding prior to official PO).</span></p>
-        <p>4. Dengan menandatangani penawaran ini, Pemesan menyetujui kuantiti, harga, dan ketentuan berlaku. <span class="bilingual">(By signing, Client accepts all items, prices, and terms).</span></p>
-    </div>
-
-    <!-- REKENING BANK RESMI PT -->
-    <table class="bank-table">
-        <tr>
-            <td colspan="2" style="font-weight: bold; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px;">
-                Pembayaran dapat ditransfer ke Rekening Resmi Perusahaan / Official Payment Bank Accounts:
-            </td>
-        </tr>
-        <tr>
-            <td width="50%" style="border-right: 1px dashed #cbd5e1; padding-top: 3px;">
-                <strong style="color: #005a9c;">Bank Central Asia (BCA)</strong><br>
-                No. Rekening: <strong>5415-888-999</strong><br>
-                A/N: <strong>PT. PEDIA TEKNOLOGI INDONESIA</strong><br>
-                <span style="color: #64748b; font-size: 8px;">KCP Grand Galaxy City Bekasi</span>
-            </td>
-            <td width="50%" style="padding-top: 3px; padding-left: 8px;">
-                <strong style="color: #d97706;">Bank Mandiri</strong><br>
-                No. Rekening: <strong>156-00-1789-8889</strong><br>
-                A/N: <strong>PT. PEDIA TEKNOLOGI INDONESIA</strong><br>
-                <span style="color: #64748b; font-size: 8px;">KC Bekasi Juanda</span>
-            </td>
-        </tr>
-    </table>
-
-    <table class="signature-table">
-        <tr>
-            <td width="50%">
-                Hormat Kami / <em>Sincerely,</em><br>
-                <strong>PT. PEDIA TEKNOLOGI INDONESIA</strong>
-                <div style="height: 50px;"></div>
-                <strong style="text-decoration: underline;">{{ $rfq->sales->name ?? 'Sales Representative' }}</strong><br>
-                {{ $rfq->sales->role ?? 'Account Manager' }}<br>
-                <span style="color: #64748b; font-size: 8px;">{{ $rfq->sales->email ?? 'sales@pedia-technology.co.id' }}</span>
-            </td>
-            <td width="50%" style="padding-left: 30px;">
-                Disetujui Oleh / <em>Accepted by:</em><br>
-                <strong>{{ $rfq->customer->name ?? 'Klien' }}</strong>
-                <div style="height: 50px;"></div>
-                ___________________________________<br>
-                Nama & Cap Perusahaan
-            </td>
-        </tr>
-    </table>
-
-    <div class="footer-note">
-        <strong>PT. PEDIA TEKNOLOGI INDONESIA</strong> &bull; Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3, Kota Bekasi 17147<br>
-        Telp: (+62) 021-3971-2155 | Fax: (+62) 021-3970-0175 | Website: https://pedia-technology.co.id
+    <!-- FOOTER (Persis Sampling) -->
+    <div style="text-align: center; margin-top: 15px; font-size: 8px; color: #222;">
+        <div style="font-weight: bold; font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
+        <div style="font-size: 8.5px; margin-bottom: 4px;">お買い上げくださってありがとうございます！</div>
+        <div style="line-height: 1.35; color: #555; margin-bottom: 8px;">
+            Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,<br>
+            Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147<br>
+            Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175
+        </div>
+        <div style="background-color: #005a9c; color: #fff; padding: 5px; font-size: 9px; font-weight: bold; letter-spacing: 0.5px;">
+            website : https://pedia-technology.co.id
+        </div>
     </div>
 
 </body>

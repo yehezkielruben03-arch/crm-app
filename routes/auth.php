@@ -12,10 +12,10 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
+    // ⚠️ KEAMANAN: Registrasi publik dinonaktifkan untuk CRM internal.
+    // Akun user hanya boleh dibuat oleh Admin/Super Admin via halaman /users.
+    // Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
+    // Route::post('register', [RegisteredUserController::class, 'store']);
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');

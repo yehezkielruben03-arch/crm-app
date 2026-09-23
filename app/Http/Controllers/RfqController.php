@@ -633,6 +633,7 @@ class RfqController extends Controller
         abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa dikirim dari status saat ini.');
 
         $validated = $request->validate([
+            'notes'                    => 'nullable|string|max:3000',
             'items'                    => 'required|array',
             'items.*.category'         => 'nullable|string',
             'items.*.vendor_id'        => 'nullable|exists:vendors,id',
@@ -654,7 +655,11 @@ class RfqController extends Controller
         $oldStatus = $rfq->status;
         $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request) {
+            if ($request->has('notes')) {
+                $rfq->update(['notes' => $request->notes]);
+            }
+
             foreach ($validated['items'] as $itemId => $data) {
                 $item = $rfq->items()->find($itemId);
                 if ($item) {
@@ -673,7 +678,7 @@ class RfqController extends Controller
                     $item->margin_value     = (float) ($data['margin_value'] ?? 0);
                     $item->margin           = (float) ($data['margin_value'] ?? 0);
                     $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
-                    $item->ceiling          = (int) ($data['custom_ceiling'] > 0 ? $data['custom_ceiling'] : 10000);
+                    $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
                     $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 7));
 
                     $item->price_after_margin = $item->calculatePriceAfterMargin();
@@ -1086,7 +1091,7 @@ class RfqController extends Controller
                 'customer_id' => $rfq->customer_id,
                 'sales_id'    => $rfq->sales_id,
                 'po_date'     => now(),
-                'status'      => \App\Models\PurchaseOrder::STATUS_APPROVED,
+                'status'      => \App\Models\PurchaseOrder::STATUS_GOAL,
                 'file_path'   => $rfq->po_file_path,
                 'grand_total' => $grandTotal,
             ]);
