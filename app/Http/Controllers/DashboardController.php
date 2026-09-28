@@ -449,7 +449,12 @@ class DashboardController extends Controller
         $actionQueueSummary = Cache::remember('dash:admin:action_queue', 60, function () use ($now) {
             $pendingCustomers = Customer::whereIn('status', Customer::pendingApprovalStatuses())->count();
             $pendingPOs = PurchaseOrder::whereIn('status', [PurchaseOrder::STATUS_PENDING, PurchaseOrder::STATUS_REVISI])->count();
-            $pendingRfqs = Rfq::whereIn('status', [Rfq::STATUS_PENDING_ADMIN, Rfq::STATUS_PENDING_LEADER])->count();
+            $pendingRfqs = Rfq::whereIn('status', [
+                Rfq::STATUS_PENDING_ADMIN,
+                Rfq::STATUS_PENDING_LEADER,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+            ])->count();
 
             return [
                 'pending_customers' => $pendingCustomers,
@@ -478,10 +483,10 @@ class DashboardController extends Controller
         // RFQ pipeline (admin sees all sales)
         $rfqPipeline = Cache::remember("dash:admin:pipeline", 60, function () {
             return Rfq::selectRaw("
-                SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_ADMIN . "' THEN 1 ELSE 0 END) as pending_admin,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_LEADER . "' THEN 1 ELSE 0 END) as pending_leader,
+                SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "') THEN 1 ELSE 0 END) as pending_admin,
+                SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_LEADER . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as pending_leader,
                 SUM(CASE WHEN status = '" . Rfq::STATUS_APPROVED . "' THEN 1 ELSE 0 END) as approved,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_QUOTATION_CREATED . "' THEN 1 ELSE 0 END) as quotation_created,
+                SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "') THEN 1 ELSE 0 END) as quotation_created,
                 SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as goal,
                 SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' THEN 1 ELSE 0 END) as cancelled
             ")
@@ -490,13 +495,7 @@ class DashboardController extends Controller
 
         // Conversion rate: GOAL / Total RFQ (non-cancelled)
         $conversionRate = Cache::remember('dash:admin:conversion', 120, function () {
-            $total = Rfq::whereIn('status', [
-                Rfq::STATUS_PENDING_ADMIN,
-                Rfq::STATUS_PENDING_LEADER,
-                Rfq::STATUS_APPROVED,
-                Rfq::STATUS_QUOTATION_CREATED,
-                Rfq::STATUS_GOAL,
-            ])->count();
+            $total = Rfq::whereNotIn('status', [Rfq::STATUS_CANCELLED])->count();
             $goal = Rfq::where('status', Rfq::STATUS_GOAL)->count();
             return $total > 0 ? round(($goal / $total) * 100, 1) : 0;
         });

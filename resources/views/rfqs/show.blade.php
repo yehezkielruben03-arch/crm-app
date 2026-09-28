@@ -7,11 +7,29 @@
            dan semua baris data → garis kolom sejajar dari atas
            ke bawah, tidak ada teks yang bertabrakan.
            ════════════════════════════════════════════════════════ */
-        .rfq-grid { display: grid; min-width: 700px; }
+        .rfq-grid { display: grid; width: 100%; min-width: 0; }
 
-        /* Layout kolom data rfq */
-        .rfq-grid--admin .rfq-grid__row { grid-template-columns: 40px minmax(220px, 2fr) 80px 100px 150px; }
-        .rfq-grid--sales .rfq-grid__row { grid-template-columns: 40px minmax(220px, 2fr) 80px 100px; }
+        /* Layout kolom data rfq: 
+           Kolom 1: No (#) 36px
+           Kolom 2: Nama & Deskripsi (fleksibel)
+           Kolom 3: Qty & Satuan gabung (75px)
+           Kolom 4: HPP & Estimasi Jual (fleksibel proporsional)
+        */
+        .rfq-grid--admin .rfq-grid__row { 
+            grid-template-columns: 36px minmax(130px, 1.8fr) 75px minmax(180px, 1.4fr); 
+        }
+        .rfq-grid--sales .rfq-grid__row { 
+            grid-template-columns: 36px minmax(140px, 2fr) 85px; 
+        }
+
+        @media (max-width: 640px) {
+            .rfq-grid--admin .rfq-grid__row {
+                grid-template-columns: 28px minmax(110px, 1.4fr) 60px minmax(140px, 1.4fr);
+            }
+            .rfq-grid__cell {
+                padding: 10px 8px;
+            }
+        }
 
         .rfq-grid__row {
             display: grid;
@@ -22,7 +40,7 @@
         .rfq-grid__row:hover { background: rgba(37,99,235,0.04); }
 
         .rfq-grid__cell {
-            padding: 14px 16px;
+            padding: 12px 14px;
             font-size: 0.8125rem;
             color: var(--text-secondary);
             border-bottom: 1px solid #e2e8f0;
@@ -283,10 +301,9 @@
                         <div class="rfq-grid__row rfq-grid__row--head">
                             <span class="rfq-grid__cell text-center">#</span>
                             <span class="rfq-grid__cell">Item Descriptions</span>
-                            <span class="rfq-grid__cell text-center">Qty</span>
-                            <span class="rfq-grid__cell">Satuan</span>
+                            <span class="rfq-grid__cell text-center">Qty / Satuan</span>
                             @if(auth()->user()->isAdminOrAbove())
-                            <span class="rfq-grid__cell text-right">HPP &amp; Margin</span>
+                            <span class="rfq-grid__cell text-right">Kalkulasi HPP &amp; Jual</span>
                             @endif
                         </div>
 
@@ -305,39 +322,49 @@
                                 <div class="rfq-grid__row {{ $loop->even ? 'rfq-grid__row--zebra' : '' }}">
                                     <span class="rfq-grid__cell rfq-grid__num text-center">{{ $rowNum++ }}</span>
                                     <span class="rfq-grid__cell rfq-grid__desc-block">
-                                        <span class="rfq-grid__name">{{ $item->product_name }}</span>
-                                        @if($item->detail_item)<span class="rfq-grid__detail">{{ $item->detail_item }}</span>@endif
-                                        @if($item->description)<span class="rfq-grid__desc">{{ $item->description }}</span>@endif
+                                        <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
+                                        @if($item->detail_item)<span class="rfq-grid__detail text-xs text-slate-500">{{ $item->detail_item }}</span>@endif
+                                        @if($item->description)<span class="rfq-grid__desc text-xs text-slate-500">{{ $item->description }}</span>@endif
                                     </span>
-                                    <span class="rfq-grid__cell rfq-grid__num text-center">{{ number_format($item->qty, 0, ',', '.') }}</span>
-                                    <span class="rfq-grid__cell"><span class="rfq-grid__unit">{{ $item->unit ?? '-' }}</span></span>
+                                    <span class="rfq-grid__cell text-center">
+                                        <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
+                                        <span class="rfq-grid__unit text-[10px] mt-1 inline-block">{{ $item->unit ?? '-' }}</span>
+                                    </span>
                                     @if(auth()->user()->isAdminOrAbove())
                                     <span class="rfq-grid__cell rfq-grid__status">
                                         @if($item->price_after_margin > 0)
-                                            <span class="rfq-grid__hpp">
-                                                @if($item->vendor)
-                                                    <span class="rfq-grid__hpp-line" style="color: #4338ca;">Vendor: <b>{{ $item->vendor->nama_vendor }}</b></span>
-                                                @elseif($item->category === 'Jasa Pemasangan')
-                                                    <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
-                                                @endif
-                                                <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                                <span class="rfq-grid__hpp-line">
-                                                    @if($item->biaya_kirim > 0 && $item->ongkir_pedia > 0)
-                                                        Ongkir: <b>Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }}</b> <span style="font-size:0.5625rem; color:var(--text-muted);">(Vdr: {{ number_format($item->biaya_kirim, 0, ',', '.') }} + Pedia: {{ number_format($item->ongkir_pedia, 0, ',', '.') }})</span>
-                                                    @elseif($item->biaya_kirim > 0)
-                                                        Ongkir (Vendor): <b>Rp {{ number_format($item->biaya_kirim, 0, ',', '.') }}</b>
-                                                    @else
-                                                        Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b>
+                                            <div class="flex flex-col gap-1 text-right text-xs">
+                                                <div class="flex flex-wrap items-center justify-end gap-1.5 text-[11px] text-slate-500">
+                                                    @if($item->vendor)
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 text-[10px]">
+                                                            {{ $item->vendor->nama_vendor }}
+                                                        </span>
+                                                    @elseif($item->category === 'Jasa Pemasangan')
+                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-semibold border border-sky-100 text-[10px]">
+                                                            Mainpower Pedia
+                                                        </span>
                                                     @endif
-                                                </span>
-                                                <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</b> / Ceil: {{ number_format((float) ($item->custom_ceiling ?: $item->ceiling), 0, ',', '.') }}</span>
-                                                <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">
-                                                    Jual/Unit: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b>
+                                                    <span>HPP: <strong class="text-slate-700 font-mono">Rp {{ number_format($item->hpp, 0, ',', '.') }}</strong></span>
+                                                </div>
+                                                
+                                                <div class="text-[10px] text-slate-400">
+                                                    @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
+                                                        Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                    @endif
+                                                    Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
+                                                </div>
+
+                                                <div class="pt-0.5 border-t border-slate-100">
+                                                    <div class="text-xs font-bold text-blue-600 font-mono">
+                                                        Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/unit</span>
+                                                    </div>
                                                     @if($item->qty > 1)
-                                                        <br><span style="color: #059669; font-weight:700;">Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}</span>
+                                                        <div class="text-[11px] font-bold text-emerald-600 font-mono">
+                                                            Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}
+                                                        </div>
                                                     @endif
-                                                </span>
-                                            </span>
+                                                </div>
+                                            </div>
                                         @else
                                             <span class="rfq-grid__badge">
                                                 <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
@@ -358,38 +385,48 @@
                             <div class="rfq-grid__row {{ $loop->even ? 'rfq-grid__row--zebra' : '' }}">
                                 <span class="rfq-grid__cell rfq-grid__num text-center">{{ $loop->iteration }}</span>
                                 <span class="rfq-grid__cell rfq-grid__desc-block">
-                                    <span class="rfq-grid__name">{{ $item->product_name }}</span>
-                                    @if($item->description)<span class="rfq-grid__desc">{{ $item->description }}</span>@endif
+                                    <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
+                                    @if($item->description)<span class="rfq-grid__desc text-xs text-slate-500">{{ $item->description }}</span>@endif
                                 </span>
-                                <span class="rfq-grid__cell rfq-grid__num text-center">{{ number_format($item->qty, 0, ',', '.') }}</span>
-                                <span class="rfq-grid__cell"><span class="rfq-grid__unit">{{ $item->unit ?? '-' }}</span></span>
+                                <span class="rfq-grid__cell text-center">
+                                    <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
+                                    <span class="rfq-grid__unit text-[10px] mt-1 inline-block">{{ $item->unit ?? '-' }}</span>
+                                </span>
                                 @if(auth()->user()->isAdminOrAbove())
                                 <span class="rfq-grid__cell rfq-grid__status">
                                     @if($item->price_after_margin > 0)
-                                        <span class="rfq-grid__hpp">
-                                            @if($item->vendor)
-                                                <span class="rfq-grid__hpp-line" style="color: #4338ca;">Vendor: <b>{{ $item->vendor->nama_vendor }}</b></span>
-                                            @elseif($item->category === 'Jasa Pemasangan')
-                                                <span class="rfq-grid__hpp-line" style="color: #0284c7;">Sumber: <b>Mainpower Pedia</b></span>
-                                            @endif
-                                            <span class="rfq-grid__hpp-line">HPP: <b>Rp {{ number_format($item->hpp, 0, ',', '.') }}</b></span>
-                                            <span class="rfq-grid__hpp-line">
-                                                @if($item->biaya_kirim > 0 && $item->ongkir_pedia > 0)
-                                                    Ongkir: <b>Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }}</b> <span style="font-size:0.5625rem; color:var(--text-muted);">(Vdr: {{ number_format($item->biaya_kirim, 0, ',', '.') }} + Pedia: {{ number_format($item->ongkir_pedia, 0, ',', '.') }})</span>
-                                                @elseif($item->biaya_kirim > 0)
-                                                    Ongkir (Vendor): <b>Rp {{ number_format($item->biaya_kirim, 0, ',', '.') }}</b>
-                                                @else
-                                                    Ongkir: <b>Rp {{ number_format($item->ongkir_pedia + $item->ongkir_pelanggan, 0, ',', '.') }}</b>
+                                        <div class="flex flex-col gap-1 text-right text-xs">
+                                            <div class="flex flex-wrap items-center justify-end gap-1.5 text-[11px] text-slate-500">
+                                                @if($item->vendor)
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100 text-[10px]">
+                                                        {{ $item->vendor->nama_vendor }}
+                                                    </span>
+                                                @elseif($item->category === 'Jasa Pemasangan')
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-sky-50 text-sky-700 font-semibold border border-sky-100 text-[10px]">
+                                                        Mainpower Pedia
+                                                    </span>
                                                 @endif
-                                            </span>
-                                            <span class="rfq-grid__hpp-line">Margin: <b>{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</b> / Ceil: {{ number_format((float) ($item->custom_ceiling ?: $item->ceiling), 0, ',', '.') }}</span>
-                                            <span class="rfq-grid__hpp-line rfq-grid__hpp-line--jual">
-                                                Jual/Unit: <b>Rp {{ number_format($item->price_after_margin, 0, ',', '.') }}</b>
+                                                <span>HPP: <strong class="text-slate-700 font-mono">Rp {{ number_format($item->hpp, 0, ',', '.') }}</strong></span>
+                                            </div>
+                                            
+                                            <div class="text-[10px] text-slate-400">
+                                                @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
+                                                    Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                @endif
+                                                Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
+                                            </div>
+
+                                            <div class="pt-0.5 border-t border-slate-100">
+                                                <div class="text-xs font-bold text-blue-600 font-mono">
+                                                    Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/unit</span>
+                                                </div>
                                                 @if($item->qty > 1)
-                                                    <br><span style="color: #059669; font-weight:700;">Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}</span>
+                                                    <div class="text-[11px] font-bold text-emerald-600 font-mono">
+                                                        Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}
+                                                    </div>
                                                 @endif
-                                            </span>
-                                        </span>
+                                            </div>
+                                        </div>
                                     @else
                                         <span class="rfq-grid__badge">
                                             <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
@@ -417,6 +454,114 @@
                         @endif
                     </div>
                 </div>
+
+                {{-- Keterangan Versi HPP & Riwayat Revisi --}}
+                @if(auth()->user()->isAdminOrAbove() && isset($priceHistories) && $priceHistories->count() > 0)
+                <div class="px-6 py-4 bg-slate-50 border-t border-slate-200" x-data="{ showHistory: false }">
+                    <div class="flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5">
+                            @if(isset($revisionCount) && $revisionCount > 0)
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    Keterangan HPP: Revisi ke-{{ $revisionCount }}
+                                </span>
+                                <span class="text-xs text-slate-500">
+                                    Terakhir diperbarui: <strong class="text-slate-700">{{ $latestHistory?->created_at?->format('d M Y, H:i') }} WIB</strong>
+                                    @if($latestHistory?->creator)
+                                        oleh <strong class="text-slate-700">{{ $latestHistory->creator->name }}</strong>
+                                    @endif
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-200 text-slate-700">
+                                    Keterangan HPP: Draf Awal (Versi 1)
+                                </span>
+                                <span class="text-xs text-slate-500">
+                                    Dihitung: <strong class="text-slate-700">{{ $latestHistory?->created_at?->format('d M Y, H:i') }} WIB</strong>
+                                </span>
+                            @endif
+                        </div>
+
+                        <button type="button" @click="showHistory = !showHistory" 
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-100 shadow-2xs transition">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span x-text="showHistory ? 'Tutup Riwayat Revisi' : 'Lihat History Revisi ({{ $priceHistories->count() }} Versi)'"></span>
+                            <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': showHistory }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                    </div>
+
+                    {{-- Panel Riwayat History --}}
+                    <div x-show="showHistory" x-collapse x-cloak class="mt-4 pt-4 border-t border-slate-200 space-y-4">
+                        <p class="text-xs text-slate-500 mb-2">Audit trail rekam jejak setiap kali HPP atau margin disesuaikan:</p>
+                        @foreach($priceHistories as $history)
+                        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+                            <div class="flex flex-wrap justify-between items-center mb-2.5 pb-2 border-b border-slate-100 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold {{ $loop->first && $history->version > 1 ? 'bg-amber-600 text-white' : 'bg-slate-700 text-white' }}">
+                                        {{ $history->version > 1 ? 'Revisi ke-' . ($history->version - 1) : 'Draf Awal (Versi 1)' }}
+                                    </span>
+                                    <span class="text-xs text-slate-500 font-medium">{{ $history->created_at->format('d M Y, H:i') }} WIB</span>
+                                </div>
+                                <div class="text-xs text-slate-600">
+                                    Disimpan oleh: <strong class="text-slate-800">{{ $history->creator->name ?? 'Admin Purchase' }}</strong>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-xs text-left">
+                                    <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[10px]">
+                                        <tr>
+                                            <th class="px-2.5 py-1.5">Nama Item</th>
+                                            <th class="px-2.5 py-1.5 text-center">Qty</th>
+                                            <th class="px-2.5 py-1.5 text-right">Modal Satuan (HPP)</th>
+                                            <th class="px-2.5 py-1.5 text-center">Margin</th>
+                                            <th class="px-2.5 py-1.5 text-right">Harga Jual / Unit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100 text-[11px]">
+                                        @if(is_array($history->history_data))
+                                            @foreach($history->history_data as $hItem)
+                                            @php
+                                                $hHpp = (float)($hItem['hpp'] ?? 0);
+                                                $hPrice = (float)($hItem['price_after_margin'] ?? 0);
+                                                $hMarginVal = (float)($hItem['margin_value'] ?? 0);
+                                                if ($hMarginVal == 0 && isset($hItem['margin']) && (float)$hItem['margin'] > 0) {
+                                                    $hMarginVal = (float)$hItem['margin'];
+                                                }
+                                            @endphp
+                                            <tr>
+                                                <td class="px-2.5 py-1.5 font-medium text-slate-800">{{ $hItem['product_name'] ?? '-' }}</td>
+                                                <td class="px-2.5 py-1.5 text-center text-slate-600">{{ (int)($hItem['qty'] ?? 1) }} {{ $hItem['unit'] ?? '' }}</td>
+                                                <td class="px-2.5 py-1.5 text-right font-mono text-slate-600">
+                                                    @if($hHpp > 0)
+                                                        Rp {{ number_format($hHpp, 0, ',', '.') }}
+                                                    @else
+                                                        <span class="text-[10px] text-slate-400 italic">Belum diisi</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-2.5 py-1.5 text-center text-slate-600">
+                                                    @if($hHpp > 0 || $hPrice > 0)
+                                                        {{ ($hItem['margin_type'] ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($hMarginVal, 0, ',', '.') : $hMarginVal . '%' }}
+                                                    @else
+                                                        <span class="text-[10px] text-slate-400 italic">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="px-2.5 py-1.5 text-right font-bold font-mono">
+                                                    @if($hPrice > 0)
+                                                        <span class="text-emerald-700">Rp {{ number_format($hPrice, 0, ',', '.') }}</span>
+                                                    @else
+                                                        <span class="text-[10px] text-slate-400 italic font-normal">Belum dihitung</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        @endif
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
 
@@ -446,6 +591,14 @@
                         <span style="color: var(--text-muted);">Total Item</span>
                         <span style="color: var(--text-secondary);">{{ number_format($rfq->items->sum('qty'), 0, ',', '.') }}</span>
                     </div>
+                    @if(isset($priceHistories) && $priceHistories->count() > 0)
+                    <div class="flex justify-between text-sm items-center">
+                        <span style="color: var(--text-muted);">Versi Penawaran</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold {{ (isset($revisionCount) && $revisionCount > 0) ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700' }}">
+                            {{ (isset($revisionCount) && $revisionCount > 0) ? 'Revisi ' . $revisionCount : 'Draf Awal' }}
+                        </span>
+                    </div>
+                    @endif
                     <div class="pt-3" style="border-top: 1px solid #e2e8f0;">
                         @if(auth()->user()->isAdminOrAbove() || in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'GOAL', 'Quotation Sent']))
                         <div class="flex justify-between text-sm mb-1">

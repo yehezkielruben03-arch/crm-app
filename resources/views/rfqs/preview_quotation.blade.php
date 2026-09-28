@@ -122,7 +122,7 @@
                         @if(isset($revisionCount) && $revisionCount > 0)
                         <tr>
                             <td colspan="2" class="text-red-600 font-bold py-0.5 text-right tracking-wide uppercase text-[11.5px]">
-                                REVISI {{ $revisionCount }} : {{ date('d M Y') }}
+                                REVISI {{ $revisionCount }} : {{ $revisionDate ?? date('d M Y') }}
                             </td>
                         </tr>
                         @endif

@@ -121,6 +121,7 @@
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Review
                                 </a>
+                                @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
                                 <form action="{{ route('rfq.approve', $rfq) }}" method="POST" class="inline-block" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
                                     @csrf
                                     <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
@@ -136,6 +137,12 @@
                                     </svg>
                                     Reject
                                 </button>
+                                @else
+                                <span class="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" title="Hanya Leader yang berhak menyetujui HPP">
+                                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Menunggu Approval Leader
+                                </span>
+                                @endif
                             </div>
                         </td>
                     </tr>

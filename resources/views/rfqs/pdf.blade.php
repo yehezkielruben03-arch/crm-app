@@ -61,7 +61,7 @@
                     @if(isset($revisionCount) && $revisionCount > 0)
                     <tr>
                         <td colspan="2" style="color: #dc2626; font-weight: bold; text-align: right; text-transform: uppercase; padding-top: 2px;">
-                            REVISI {{ $revisionCount }} : {{ date('d M Y') }}
+                            REVISI {{ $revisionCount }} : {{ $revisionDate ?? date('d M Y') }}
                         </td>
                     </tr>
                     @endif

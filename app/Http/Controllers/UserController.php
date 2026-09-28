@@ -50,6 +50,10 @@ class UserController extends Controller
             'monthly_target' => 'nullable|numeric|min:0',
         ]);
 
+        if ($validated['role'] === 'Super Admin' && !auth()->user()->isSuperAdmin()) {
+            return back()->withErrors(['role' => 'Hanya Super Admin yang dapat membuat akun dengan hak akses Super Admin.'])->withInput();
+        }
+
         $validated['password'] = Hash::make($validated['password']);
         $validated['role'] = match ($validated['role']) {
             'Admin Purchase' => 'Admin',
@@ -86,6 +90,14 @@ class UserController extends Controller
             'monthly_target' => 'nullable|numeric|min:0',
         ]);
 
+        if ($user->isSuperAdmin() && !auth()->user()->isSuperAdmin()) {
+            return back()->withErrors(['role' => 'Hanya Super Admin yang berhak mengedit akun Super Admin.'])->withInput();
+        }
+
+        if ($validated['role'] === 'Super Admin' && !auth()->user()->isSuperAdmin()) {
+            return back()->withErrors(['role' => 'Hanya Super Admin yang dapat menaikkan hak akses menjadi Super Admin.'])->withInput();
+        }
+
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
@@ -121,6 +133,14 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if ($user->isSuperAdmin() && !auth()->user()->isSuperAdmin()) {
+            return back()->with('error', 'Akun Super Admin tidak dapat dinonaktifkan oleh role selain Super Admin.');
+        }
+
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'Anda tidak dapat menonaktifkan akun sendiri.');
+        }
+
         $name = $user->name;
         $user->delete();
 

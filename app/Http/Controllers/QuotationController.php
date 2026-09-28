@@ -376,10 +376,17 @@ class QuotationController extends Controller
 
         $path = Storage::disk('public')->path($quotation->file_path);
 
-        return response()->download(
-            $path,
-            'Quotation_' . $quotation->quo_number . '_Rev' . $quotation->revision_number . '.pdf'
-        );
+        $rfq = $quotation->rfq;
+        $rfqNum = $rfq?->rfq_number ?: str_replace(['/', '\\'], '-', $quotation->quo_number);
+        $firstItem = $rfq?->items?->first();
+        $rawTitle = $firstItem?->product_name ?: ($quotation->customer?->company_name ?: 'Penawaran');
+        $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
+        $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');
+        $revSuffix = ($quotation->revision_number > 0) ? '_rev' . $quotation->revision_number : '';
+
+        $downloadName = "{$rfqNum}_Penawaran {$cleanTitle}{$revSuffix}.pdf";
+
+        return response()->download($path, $downloadName);
     }
 
     public function parsePdf(Request $request)

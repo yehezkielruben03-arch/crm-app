@@ -252,15 +252,14 @@ class RfqController extends Controller
                 $hpp              = (float)($item['hpp'] ?? 0);
                 $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
                 $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
-                $marginPct        = (float)($item['margin'] ?? 25);      // input dalam % (cth: 25)
-                $marginMultiplier = 1 + ($marginPct / 100);                // konversi ke multiplier: 1.25
-                $ceiling          = (int)($item['ceiling'] ?? 10000);
+                $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
+                $feeEu            = (float)($item['fee_eu'] ?? 0);
+                $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
+                $marginType       = $item['margin_type'] ?? 'percentage';
+                $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
+                $cat              = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
 
-                $basePrice         = $hpp + $ongkirPedia + $ongkirPelanggan;
-                $priceAfterMargin  = $ceiling > 0 ? ceil(($basePrice * $marginMultiplier) / $ceiling) * $ceiling : 0;
-                $cat               = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
-
-                $rfq->items()->create([
+                $rfqItem = new RfqItem([
                     'category'           => $cat,
                     'product_name'       => $item['product_name'],
                     'qty'                => $item['qty'],
@@ -270,12 +269,17 @@ class RfqController extends Controller
                     'hpp'                => $hpp,
                     'ongkir_pedia'       => $ongkirPedia,
                     'ongkir_pelanggan'   => $ongkirPelanggan,
-                    'margin'             => $marginPct,
+                    'biaya_kirim'        => $biayaKirim,
+                    'fee_eu'             => $feeEu,
+                    'margin_type'        => $marginType,
+                    'margin_value'       => $marginVal,
+                    'margin'             => $marginVal,
                     'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
                     'validity_days'      => (int)($item['validity_days'] ?? 7),
-                    'price_after_margin' => $priceAfterMargin,
                 ]);
+                $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
+                $rfq->items()->save($rfqItem);
             }
 
             DB::commit();
@@ -353,7 +357,16 @@ class RfqController extends Controller
 
         $rfq->load(['customer', 'sales', 'items.vendor']);
 
-        return view('rfqs.show', compact('rfq'));
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->with('creator:id,name')
+            ->orderByDesc('version')
+            ->get();
+
+        $maxVersion = $priceHistories->max('version') ?? 0;
+        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
+        $latestHistory = $priceHistories->first();
+
+        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'latestHistory'));
     }
 
     public function edit(Rfq $rfq)
@@ -471,15 +484,15 @@ class RfqController extends Controller
                 $hpp              = (float)($item['hpp'] ?? 0);
                 $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
                 $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
-                $marginPct        = (float)($item['margin'] ?? 25);      // input dalam % (cth: 25)
-                $marginMultiplier = 1 + ($marginPct / 100);                // konversi ke multiplier: 1.25
-                $ceiling          = (int)($item['ceiling'] ?? 10000);
+                $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
+                $feeEu            = (float)($item['fee_eu'] ?? 0);
+                $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
+                $marginType       = $item['margin_type'] ?? 'percentage';
+                $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
+                $cat              = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
 
-                $basePrice         = $hpp + $ongkirPedia + $ongkirPelanggan;
-                $priceAfterMargin  = $ceiling > 0 ? ceil(($basePrice * $marginMultiplier) / $ceiling) * $ceiling : 0;
-
-                $rfq->items()->create([
-                    'category'           => $item['category'] ?? null,
+                $rfqItem = new RfqItem([
+                    'category'           => $cat,
                     'product_name'       => $item['product_name'],
                     'qty'                => $item['qty'],
                     'unit'               => $item['unit'] ?? null,
@@ -488,12 +501,17 @@ class RfqController extends Controller
                     'hpp'                => $hpp,
                     'ongkir_pedia'       => $ongkirPedia,
                     'ongkir_pelanggan'   => $ongkirPelanggan,
-                    'margin'             => $marginPct,
+                    'biaya_kirim'        => $biayaKirim,
+                    'fee_eu'             => $feeEu,
+                    'margin_type'        => $marginType,
+                    'margin_value'       => $marginVal,
+                    'margin'             => $marginVal,
                     'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
                     'validity_days'      => (int)($item['validity_days'] ?? 7),
-                    'price_after_margin' => $priceAfterMargin,
                 ]);
+                $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
+                $rfq->items()->save($rfqItem);
             }
 
             if ($wasApproved) {
@@ -853,11 +871,34 @@ class RfqController extends Controller
 
         $rfq->load(['customer', 'customerContact', 'items', 'sales']);
         
-        $revisionCount = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount'));
+        $maxVersion = $priceHistories->max('version') ?? 0;
+        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
+        $latestHistory = $priceHistories->first();
+        $revisionDate = $latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y');
 
-        $filename = str_replace(['/', '\\'], '-', $rfq->quotation_number) . '.pdf';
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'));
+
+        // Format Penamaan File Resmi Pedia:
+        // {RFQ_NUMBER}_Penawaran {NAMA_ITEM}[_rev{N}].pdf
+        // Contoh: 240327-0288_Penawaran Monitor Acer_rev1.pdf
+        $rfqNum = $rfq->rfq_number;
+        if (!$rfqNum) {
+            $datePart = $rfq->rfq_date ? \Carbon\Carbon::parse($rfq->rfq_date)->format('ymd') : date('ymd');
+            $rfqNum = $datePart . '-' . str_pad($rfq->id, 4, '0', STR_PAD_LEFT);
+        }
+
+        $firstItem = $rfq->items->first();
+        $rawTitle = $firstItem?->product_name ?: ($rfq->customer?->company_name ?: ($rfq->type ?: 'Hardware'));
+        $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
+        $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');
+
+        $revSuffix = ($revisionCount > 0) ? '_rev' . $revisionCount : '';
+
+        $filename = "{$rfqNum}_Penawaran {$cleanTitle}{$revSuffix}.pdf";
 
         return $pdf->download($filename);
     }
@@ -868,9 +909,16 @@ class RfqController extends Controller
 
         $rfq->load(['customer', 'customerContact', 'items', 'sales']);
         
-        $revisionCount = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
 
-        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount'));
+        $maxVersion = $priceHistories->max('version') ?? 0;
+        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
+        $latestHistory = $priceHistories->first();
+        $revisionDate = $latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y');
+
+        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate'));
     }
 
     public function markQuotationSent(Rfq $rfq)
