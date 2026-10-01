@@ -199,11 +199,13 @@ class RfqController extends Controller
             abort_if($customer->sales_id !== Auth::id(), 403);
         }
 
-        $salesId = $customer->sales_id ?? Auth::id();
         if (!$this->authUser()->isAdminOrAbove()) {
-            $salesId = Auth::id();
+            $salesId   = Auth::id();
+            $salesName = $this->authUser()->name;
+        } else {
+            $salesId   = $customer->sales_id ?? Auth::id();
+            $salesName = $customer->sales ? $customer->sales->name : $this->authUser()->name;
         }
-        $salesName = $customer->sales ? $customer->sales->name : $this->authUser()->name;
 
         // ─────────────────────────────────────────────────────────────────────
         // Validasi integritas data: cegah bug "KATEGORI TIDAK DISEBUTKAN"
@@ -376,8 +378,7 @@ class RfqController extends Controller
             abort(403);
         }
 
-        $allowedStatuses = [Rfq::STATUS_PENDING_ADMIN, Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED];
-        abort_if(!in_array($rfq->status, $allowedStatuses), 403, 'RFQ hanya bisa diedit saat status Pending Admin, Approved, atau Quotation Created.');
+        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit penuh saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
 
         $user = $this->authUser();
         $customers = $user->isAdminOrAbove()
@@ -385,6 +386,9 @@ class RfqController extends Controller
             : Customer::where('sales_id', $user->id)->where('status', 'Active')->orderBy('company_name')->get();
 
         $rfq->load('items');
+        if (!$user->isAdminOrAbove()) {
+            $rfq->items->makeHidden(['hpp', 'vendor_id', 'margin', 'margin_value', 'ongkir_pedia', 'biaya_kirim', 'fee_eu']);
+        }
 
         return view('rfqs.edit', compact('rfq', 'customers'));
     }
@@ -396,8 +400,7 @@ class RfqController extends Controller
             abort(403);
         }
 
-        $allowedStatuses = [Rfq::STATUS_PENDING_ADMIN, Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED];
-        abort_if(!in_array($rfq->status, $allowedStatuses), 403, 'RFQ hanya bisa diedit saat status Pending Admin, Approved, atau Quotation Created.');
+        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
 
         $validated = $request->validate([
             'customer_id'             => 'required|exists:customers,id',
@@ -605,6 +608,7 @@ class RfqController extends Controller
         $ym = now()->format('Y-m');
 
         Cache::forget('dash:cust_stats:' . $salesId);
+        Cache::forget('dash:rfq_stats:' . $salesId);
         Cache::forget('dash:quo_stats:' . $salesId);
         Cache::forget('dash:cust_health:' . $salesId);
         Cache::forget('dash:po_stats:' . $salesId);
@@ -858,6 +862,9 @@ class RfqController extends Controller
 
     public function downloadQuotation(Rfq $rfq)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
 
         if ($rfq->status === Rfq::STATUS_APPROVED) {
@@ -1162,7 +1169,7 @@ class RfqController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return redirect()->route('quo.index')
+            return redirect()->route('rfq.show', $rfq)
                 ->with('error', 'Gagal memproses GOAL: ' . $e->getMessage());
         }
 
@@ -1172,7 +1179,7 @@ class RfqController extends Controller
                 $admin->id,
                 'success',
                 'PO Baru (Dari GOAL Sales)',
-                'Sales ' . $rfq->sales->name . ' telah GOAL untuk penawaran ' . $rfq->rfq_number . '. PO siap diproses.',
+                'Sales ' . ($rfq->sales?->name ?? $rfq->sales_name) . ' telah GOAL untuk penawaran ' . $rfq->rfq_number . '. PO siap diproses.',
                 route('po.show', $po)
             );
         }
@@ -1180,7 +1187,7 @@ class RfqController extends Controller
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
         }
-        return redirect()->route('quo.index')
+        return redirect()->route('rfq.show', $rfq)
             ->with('success', 'Yeay! Quotation ' . $rfq->rfq_number . ' resmi menjadi GOAL dan diteruskan ke Admin Purchase.');
     }
 

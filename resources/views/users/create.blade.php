@@ -6,7 +6,7 @@
     </div>
 
     <div class="card max-w-3xl">
-        <form action="{{ route('users.store') }}" method="POST" class="p-6 sm:p-8">
+        <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8">
             @csrf
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -72,6 +72,19 @@
                     @error('role') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
                 </div>
 
+                {{-- Jabatan Resmi di Dokumen (Job Title) --}}
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                        Jabatan di Dokumen (Job Title)
+                    </label>
+                    <input type="text" name="job_title" value="{{ old('job_title', 'Account Manager') }}"
+                        placeholder="Contoh: Account Manager, Sales Engineer"
+                        style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                        onfocus="this.style.borderColor='var(--accent-blue)'"
+                        onblur="this.style.borderColor='var(--border-color)'">
+                    @error('job_title') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
+                </div>
+
                 {{-- Status --}}
                 <div>
                     <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
@@ -107,6 +120,16 @@
                         onfocus="this.style.borderColor='var(--accent-blue)'"
                         onblur="this.style.borderColor='var(--border-color)'">
                     @error('monthly_target') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Upload Tanda Tangan Digital --}}
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                        Tanda Tangan Digital (PNG/JPG, Maks 2MB)
+                    </label>
+                    <input type="file" name="signature_file" accept="image/png,image/jpeg,image/jpg"
+                        style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                    @error('signature_file') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
                 </div>
             </div>
 

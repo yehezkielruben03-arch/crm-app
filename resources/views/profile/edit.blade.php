@@ -12,6 +12,12 @@
                 </div>
             </div>
 
+            <div class="card p-6 sm:p-8 animate-in" style="animation-delay: 0.12s;">
+                <div class="max-w-4xl">
+                    @include('profile.partials.update-signature-form')
+                </div>
+            </div>
+
             <div class="card p-6 sm:p-8 animate-in" style="animation-delay: 0.15s;">
                 <div class="max-w-xl">
                     @include('profile.partials.update-password-form')

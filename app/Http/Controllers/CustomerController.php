@@ -797,6 +797,10 @@ class CustomerController extends Controller
 
     public function storeContactAjax(Request $request, Customer $customer)
     {
+        if (!$this->authUser()->isAdminOrAbove() && $customer->sales_id !== Auth::id()) {
+            abort(403, 'Anda tidak berhak menambah kontak untuk customer ini.');
+        }
+
         $validated = $request->validate([
             'name'     => 'required|string|max:150',
             'position' => 'nullable|string|max:100',
@@ -815,6 +819,10 @@ class CustomerController extends Controller
     public function updateContactAjax(Request $request, Customer $customer, \App\Models\CustomerContact $contact)
     {
         abort_if($contact->customer_id !== $customer->id, 404, 'Kontak tidak sesuai dengan Customer.');
+
+        if (!$this->authUser()->isAdminOrAbove() && $customer->sales_id !== Auth::id()) {
+            abort(403, 'Anda tidak berhak mengedit kontak customer ini.');
+        }
 
         $validated = $request->validate([
             'name'     => 'required|string|max:150',

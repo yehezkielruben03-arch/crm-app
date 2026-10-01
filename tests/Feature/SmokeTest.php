@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 
 class SmokeTest extends TestCase
 {
+    use \Illuminate\Foundation\Testing\RefreshDatabase;
     /**
      * Seed minimum data needed for this test independently.
      * Tests use the same SQLite DB (not RefreshDatabase) so we

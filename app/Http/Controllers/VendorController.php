@@ -74,6 +74,14 @@ class VendorController extends Controller
 
         $vendor = Vendor::create($validated);
 
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Vendor \"{$vendor->nama_vendor}\" berhasil ditambahkan.",
+                'vendor'  => $vendor,
+            ]);
+        }
+
         return redirect()->route('vendors.index')->with('success', "Vendor \"{$vendor->nama_vendor}\" berhasil ditambahkan.");
     }
 

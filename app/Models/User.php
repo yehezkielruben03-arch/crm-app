@@ -20,7 +20,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'job_title',
         'phone',
+        'signature_path',
         'status',
         'monthly_target',
     ];
@@ -52,6 +54,31 @@ class User extends Authenticatable
             'Admin' => 'Admin Purchase',
             default => $this->role,
         };
+    }
+
+    public function getEffectiveJobTitleAttribute(): string
+    {
+        if (!empty($this->job_title)) {
+            return $this->job_title;
+        }
+        return $this->isSales() ? 'Account Manager' : ($this->role ?: 'Account Manager');
+    }
+
+    public function getSignatureUrlAttribute(): ?string
+    {
+        if (empty($this->signature_path)) {
+            return null;
+        }
+        if (file_exists(public_path('storage/' . $this->signature_path))) {
+            return asset('storage/' . $this->signature_path);
+        }
+        if (file_exists(storage_path('app/public/' . $this->signature_path))) {
+            return asset('storage/' . $this->signature_path);
+        }
+        if (file_exists(public_path($this->signature_path))) {
+            return asset($this->signature_path);
+        }
+        return asset('storage/' . $this->signature_path);
     }
 
     public function isAdminOrAbove(): bool

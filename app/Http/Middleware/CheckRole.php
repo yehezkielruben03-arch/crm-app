@@ -27,8 +27,15 @@ class CheckRole
             return $next($request);
         }
 
+        $userRole = $user->role;
+        $userRoles = match($userRole) {
+            'Sales', 'Sales Marketing' => ['Sales', 'Sales Marketing'],
+            'Admin', 'Admin Purchase'   => ['Admin', 'Admin Purchase'],
+            default                     => [$userRole],
+        };
+
         // Cek apakah role user ada di daftar role yang diizinkan
-        if (!in_array($user->role, $roles)) {
+        if (empty(array_intersect($userRoles, $roles))) {
             abort(403, 'Unauthorized access. You do not have the required role.');
         }
 

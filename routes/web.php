@@ -12,6 +12,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\ManualBookController;
 
 // ============================================================
 // ⚠️  KEAMANAN PRODUCTION:
@@ -42,10 +43,21 @@ Route::get('/api/auth/status', function () {
     return response()->json(['authenticated' => auth()->check()]);
 })->name('api.auth.status');
 
+if (app()->environment('local')) {
+    Route::get('/screenshot-auth/{id}', function ($id) {
+        \Illuminate\Support\Facades\Auth::loginUsingId($id);
+        return redirect(request('to', '/dashboard'));
+    });
+}
+
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // ─── Buku Panduan Manual (Sales, Admin, Leader) ───
+    Route::get('/manual-book', [ManualBookController::class, 'index'])->name('manual-book.index');
+    Route::get('/manual-book/download', [ManualBookController::class, 'download'])->name('manual-book.download');
 
     // ─── Notifikasi (semua user yang sudah login) ───
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

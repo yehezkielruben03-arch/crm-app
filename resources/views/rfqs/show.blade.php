@@ -18,12 +18,16 @@
         .rfq-grid--admin .rfq-grid__row { 
             grid-template-columns: 36px minmax(130px, 1.8fr) 75px minmax(180px, 1.4fr); 
         }
+        .rfq-grid--sales-price .rfq-grid__row { 
+            grid-template-columns: 36px minmax(140px, 1.8fr) 75px minmax(140px, 1.1fr); 
+        }
         .rfq-grid--sales .rfq-grid__row { 
             grid-template-columns: 36px minmax(140px, 2fr) 85px; 
         }
 
         @media (max-width: 640px) {
-            .rfq-grid--admin .rfq-grid__row {
+            .rfq-grid--admin .rfq-grid__row,
+            .rfq-grid--sales-price .rfq-grid__row {
                 grid-template-columns: 28px minmax(110px, 1.4fr) 60px minmax(140px, 1.4fr);
             }
             .rfq-grid__cell {
@@ -187,7 +191,7 @@
         </div>
 
         <div class="flex gap-2">
-            @if(in_array($rfq->status, ['Pending Admin', 'Approved', 'Quotation Created', 'Quotation Sent']) && (auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
+            @if($rfq->canBeEdited() && (auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
                 <a href="{{ route('rfq.edit', $rfq) }}"
                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.30);">
@@ -294,8 +298,12 @@
                     </div>
                 </div>
 
+                @php
+                    $isPriceVisibleToSales = in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent', \App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, 'GOAL']);
+                    $gridClass = auth()->user()->isAdminOrAbove() ? 'rfq-grid--admin' : ($isPriceVisibleToSales ? 'rfq-grid--sales-price' : 'rfq-grid--sales');
+                @endphp
                 <div class="overflow-x-auto">
-                    <div class="rfq-grid {{ auth()->user()->isAdminOrAbove() ? 'rfq-grid--admin' : 'rfq-grid--sales' }}">
+                    <div class="rfq-grid {{ $gridClass }}">
 
                         {{-- HEADER — blueprint grid yang sama persis dengan baris data --}}
                         <div class="rfq-grid__row rfq-grid__row--head">
@@ -304,6 +312,8 @@
                             <span class="rfq-grid__cell text-center">Qty / Satuan</span>
                             @if(auth()->user()->isAdminOrAbove())
                             <span class="rfq-grid__cell text-right">Kalkulasi HPP &amp; Jual</span>
+                            @elseif($isPriceVisibleToSales)
+                            <span class="rfq-grid__cell text-right">Harga Penawaran</span>
                             @endif
                         </div>
 
@@ -372,6 +382,23 @@
                                             </span>
                                         @endif
                                     </span>
+                                    @elseif($isPriceVisibleToSales)
+                                    <span class="rfq-grid__cell rfq-grid__status text-right">
+                                        @if($item->price_after_margin > 0)
+                                            <div class="flex flex-col gap-0.5 text-right">
+                                                <div class="text-xs font-bold text-blue-600 font-mono">
+                                                    Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/{{ $item->unit ?? 'unit' }}</span>
+                                                </div>
+                                                @if($item->qty > 1)
+                                                    <div class="text-[11px] font-bold text-emerald-600 font-mono">
+                                                        Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        @else
+                                            <span class="text-xs text-slate-400 italic font-normal">Belum dihitung</span>
+                                        @endif
+                                    </span>
                                     @endif
                                 </div>
                                 @endforeach
@@ -434,6 +461,23 @@
                                         </span>
                                     @endif
                                 </span>
+                                @elseif($isPriceVisibleToSales)
+                                <span class="rfq-grid__cell rfq-grid__status text-right">
+                                    @if($item->price_after_margin > 0)
+                                        <div class="flex flex-col gap-0.5 text-right">
+                                            <div class="text-xs font-bold text-blue-600 font-mono">
+                                                Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/{{ $item->unit ?? 'unit' }}</span>
+                                            </div>
+                                            @if($item->qty > 1)
+                                                <div class="text-[11px] font-bold text-emerald-600 font-mono">
+                                                    Subtotal: Rp {{ number_format($item->price_after_margin * $item->qty, 0, ',', '.') }}
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @else
+                                        <span class="text-xs text-slate-400 italic font-normal">Belum dihitung</span>
+                                    @endif
+                                </span>
                                 @endif
                             </div>
                             @empty
@@ -444,10 +488,10 @@
                         @endif
 
                         {{-- Footer total --}}
-                        @if(auth()->user()->isAdminOrAbove() && $rfq->grand_total > 0)
+                        @if((auth()->user()->isAdminOrAbove() || $isPriceVisibleToSales) && $rfq->grand_total > 0)
                         <div class="rfq-grid__row rfq-grid__foot">
                             <span class="rfq-grid__cell">
-                                Total Harga Jual
+                                Total Harga Penawaran
                                 <span class="rfq-grid__foot-total">Rp {{ number_format($rfq->grand_total, 0, ',', '.') }}</span>
                             </span>
                         </div>
@@ -677,7 +721,7 @@
             </div>
             @endif
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent', 'GOAL']))
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent', \App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, 'GOAL']))
             <div class="flex gap-2 w-full">
                 <a href="{{ route('rfq.preview_quotation', $rfq) }}" target="_blank"
                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
@@ -697,6 +741,7 @@
                     Download PDF
                 </a>
             </div>
+            @endif
 
             @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()))
             <a href="{{ route('rfq.price_form', $rfq) }}"
@@ -730,7 +775,7 @@
             </div>
             @endif
 
-            @if(auth()->user()->isSales() || auth()->user()->hasPermission('CRUD'))
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isSales() || auth()->user()->hasPermission('CRUD')))
             <a href="{{ route('rfq.edit_qty', $rfq) }}"
                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
                style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
@@ -740,7 +785,6 @@
                 Revisi QTY
             </a>
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Upload PO Customer (Menjadi GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Jika klien setuju, silakan upload bukti PO di sini untuk diproses menjadi GOAL.</p>
@@ -756,8 +800,6 @@
                     </button>
                 </form>
             </div>
-            @endif
-
             @endif
             
             @if($rfq->status === \App\Models\Rfq::STATUS_PO_PENDING_ADMIN && auth()->user()->isAdminOrAbove())
@@ -792,7 +834,6 @@
                     </button>
                 </form>
             </div>
-            @endif
             @endif
 
             @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, 'GOAL']) && $rfq->po_file_path)

@@ -55,13 +55,16 @@ class DashboardController extends Controller
                 ->first();
         });
 
-        // Quotation stats
-        $quoStats = Cache::remember("dash:quo_stats:{$userId}", 60, function () use ($userId) {
-            return Quotation::where('sales_id', $userId)
+        // RFQ & Quotation stats for Sales
+        $rfqStats = Cache::remember("dash:rfq_stats:{$userId}", 60, function () use ($userId) {
+            return Rfq::where('sales_id', $userId)
                 ->selectRaw("
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as sent
-                ", [Quotation::STATUS_SENT])
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_ADMIN . "', '" . Rfq::STATUS_PENDING_LEADER . "') THEN 1 ELSE 0 END) as in_progress,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_APPROVED . "', '" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "', '" . Rfq::STATUS_GOAL . "') THEN 1 ELSE 0 END) as quo_ready,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_SENT . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "', '" . Rfq::STATUS_GOAL . "') THEN 1 ELSE 0 END) as sent,
+                    SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as goal
+                ")
                 ->first();
         });
 
@@ -84,10 +87,18 @@ class DashboardController extends Controller
                     ->groupBy('customer_id')
                     ->pluck('last_po_date', 'customer_id');
 
+                $latestRfqGoals = Rfq::whereIn('customer_id', $customers->pluck('id'))
+                    ->where('status', Rfq::STATUS_GOAL)
+                    ->whereNotNull('rfq_date')
+                    ->select('customer_id', DB::raw('MAX(rfq_date) as last_rfq_date'))
+                    ->groupBy('customer_id')
+                    ->pluck('last_rfq_date', 'customer_id');
+
                 foreach ($customers as $c) {
-                    $lastDate = isset($latestPurchaseOrders[$c->id])
-                        ? \Carbon\Carbon::parse($latestPurchaseOrders[$c->id])
-                        : $c->created_at;
+                    $poDate = isset($latestPurchaseOrders[$c->id]) ? \Carbon\Carbon::parse($latestPurchaseOrders[$c->id]) : null;
+                    $rfqDate = isset($latestRfqGoals[$c->id]) ? \Carbon\Carbon::parse($latestRfqGoals[$c->id]) : null;
+
+                    $lastDate = $poDate && $rfqDate ? ($poDate->gt($rfqDate) ? $poDate : $rfqDate) : ($poDate ?? $rfqDate ?? $c->created_at);
 
                     if ($lastDate < $twelveMonthsAgo) {
                         $inactiveCount++;
@@ -112,16 +123,8 @@ class DashboardController extends Controller
             ];
         });
 
-        // 1 query: stats RFQ GOAL sekaligus
-        $poStats = Cache::remember("dash:po_stats:{$userId}", 60, function () use ($userId) {
-            return Rfq::where('sales_id', $userId)
-                ->selectRaw("
-                    COUNT(*) as total,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_QUOTATION_CREATED . "' THEN 1 ELSE 0 END) as submitted,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as approved
-                ")
-                ->first();
-        });
+        // Stats RFQ di-share dari $rfqStats
+        $poStats = $rfqStats;
 
         // Revenue bulan ini (cached 60s)
         $revenueThisMonth = Cache::remember("dash:rev:{$userId}:{$now->format('Y-m')}", 60, function () use ($userId, $now) {
@@ -155,8 +158,8 @@ class DashboardController extends Controller
                 ->selectRaw(
                     'COUNT(*) as total, ' .
                     'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as goal_count, ' .
-                    'SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as pending_quotation_count',
-                    [Rfq::STATUS_GOAL, Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED]
+                    'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as pending_quotation_count',
+                    [Rfq::STATUS_GOAL, Rfq::STATUS_APPROVED]
                 )
                 ->first();
         });
@@ -185,7 +188,8 @@ class DashboardController extends Controller
                     SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_ADMIN . "' THEN 1 ELSE 0 END) as pending_admin,
                     SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_LEADER . "' THEN 1 ELSE 0 END) as pending_leader,
                     SUM(CASE WHEN status = '" . Rfq::STATUS_APPROVED . "' THEN 1 ELSE 0 END) as approved,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_QUOTATION_CREATED . "' THEN 1 ELSE 0 END) as quotation_created,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "') THEN 1 ELSE 0 END) as quotation_created,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_PO_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as po_review,
                     SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as goal,
                     SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' THEN 1 ELSE 0 END) as cancelled
                 ")
@@ -200,7 +204,14 @@ class DashboardController extends Controller
         // Grafik Penawaran vs Goal (6 bulan terakhir)
         $monthlyChart = Cache::remember("dash:chart:{$userId}", 300, function () use ($userId) {
             $rfqs = Rfq::where('sales_id', $userId)
-                ->whereIn('status', [Rfq::STATUS_APPROVED, Rfq::STATUS_GOAL]) // Approved = Penawaran dikirim, GOAL = Goal
+                ->whereIn('status', [
+                    Rfq::STATUS_APPROVED,
+                    Rfq::STATUS_QUOTATION_CREATED,
+                    Rfq::STATUS_QUOTATION_SENT,
+                    Rfq::STATUS_PO_PENDING_ADMIN,
+                    Rfq::STATUS_PO_PENDING_LEADER,
+                    Rfq::STATUS_GOAL,
+                ])
                 ->where('rfq_date', '>=', now()->subMonths(5)->startOfMonth())
                 ->with('items')
                 ->get();
@@ -210,26 +221,30 @@ class DashboardController extends Controller
             });
             
             $chartData = collect();
-            foreach ($grouped as $monthKey => $group) {
-                $parts = explode('-', $monthKey);
+            for ($i = 5; $i >= 0; $i--) {
+                $targetDate = now()->subMonths($i);
+                $monthKey = $targetDate->format('Y-m');
+                $group = $grouped->get($monthKey, collect());
+
                 $totalGoal = $group->where('status', Rfq::STATUS_GOAL)->sum(function($rfq) {
                     return $rfq->items->sum(function($item) {
                         return $item->qty * $item->price_after_margin;
                     });
                 });
-                $totalPenawaran = $group->sum(function($rfq) { // Termasuk GOAL karena GOAL dulunya penawaran
+                $totalPenawaran = $group->sum(function($rfq) { // Termasuk GOAL karena GOAL berasal dari penawaran
                     return $rfq->items->sum(function($item) {
                         return $item->qty * $item->price_after_margin;
                     });
                 });
+
                 $chartData->push((object)[
-                    'year' => (int)$parts[0],
-                    'month' => (int)$parts[1],
+                    'year' => (int)$targetDate->format('Y'),
+                    'month' => (int)$targetDate->format('n'),
                     'total_goal' => $totalGoal,
                     'total_penawaran' => $totalPenawaran
                 ]);
             }
-            return $chartData->sortBy('year')->sortBy('month')->values();
+            return $chartData;
         });
 
         // Recent GOAL (cached 2 menit)
@@ -242,11 +257,12 @@ class DashboardController extends Controller
                 ->get();
         });
 
-        // Recent quotations for sales
+        // Recent quotations / approved RFQs for sales
         $recentQuotations = Cache::remember("dash:recent_quo:{$userId}", 120, function () use ($userId) {
-            return Quotation::where('sales_id', $userId)
-                ->with('customer:id,company_name')
-                ->orderByDesc('created_at')
+            return Rfq::where('sales_id', $userId)
+                ->whereIn('status', [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT])
+                ->with(['customer:id,company_name', 'items'])
+                ->orderByDesc('updated_at')
                 ->take(5)
                 ->get();
         });
@@ -257,11 +273,13 @@ class DashboardController extends Controller
             'pendingCustomers'   => $customerStats->pending ?? 0,
             'activeCustomers'    => $customerStats->active ?? 0,
             'customerHealthStats' => $customerHealthStats,
-            'totalMyQuo'         => $quoStats->total ?? 0,
-            'sentQuo'            => $quoStats->sent ?? 0,
-            'totalMyPO'          => $poStats->total ?? 0,
-            'submittedPO'        => $poStats->submitted ?? 0,
-            'approvedPO'         => $poStats->approved ?? 0,
+            'totalMyRfq'         => $rfqStats->total ?? 0,
+            'inProgressRfq'      => $rfqStats->in_progress ?? 0,
+            'totalMyQuo'         => $rfqStats->quo_ready ?? 0,
+            'sentQuo'            => $rfqStats->sent ?? 0,
+            'totalMyPO'          => $rfqStats->total ?? 0,
+            'submittedPO'        => $rfqStats->in_progress ?? 0,
+            'approvedPO'         => $rfqStats->goal ?? 0,
             'revenueThisMonth'   => $revenueThisMonth,
             'targetThisMonth'    => $targetThisMonth,
             'achievementPct'     => $achievementPct,

@@ -40,12 +40,21 @@ class StatusFlowTest extends TestCase
         $this->assertFalse($quotation->canTransitionTo(Quotation::STATUS_APPROVED));
     }
 
-    public function test_rfq_price_submission_is_allowed_only_from_pending_admin(): void
+    public function test_rfq_price_submission_stages(): void
     {
         $rfq = new Rfq(['status' => Rfq::STATUS_PENDING_ADMIN]);
         $this->assertTrue($rfq->canBePriceSubmitted());
 
         $rfq->status = Rfq::STATUS_PENDING_LEADER;
+        $this->assertTrue($rfq->canBePriceSubmitted());
+
+        $rfq->status = Rfq::STATUS_APPROVED;
+        $this->assertTrue($rfq->canBePriceSubmitted());
+
+        $rfq->status = Rfq::STATUS_GOAL;
+        $this->assertFalse($rfq->canBePriceSubmitted());
+
+        $rfq->status = Rfq::STATUS_PO_PENDING_ADMIN;
         $this->assertFalse($rfq->canBePriceSubmitted());
     }
 

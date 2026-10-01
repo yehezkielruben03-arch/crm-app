@@ -3,8 +3,13 @@
 
     # 1. Proteksi file sensitif dari akses publik langsung
     <FilesMatch "^\.(env|git|gitignore)|composer\.(json|lock)|package\.json|package-lock\.json|artisan$">
-        Order allow,deny
-        Deny from all
+        <IfModule mod_authz_core.c>
+            Require all denied
+        </IfModule>
+        <IfModule !mod_authz_core.c>
+            Order allow,deny
+            Deny from all
+        </IfModule>
     </FilesMatch>
 
     # 2. Redirect seluruh request ke folder public/

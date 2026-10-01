@@ -25,7 +25,7 @@
                         <span>Customer: <strong class="text-slate-700">{{ $rfq->customer_name }}</strong></span>
                         <span class="text-slate-300">&bull;</span>
                         <span>Sales: <strong class="text-slate-700">{{ $rfq->sales_name }}</strong></span>
-                        @if(($rfq->customer->ongkir_pedia ?? 0) > 0)
+                        @if(($rfq->customer?->ongkir_pedia ?? 0) > 0)
                             <span class="text-slate-300">&bull;</span>
                             <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded text-[11px] font-medium border border-blue-100 flex items-center gap-1">
                                 🚚 Ongkir Default Customer: <b>Rp {{ number_format($rfq->customer->ongkir_pedia, 0, ',', '.') }}</b>
@@ -164,14 +164,20 @@
 
                                     <div>
                                         <div class="flex items-center justify-between mb-1">
-                                            <label class="text-[11px] font-semibold text-slate-600 block">Vendor Supplier</label>
+                                            <div class="flex items-center gap-1.5">
+                                                <label class="text-[11px] font-semibold text-slate-600 block">Vendor Supplier</label>
+                                                <button type="button" onclick="openInlineVendorModal('{{ $item->id }}', '{{ $categoryName }}')" class="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 text-[10px] font-semibold transition px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 border border-blue-100 shadow-2xs" title="Tambah vendor baru langsung tanpa pindah halaman">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                                    + Vendor
+                                                </button>
+                                            </div>
                                             @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
                                                 <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
                                                     ⚡ Tarif MP Pedia (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
                                                 </button>
                                             @endif
                                         </div>
-                                        <select name="items[{{ $item->id }}][vendor_id]" class="w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                                        <select name="items[{{ $item->id }}][vendor_id]" id="vendor-select-{{ $item->id }}" class="vendor-select-field w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
                                             <option value="">-- Tanpa Vendor / Non-Vendor --</option>
                                             @foreach($vendors as $v)
                                                 <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>
@@ -664,5 +670,203 @@
                 });
             });
         });
+
+        // ─── Inline Vendor Addition (Blueprint 3.1) ──────────────────────────
+        let activeItemForVendor = null;
+
+        function openInlineVendorModal(itemId, categoryName) {
+            activeItemForVendor = itemId;
+            const modal = document.getElementById('inline-vendor-modal');
+            const errDiv = document.getElementById('inline-vendor-error');
+            if (errDiv) {
+                errDiv.classList.add('hidden');
+                errDiv.innerText = '';
+            }
+            document.getElementById('inline-vendor-form').reset();
+
+            // Set default category based on current block
+            const selectKat = document.getElementById('inline_vendor_kategori');
+            if (selectKat) {
+                if (categoryName === 'Jasa Pemasangan') {
+                    selectKat.value = 'Jasa & Subcon';
+                } else if (categoryName === 'Material Support') {
+                    selectKat.value = 'General Trading & Office';
+                } else {
+                    selectKat.value = 'Hardware & IT';
+                }
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                document.getElementById('inline_vendor_name').focus();
+            }, 60);
+        }
+
+        function closeInlineVendorModal() {
+            const modal = document.getElementById('inline-vendor-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('inline-vendor-form').reset();
+            activeItemForVendor = null;
+        }
+
+        async function submitInlineVendor(event) {
+            event.preventDefault();
+            const btn = document.getElementById('btn-save-inline-vendor');
+            const errDiv = document.getElementById('inline-vendor-error');
+            const originalText = btn.innerHTML;
+
+            const payload = {
+                nama_vendor: document.getElementById('inline_vendor_name').value.trim(),
+                kategori: document.getElementById('inline_vendor_kategori').value,
+                pic: document.getElementById('inline_vendor_pic').value.trim(),
+                kontak: document.getElementById('inline_vendor_kontak').value.trim(),
+                alamat: document.getElementById('inline_vendor_alamat').value.trim(),
+                status: 'Active'
+            };
+
+            if (!payload.nama_vendor) {
+                errDiv.classList.remove('hidden');
+                errDiv.innerText = 'Nama vendor wajib diisi!';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg class="animate-spin w-4 h-4 text-white inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg> Menyimpan...
+            `;
+
+            try {
+                const response = await fetch('{{ route("vendors.store") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && (data.success || data.vendor)) {
+                    const newVendor = data.vendor;
+                    
+                    // Update all vendor select dropdowns across the page
+                    const allVendorSelects = document.querySelectorAll('.vendor-select-field');
+                    allVendorSelects.forEach(select => {
+                        const option = document.createElement('option');
+                        option.value = newVendor.id;
+                        option.text = `${newVendor.nama_vendor} (${newVendor.kategori || 'General'})`;
+                        select.appendChild(option);
+                    });
+
+                    // Select the newly created vendor on the active item
+                    if (activeItemForVendor) {
+                        const targetSelect = document.getElementById('vendor-select-' + activeItemForVendor);
+                        if (targetSelect) {
+                            targetSelect.value = newVendor.id;
+                        }
+                    }
+
+                    closeInlineVendorModal();
+
+                    // Toast notification
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed bottom-20 right-6 z-50 bg-emerald-600 text-white text-xs font-semibold px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 animate-in';
+                    toast.innerHTML = `
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>Vendor <strong>${newVendor.nama_vendor}</strong> berhasil ditambahkan dan dipilih!</span>
+                    `;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                        setTimeout(() => toast.remove(), 300);
+                    }, 3500);
+                } else {
+                    errDiv.classList.remove('hidden');
+                    errDiv.innerText = data.message || 'Gagal menyimpan vendor.';
+                }
+            } catch (err) {
+                console.error(err);
+                errDiv.classList.remove('hidden');
+                errDiv.innerText = 'Terjadi kesalahan jaringan atau server saat menyimpan vendor.';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
     </script>
+
+    {{-- Modal Tambah Vendor Instan (Blueprint 3.1) --}}
+    <div id="inline-vendor-modal" class="fixed inset-0 z-50 bg-black/50 hidden items-center justify-center p-4 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Tambah Vendor Baru (Inline)</h3>
+                        <p class="text-[11px] text-slate-500">Tersimpan ke database &amp; langsung terpilih</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeInlineVendorModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <form id="inline-vendor-form" onsubmit="submitInlineVendor(event)" class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700">Nama Perusahaan / Toko Vendor <span class="text-rose-500">*</span></label>
+                    <input type="text" id="inline_vendor_name" required placeholder="Contoh: PT. Sumber Solusi IT / Toko Medusa"
+                           class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                </div>
+
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700">Kategori Vendor <span class="text-rose-500">*</span></label>
+                    <select id="inline_vendor_kategori" required class="w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                        @foreach(\App\Models\Vendor::categories() as $cat)
+                            <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold mb-1 text-slate-700">Nama PIC / Kontak</label>
+                        <input type="text" id="inline_vendor_pic" placeholder="Contoh: Pak Fahmi"
+                               class="w-full text-xs text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                    </div>
+                    <div>
+                        <label class="block font-semibold mb-1 text-slate-700">No. HP / Telp</label>
+                        <input type="text" id="inline_vendor_kontak" placeholder="0812xxxxxxxx"
+                               class="w-full text-xs text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold mb-1 text-slate-700">Alamat / Lokasi (Opsional)</label>
+                    <textarea id="inline_vendor_alamat" rows="2" placeholder="Mangga Dua Mall / Glodok / Harco..."
+                              class="w-full text-xs text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs resize-none"></textarea>
+                </div>
+
+                <div id="inline-vendor-error" class="hidden p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs"></div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeInlineVendorModal()" class="px-4 py-2 rounded-xl text-slate-600 bg-slate-100 hover:bg-slate-200 font-semibold transition">
+                        Batal
+                    </button>
+                    <button type="submit" id="btn-save-inline-vendor" class="px-5 py-2 rounded-xl text-white bg-blue-600 hover:bg-blue-700 font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>Simpan &amp; Pilih</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </x-app-layout>

@@ -8,7 +8,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {{-- Form Edit Utama --}}
         <div class="lg:col-span-2 card">
-            <form action="{{ route('users.update', $user) }}" method="POST" class="p-6 sm:p-8">
+            <form action="{{ route('users.update', $user) }}" method="POST" enctype="multipart/form-data" class="p-6 sm:p-8">
                 @csrf
                 @method('PUT')
 
@@ -75,6 +75,19 @@
                         @error('role') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- Jabatan Resmi / Job Title --}}
+                    <div>
+                        <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                            Jabatan Resmi (Title di Dokumen Penawaran)
+                        </label>
+                        <input type="text" name="job_title" value="{{ old('job_title', $user->job_title) }}"
+                            placeholder="Contoh: Account Manager, Sales Engineer"
+                            style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                            onfocus="this.style.borderColor='var(--accent-blue)'"
+                            onblur="this.style.borderColor='var(--border-color)'">
+                        @error('job_title') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
+                    </div>
+
                     {{-- Status --}}
                     <div>
                         <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
@@ -107,6 +120,31 @@
                             onfocus="this.style.borderColor='var(--accent-blue)'"
                             onblur="this.style.borderColor='var(--border-color)'">
                         @error('monthly_target') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Tanda Tangan Digital --}}
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                            Tanda Tangan Digital (PNG/JPG transparan, Maks 2MB)
+                        </label>
+                        @if($user->signature_url)
+                        <div class="flex items-center gap-4 mb-3 p-3 rounded-xl border border-dashed" style="background: var(--bg-secondary); border-color: var(--border-color);">
+                            <div class="p-2 rounded-lg bg-white border border-slate-200">
+                                <img src="{{ $user->signature_url }}" alt="Signature {{ $user->name }}" style="max-height: 50px; max-width: 140px; object-fit: contain;">
+                            </div>
+                            <div class="flex-1">
+                                <p class="text-xs font-medium" style="color: var(--text-primary);">Tanda tangan saat ini aktif.</p>
+                                <label class="inline-flex items-center gap-2 mt-1 cursor-pointer">
+                                    <input type="checkbox" name="remove_signature" value="1" class="rounded border-slate-300 text-rose-600 focus:ring-rose-500">
+                                    <span class="text-xs text-rose-600 font-medium">Hapus tanda tangan ini</span>
+                                </label>
+                            </div>
+                        </div>
+                        @endif
+                        <input type="file" name="signature_file" accept="image/png,image/jpeg,image/jpg"
+                            style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
+                        <p class="text-xs mt-1" style="color: var(--text-muted);">Pilih file baru jika ingin mengganti tanda tangan yang ada.</p>
+                        @error('signature_file') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
                     </div>
                 </div>
 

@@ -207,6 +207,14 @@ class Rfq extends Model
         } else {
             $seq = str_pad((string) ($this->id ?? 1), 4, '0', STR_PAD_LEFT);
         }
-        return 'QUO/PT/' . $date->format('Y/m') . '/' . $seq;
+
+        $romanMonths = [
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
+        ];
+        $romanMonth = $romanMonths[(int) $date->format('n')] ?? $date->format('m');
+        $year = $date->format('Y');
+
+        return 'Q' . $seq . '/PTI/' . $romanMonth . '/' . $year;
     }
 }

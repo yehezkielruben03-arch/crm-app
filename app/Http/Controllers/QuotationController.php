@@ -115,7 +115,7 @@ class QuotationController extends Controller
                 userId: $quo->sales_id,
                 type:   'quo_created',
                 title:  'Quotation Baru',
-                message: 'Quotation ' . $quo->quo_number . ' untuk ' . $quo->customer->company_name . ' telah dibuat oleh ' . $this->authUser()->name . '.',
+                message: 'Quotation ' . $quo->quo_number . ' untuk ' . ($quo->customer?->company_name ?? 'Pelanggan') . ' telah dibuat oleh ' . $this->authUser()->name . '.',
                 link:   route('quo.show', $quo)
             );
 
@@ -241,12 +241,12 @@ class QuotationController extends Controller
             userId: $quotation->sales_id,
             type:   'quo_sent',
             title:  'Quotation Baru',
-            message: 'Quotation ' . $quotation->quo_number . ' untuk ' . $quotation->customer->company_name . ' telah dikirim oleh ' . $this->authUser()->name . '.',
+            message: 'Quotation ' . $quotation->quo_number . ' untuk ' . ($quotation->customer?->company_name ?? 'Pelanggan') . ' telah dikirim oleh ' . $this->authUser()->name . '.',
             link:   route('quo.show', $quotation)
         );
 
         return redirect()->route('quo.show', $quotation)
-            ->with('success', 'Quotation ' . $quotation->quo_number . ' berhasil dikirim ke ' . $quotation->sales->name . '.');
+            ->with('success', 'Quotation ' . $quotation->quo_number . ' berhasil dikirim ke ' . ($quotation->sales?->name ?? 'Sales') . '.');
     }
 
     public function approve(Quotation $quotation)
@@ -375,6 +375,7 @@ class QuotationController extends Controller
         abort_if(!$quotation->file_path, 404, 'File PDF tidak ditemukan.');
 
         $path = Storage::disk('public')->path($quotation->file_path);
+        abort_if(!file_exists($path), 404, 'Berkas fisik PDF tidak ditemukan pada server.');
 
         $rfq = $quotation->rfq;
         $rfqNum = $rfq?->rfq_number ?: str_replace(['/', '\\'], '-', $quotation->quo_number);

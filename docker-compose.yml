@@ -1,0 +1,68 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: crm_app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - .:/var/www
+    networks:
+      crm_network:
+        aliases:
+          - app
+          - crm_app
+    depends_on:
+      - db
+
+  web:
+    image: nginx:alpine
+    container_name: crm_web
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    volumes:
+      - .:/var/www:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      crm_network:
+        aliases:
+          - web
+          - crm_web
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.0
+    container_name: crm_db
+    restart: unless-stopped
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-crm_app}"
+      MYSQL_USER: "${DB_USERNAME:-crm_user}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-PediaCRM2026Secure}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-PediaRoot2026Secure}"
+    volumes:
+      - crm_db_data:/var/lib/mysql
+    networks:
+      crm_network:
+        aliases:
+          - db
+          - crm_db
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  crm_db_data:
+    driver: local
+
+networks:
+  crm_network:
+    driver: bridge

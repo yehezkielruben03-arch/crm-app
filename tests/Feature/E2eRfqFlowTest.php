@@ -289,7 +289,7 @@ class E2eRfqFlowTest extends TestCase
             ],
         ]);
         
-        $response->assertRedirect(route('quo.index'));
+        $response->assertRedirect(route('rfq.show', $rfq));
         $rfq->refresh();
         $this->assertEquals(Rfq::STATUS_GOAL, $rfq->status);
 

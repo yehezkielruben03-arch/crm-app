@@ -90,8 +90,21 @@
         $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
         $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
         $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
-        $salesRole         = $rfq->sales?->role ?: 'Sales Marketing';
+        $salesRole         = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
+        $salesSignature    = $rfq->sales?->signature_url;
         $validityDays      = $rfq->items->max('validity_days') ?: 7;
+
+        $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
+        $revRoman = $romanMap[$revisionCount ?? 0] ?? ($revisionCount ?? 1);
+        $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
+
+        $itemCount = count($rfq->items);
+        $noteMinHeight = match(true) {
+            $itemCount <= 2 => '160px',
+            $itemCount <= 3 => '130px',
+            $itemCount <= 4 => '90px',
+            default => 'auto'
+        };
     @endphp
 
     <!-- Lembar Dokumen A4 (Identik Sampling) -->
@@ -121,8 +134,8 @@
                         </tr>
                         @if(isset($revisionCount) && $revisionCount > 0)
                         <tr>
-                            <td colspan="2" class="text-red-600 font-bold py-0.5 text-right tracking-wide uppercase text-[11.5px]">
-                                REVISI {{ $revisionCount }} : {{ $revisionDate ?? date('d M Y') }}
+                            <td colspan="2" class="text-red-600 font-bold py-0.5 text-right tracking-wide text-[11.5px]">
+                                REVISI {{ $revRoman }} : {{ $formattedRevDate }}
                             </td>
                         </tr>
                         @endif
@@ -201,15 +214,18 @@
                         </tr>
                     @endforeach
 
+                    {{-- Baris Note (Hanya tampil jika Admin/Sales mengisi catatan) --}}
                     @if(!empty(trim($rfq->notes ?? '')))
                     <tr class="item-row">
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; padding: 8px 8px;">
-                            <div class="font-bold text-[12.5px] text-black mb-0.5">Note :</div>
-                            <div class="italic text-[#333] text-[11.5px] leading-relaxed whitespace-pre-line">{!! nl2br(e($rfq->notes)) !!}</div>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; padding: 8px 8px; vertical-align: top;">
+                            <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-start">
+                                <div class="font-bold text-[12px] text-black mb-1">Note :</div>
+                                <div class="italic text-[#222] text-[11.5px] leading-relaxed whitespace-pre-line">{!! nl2br(e($rfq->notes)) !!}</div>
+                            </div>
                         </td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
                     </tr>
                     @endif
 
@@ -220,29 +236,26 @@
 
                     <!-- 1. TOTAL -->
                     <tr class="total-row">
-                        <td class="text-center"><span class="font-bold">{{ (int) $totalQty }}</span> Unit</td>
-                        <td colspan="2" class="text-right pr-4 uppercase">TOTAL</td>
-                        <td>
-                            <div class="flex justify-between px-0.5 font-bold"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
-                        </td>
+                        <td class="text-center font-bold">{{ (int) $totalQty }} Unit</td>
+                        <td class="text-right pr-4 uppercase font-bold">TOTAL</td>
+                        <td class="font-bold text-left px-2">Rp</td>
+                        <td class="font-bold text-right px-2">{{ number_format($grandSubtotal, 0, ',', '.') }}</td>
                     </tr>
 
                     <!-- 2. PPn -->
                     <tr class="total-row" style="border-top: none;">
                         <td></td>
-                        <td colspan="2" class="text-right pr-4">PPn</td>
-                        <td>
-                            <div class="flex justify-between px-0.5 font-bold"><span>Rp</span><span>{{ number_format($ppn, 0, ',', '.') }}</span></div>
-                        </td>
+                        <td class="text-right pr-4 font-bold">PPn</td>
+                        <td class="font-bold text-left px-2">Rp</td>
+                        <td class="font-bold text-right px-2">{{ number_format($ppn, 0, ',', '.') }}</td>
                     </tr>
 
                     <!-- 3. TOTAL HARGA -->
                     <tr class="total-row" style="border-top: none;">
                         <td></td>
-                        <td colspan="2" class="text-right pr-4 uppercase">TOTAL HARGA</td>
-                        <td>
-                            <div class="flex justify-between px-0.5 font-bold"><span>Rp</span><span>{{ number_format($grandTotal, 0, ',', '.') }}</span></div>
-                        </td>
+                        <td class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
+                        <td class="font-bold text-left px-2">Rp</td>
+                        <td class="font-bold text-right px-2">{{ number_format($grandTotal, 0, ',', '.') }}</td>
                     </tr>
                 </tbody>
             </table>
@@ -275,8 +288,16 @@
                 <!-- TTD Pedia (Kiri) -->
                 <div class="w-1/2">
                     <div class="mb-1">Hormat Kami</div>
-                    <div class="my-1 -ml-3">
-                        <img src="{{ asset('images/pedia_ttd_stamp.png') }}" alt="Pedia Stamp & Signature" class="h-[72px] object-contain block">
+                    <div class="relative w-[220px] h-[72px] my-1 -ml-1">
+                        <!-- Stempel Resmi Perusahaan -->
+                        <img src="{{ asset('images/pedia_company_stamp.png') }}" alt="Stempel Pedia" 
+                             class="absolute left-8 top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
+                        
+                        <!-- Tanda Tangan Sales -->
+                        @if($salesSignature)
+                            <img src="{{ $salesSignature }}" alt="Tanda Tangan Sales" 
+                                 class="absolute left-0 top-0 h-[72px] object-contain block" style="z-index: 2;">
+                        @endif
                     </div>
                     <div class="font-bold text-[13px] text-black mt-1">{{ $salesName }}</div>
                     <div class="italic text-[11.5px] text-[#333]">{{ $salesRole }}</div>
@@ -286,11 +307,11 @@
                 <div class="w-1/2 text-left pl-6">
                     <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
                     <div class="italic text-[11px] text-[#555] mb-1">上記の数量と価格に同意いたします。</div>
-                    <div class="font-bold text-[13px] text-black mb-10">{{ $clientCompanyName }}</div>
+                    <div class="font-bold text-[13px] text-black mb-12">{{ $clientCompanyName }}</div>
                     
-                    <table class="text-[11.5px] text-black">
-                        <tr><td class="w-16 py-0.5 text-[#333]">Nama</td><td>: _________________</td></tr>
-                        <tr><td class="py-0.5 text-[#333]">Jabatan</td><td>: _________________</td></tr>
+                    <table class="text-[11.5px] text-black w-full max-w-[280px]">
+                        <tr><td class="w-16 py-0.5 text-[#333]">Nama</td><td>: </td></tr>
+                        <tr><td class="py-0.5 text-[#333]">Jabatan</td><td>: </td></tr>
                     </table>
                 </div>
             </div>

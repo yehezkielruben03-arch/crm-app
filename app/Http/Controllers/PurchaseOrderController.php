@@ -337,7 +337,7 @@ class PurchaseOrderController extends Controller
                 userId:  $admin->id,
                 type:    'po_change_request',
                 title:   'Permintaan Perubahan PO 🔄',
-                message: "Sales " . auth()->user()->name . " meminta perubahan untuk PO {$po->po_number} ({$po->customer->company_name}). Alasan: {$request->change_request_reason}",
+                message: "Sales " . auth()->user()->name . " meminta perubahan untuk PO {$po->po_number} (" . ($po->customer?->company_name ?? 'Pelanggan') . "). Alasan: {$request->change_request_reason}",
                 link:    route('po.edit', $po)
             );
         }
@@ -361,7 +361,7 @@ class PurchaseOrderController extends Controller
             userId:  $po->sales_id,
             type:    'po_approved',
             title:   'PO GOAL ✅',
-            message: "PO {$po->po_number} untuk {$po->customer->company_name} telah Goal oleh " . auth()->user()->name . ".",
+            message: "PO {$po->po_number} untuk " . ($po->customer?->company_name ?? 'Pelanggan') . " telah Goal oleh " . auth()->user()->name . ".",
             link:    route('po.show', $po)
         );
 

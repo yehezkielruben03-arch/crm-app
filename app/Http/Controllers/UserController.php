@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -45,9 +46,11 @@ class UserController extends Controller
             'email'          => 'required|email|max:255|unique:users',
             'password'       => 'required|string|min:8',
             'role'           => 'required|in:Super Admin,Admin,Admin Purchase,Leader,Sales,Sales Marketing',
+            'job_title'      => 'nullable|string|max:100',
             'phone'          => 'nullable|string|max:20',
             'status'         => 'required|in:Active,Inactive',
             'monthly_target' => 'nullable|numeric|min:0',
+            'signature_file' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
         ]);
 
         if ($validated['role'] === 'Super Admin' && !auth()->user()->isSuperAdmin()) {
@@ -60,6 +63,10 @@ class UserController extends Controller
             'Sales Marketing' => 'Sales',
             default => $validated['role'],
         };
+
+        if ($request->hasFile('signature_file')) {
+            $validated['signature_path'] = $request->file('signature_file')->store('signatures', 'public');
+        }
 
         User::create($validated);
 
@@ -85,9 +92,12 @@ class UserController extends Controller
             'email'          => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password'       => 'nullable|string|min:8',
             'role'           => 'required|in:Super Admin,Admin,Admin Purchase,Leader,Sales,Sales Marketing',
+            'job_title'      => 'nullable|string|max:100',
             'phone'          => 'nullable|string|max:20',
             'status'         => 'required|in:Active,Inactive',
             'monthly_target' => 'nullable|numeric|min:0',
+            'signature_file' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+            'remove_signature' => 'nullable',
         ]);
 
         if ($user->isSuperAdmin() && !auth()->user()->isSuperAdmin()) {
@@ -110,6 +120,18 @@ class UserController extends Controller
             default => $validated['role'],
         };
 
+        if ($request->boolean('remove_signature')) {
+            if ($user->signature_path && Storage::disk('public')->exists($user->signature_path)) {
+                Storage::disk('public')->delete($user->signature_path);
+            }
+            $validated['signature_path'] = null;
+        } elseif ($request->hasFile('signature_file')) {
+            if ($user->signature_path && Storage::disk('public')->exists($user->signature_path)) {
+                Storage::disk('public')->delete($user->signature_path);
+            }
+            $validated['signature_path'] = $request->file('signature_file')->store('signatures', 'public');
+        }
+
         $user->update($validated);
 
         return redirect()->route('users.index')->with('success', "Data {$user->name} berhasil diupdate!");
@@ -128,8 +150,22 @@ class UserController extends Controller
             'sales_id' => $newSales->id
         ]);
 
-        return redirect()->back()->with('success', "Berhasil memigrasikan {$count} database pelanggan ke {$newSales->name}.");
+        // Pindahkan juga RFQ aktif (belum cancel) milik sales lama ke sales baru
+        $rfqCount = \App\Models\Rfq::where('sales_id', $user->id)
+            ->whereNotIn('status', [\App\Models\Rfq::STATUS_CANCELLED])
+            ->update([
+                'sales_id' => $newSales->id,
+                'sales_name' => $newSales->name,
+            ]);
+
+        // Pindahkan juga PurchaseOrder aktif milik sales lama ke sales baru
+        \App\Models\PurchaseOrder::where('sales_id', $user->id)->update([
+            'sales_id' => $newSales->id,
+        ]);
+
+        return redirect()->back()->with('success', "Berhasil memigrasikan {$count} database pelanggan dan {$rfqCount} RFQ aktif ke {$newSales->name}.");
     }
+
 
     public function destroy(User $user)
     {
