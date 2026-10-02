@@ -179,6 +179,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/users/{user}/restore', [UserController::class, 'restore'])->name('users.restore')->withTrashed();
         Route::post('/users/{user}/migrate-customers', [UserController::class, 'migrateCustomers'])->name('users.migrate-customers')->withTrashed();
     });
+
+    // Fallback streaming untuk file storage publik (misal bukti PO) jika diakses langsung lewat URL /storage/...
+    Route::get('/storage/{path}', function (string $path) {
+        if (str_starts_with($path, 'public/')) {
+            $path = substr($path, 7);
+        }
+        if (str_contains($path, '..')) {
+            abort(404);
+        }
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            abort(404, 'File tidak ditemukan di server.');
+        }
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
+    })->where('path', '.*')->name('storage.fallback');
 });
 
 require __DIR__.'/auth.php';

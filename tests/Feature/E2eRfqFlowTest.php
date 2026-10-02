@@ -283,6 +283,10 @@ class E2eRfqFlowTest extends TestCase
         $salesViewPo = $this->actingAs($this->sales)->get(route('rfq.view_po', $rfq));
         $salesViewPo->assertStatus(200);
 
+        // Verify direct /storage/... URL also works and does not return 403
+        $storageUrlResponse = $this->actingAs($this->admin)->get('/storage/' . $rfq->po_file_path);
+        $storageUrlResponse->assertStatus(200);
+
         // ─── Step 11: Admin verifies PO ───────────────────────────────────
         $response = $this->actingAs($this->admin)->post(route('rfq.verify_po', $rfq));
         $response->assertSessionHas('success');
