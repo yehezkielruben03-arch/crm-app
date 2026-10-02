@@ -137,14 +137,16 @@ class RfqController extends Controller
                 ->with('error', 'Gagal membuat RFQ Projek: ' . $e->getMessage());
         }
 
-        // RFQ Projek dibuat Admin → minta approval Leader (sinkron, tanpa queue)
+        // RFQ Projek dibuat Admin/Leader → minta approval Leader (sinkron, tanpa queue)
+        $creator = $this->authUser();
+        $creatorRole = $creator->role ?: 'Admin';
         $leaders = \App\Models\User::where('role', 'Leader')->get();
         foreach ($leaders as $leader) {
             \App\Models\Notification::send(
                 userId:  $leader->id,
                 type:    'warning',
                 title:   'Approval Harga RFQ Projek',
-                message: 'Admin telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
+                message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
                 link:    route('rfq.show', $rfq)
             );
         }
@@ -307,6 +309,9 @@ class RfqController extends Controller
         // → Leader jika RFQ Projek oleh Admin, atau Admin jika dibuat oleh Sales
         // ============================================================
         try {
+            $creator = $this->authUser();
+            $creatorRole = $creator->role ?: 'Admin';
+
             if ($status === Rfq::STATUS_PENDING_LEADER) {
                 $leaders = User::where('role', 'Leader')->get();
                 foreach ($leaders as $leader) {
@@ -314,7 +319,7 @@ class RfqController extends Controller
                         userId:  $leader->id,
                         type:    'warning',
                         title:   'Approval Harga RFQ Projek',
-                        message: 'Admin telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
+                        message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
                         link:    route('rfq.show', $rfq)
                     );
                 }
@@ -323,14 +328,33 @@ class RfqController extends Controller
                     'Admin Purchase',
                     'Admin',
                     'Super Admin',
-                ])->get();
+                ])
+                ->where('id', '!=', $creator->id)
+                ->get();
+
+                if ($creator->isSales()) {
+                    $msg = 'RFQ Baru diterima dari Sales ' . $creator->name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.';
+                } else {
+                    $msg = $creatorRole . ' ' . $creator->name . ' telah membuat RFQ ' . $rfq->rfq_number . ' untuk ' . $rfq->customer_name . ($rfq->sales_name ? ' (Sales: ' . $rfq->sales_name . ')' : '') . '. Mohon segera diisi HPP.';
+                }
 
                 foreach ($recipients as $recipient) {
                     Notification::send(
                         userId:  $recipient->id,
                         type:    'warning',
                         title:   'RFQ Baru Diterima',
-                        message: 'RFQ Baru diterima dari Sales ' . $rfq->sales_name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.',
+                        message: $msg,
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+
+                // Jika yang membuat adalah Admin/Leader dan customer memiliki Sales, beri notifikasi info ke Sales terkait
+                if (!$creator->isSales() && $rfq->sales_id && $rfq->sales_id !== $creator->id) {
+                    Notification::send(
+                        userId:  $rfq->sales_id,
+                        type:    'info',
+                        title:   'RFQ Baru Dibuatkan oleh ' . $creatorRole,
+                        message: $creatorRole . ' ' . $creator->name . ' telah membuatkan RFQ (' . $rfq->rfq_number . ') untuk customer Anda ' . $rfq->customer_name . '.',
                         link:    route('rfq.show', $rfq)
                     );
                 }
