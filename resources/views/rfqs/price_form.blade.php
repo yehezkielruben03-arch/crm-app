@@ -165,11 +165,8 @@
                                     <div>
                                         <div class="flex items-center justify-between mb-1">
                                             <div class="flex items-center gap-1.5">
-                                                <label class="text-[11px] font-semibold text-slate-600 block">Vendor Supplier</label>
-                                                <button type="button" onclick="openInlineVendorModal('{{ $item->id }}', '{{ $categoryName }}')" class="inline-flex items-center gap-0.5 text-blue-600 hover:text-blue-800 text-[10px] font-semibold transition px-1.5 py-0.5 rounded bg-blue-50 hover:bg-blue-100 border border-blue-100 shadow-2xs" title="Tambah vendor baru langsung tanpa pindah halaman">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                                    + Vendor
-                                                </button>
+                                                <label class="text-[11px] font-semibold text-slate-600 block">Vendor / Supplier</label>
+                                                <span class="text-[10px] text-slate-400 font-normal">(bisa ketik langsung)</span>
                                             </div>
                                             @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
                                                 <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
@@ -177,14 +174,15 @@
                                                 </button>
                                             @endif
                                         </div>
-                                        <select name="items[{{ $item->id }}][vendor_id]" id="vendor-select-{{ $item->id }}" class="vendor-select-field w-full text-xs text-slate-700 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs">
-                                            <option value="">-- Tanpa Vendor / Non-Vendor --</option>
-                                            @foreach($vendors as $v)
-                                                <option value="{{ $v->id }}" {{ $item->vendor_id == $v->id ? 'selected' : '' }}>
-                                                    {{ $v->nama_vendor }} ({{ $v->kategori }})
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        <div class="relative">
+                                            <input type="text"
+                                                   name="items[{{ $item->id }}][vendor_name]"
+                                                   id="vendor-input-{{ $item->id }}"
+                                                   list="vendor-datalist"
+                                                   value="{{ old('items.'.$item->id.'.vendor_name', $item->vendor->nama_vendor ?? '') }}"
+                                                   class="vendor-input-field w-full text-xs text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs font-medium placeholder:text-slate-400"
+                                                   placeholder="Ketik langsung nama vendor / supplier...">
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-2 gap-2.5">
@@ -529,6 +527,10 @@
         
         function useMpPedia(itemId) {
             document.getElementById('hpp-' + itemId).value = mpPediaRate;
+            const vInput = document.getElementById('vendor-input-' + itemId);
+            if (vInput && !vInput.value) {
+                vInput.value = 'Mainpower Pedia';
+            }
             calculateRow(itemId);
         }
 
@@ -752,21 +754,21 @@
                 if (response.ok && (data.success || data.vendor)) {
                     const newVendor = data.vendor;
                     
-                    // Update all vendor select dropdowns across the page
-                    const allVendorSelects = document.querySelectorAll('.vendor-select-field');
-                    allVendorSelects.forEach(select => {
-                        const option = document.createElement('option');
-                        option.value = newVendor.id;
-                        option.text = `${newVendor.nama_vendor} (${newVendor.kategori || 'General'})`;
-                        select.appendChild(option);
-                    });
-
-                    // Select the newly created vendor on the active item
+                    // Update typed vendor input on active item
                     if (activeItemForVendor) {
-                        const targetSelect = document.getElementById('vendor-select-' + activeItemForVendor);
-                        if (targetSelect) {
-                            targetSelect.value = newVendor.id;
+                        const targetInput = document.getElementById('vendor-input-' + activeItemForVendor);
+                        if (targetInput) {
+                            targetInput.value = newVendor.nama_vendor;
                         }
+                    }
+
+                    // Append to datalist so it appears in suggestions
+                    const dl = document.getElementById('vendor-datalist');
+                    if (dl) {
+                        const opt = document.createElement('option');
+                        opt.value = newVendor.nama_vendor;
+                        opt.textContent = newVendor.kategori || 'General';
+                        dl.appendChild(opt);
                     }
 
                     closeInlineVendorModal();
@@ -865,4 +867,10 @@
             </form>
         </div>
     </div>
+    
+    <datalist id="vendor-datalist">
+        @foreach($vendors as $v)
+            <option value="{{ $v->nama_vendor }}">{{ $v->kategori }}</option>
+        @endforeach
+    </datalist>
 </x-app-layout>

@@ -683,6 +683,7 @@ class RfqController extends Controller
             'items'                    => 'required|array',
             'items.*.category'         => 'nullable|string',
             'items.*.vendor_id'        => 'nullable|exists:vendors,id',
+            'items.*.vendor_name'      => 'nullable|string|max:255',
             'items.*.product_name'     => 'required|string',
             'items.*.qty'              => 'required|numeric|min:1',
             'items.*.unit'             => 'nullable|string',
@@ -710,7 +711,23 @@ class RfqController extends Controller
                 $item = $rfq->items()->find($itemId);
                 if ($item) {
                     $item->category         = $data['category'] ?? $item->category;
-                    $item->vendor_id        = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
+                    // Support typed vendor name ("nama vendor ketik saja")
+                    $typedVendor = trim($data['vendor_name'] ?? '');
+                    if ($typedVendor !== '') {
+                        $vendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($typedVendor)])->first();
+                        if (!$vendor) {
+                            $vendor = \App\Models\Vendor::create([
+                                'nama_vendor' => $typedVendor,
+                                'kategori'    => 'General Trading & Office',
+                                'status'      => \App\Models\Vendor::STATUS_ACTIVE,
+                            ]);
+                        }
+                        $item->vendor_id = $vendor->id;
+                    } elseif (array_key_exists('vendor_name', $data) && $typedVendor === '') {
+                        $item->vendor_id = null;
+                    } else {
+                        $item->vendor_id = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
+                    }
                     $item->product_name     = $data['product_name'];
                     $item->qty              = $data['qty'];
                     $item->unit             = $data['unit'] ?? null;
