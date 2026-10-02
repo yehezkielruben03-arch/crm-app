@@ -65,10 +65,10 @@
 
         $itemCount = count($rfq->items);
         $noteBottomPadding = match(true) {
-            $itemCount <= 2 => '55px',
-            $itemCount <= 3 => '40px',
-            $itemCount <= 4 => '25px',
-            default => '8px'
+            $itemCount <= 2 => '35px',
+            $itemCount <= 3 => '20px',
+            $itemCount <= 4 => '10px',
+            default => '6px'
         };
     @endphp
 
@@ -182,18 +182,29 @@
                 </tr>
             @endforeach
 
-            {{-- Baris Note (Hanya tampil jika Admin/Sales mengisi catatan) --}}
-            @if(!empty(trim($rfq->notes ?? '')))
+            {{-- Baris Note (Selalu tampil: Catatan kustom warna merah di atas, template tetap warna hitam di bawah) --}}
             <tr>
                 <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
                 <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 6px 8px {{ $noteBottomPadding }} 8px; font-size: 8.5px; line-height: 1.35; vertical-align: top;">
                     <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
-                    <div style="font-style: italic; color: #222; line-height: 1.35;">{!! nl2br(e($rfq->notes)) !!}</div>
+                    @php
+                        $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
+                            $clean = strtolower(trim(ltrim($line, '-* ')));
+                            return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok dan warna');
+                        });
+                    @endphp
+                    @foreach($customNotes as $cNote)
+                        @php
+                            $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
+                        @endphp
+                        <div style="font-style: italic; color: #e00000; line-height: 1.35; font-weight: bold;">{{ $formattedNote }}</div>
+                    @endforeach
+                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Harga dapat berubah tanpa pemberitahuan</div>
+                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok dan warna terlebih dahulu sebelum mengirim PO</div>
                 </td>
                 <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
                 <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
             </tr>
-            @endif
 
             @php
                 $ppn = $grandSubtotal * 0.11;
