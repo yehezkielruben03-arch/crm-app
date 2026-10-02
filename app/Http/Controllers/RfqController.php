@@ -109,8 +109,8 @@ class RfqController extends Controller
                     'product_name'       => $itemData['product_name'],
                     'qty'                => $itemData['qty'],
                     'unit'               => $itemData['unit'] ?? null,
-                    'detail_item'        => $itemData['detail_item'] ?? null,
-                    'description'        => $itemData['description'] ?? null,
+                    'detail_item'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
+                    'description'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
                     'hpp'                => $hpp,
                     'ongkir_pedia'       => $ongkir_pedia,
                     'ongkir_pelanggan'   => $ongkir_pelanggan,
@@ -268,8 +268,8 @@ class RfqController extends Controller
                     'product_name'       => $item['product_name'],
                     'qty'                => $item['qty'],
                     'unit'               => $item['unit'] ?? null,
-                    'detail_item'        => $item['detail_item'] ?? null,
-                    'description'        => $item['description'] ?? null,
+                    'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
+                    'description'        => $item['description'] ?? $item['detail_item'] ?? null,
                     'hpp'                => $hpp,
                     'ongkir_pedia'       => $ongkirPedia,
                     'ongkir_pelanggan'   => $ongkirPelanggan,
@@ -523,8 +523,8 @@ class RfqController extends Controller
                     'product_name'       => $item['product_name'],
                     'qty'                => $item['qty'],
                     'unit'               => $item['unit'] ?? null,
-                    'detail_item'        => $item['detail_item'] ?? null,
-                    'description'        => $item['description'] ?? null,
+                    'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
+                    'description'        => $item['description'] ?? $item['detail_item'] ?? null,
                     'hpp'                => $hpp,
                     'ongkir_pedia'       => $ongkirPedia,
                     'ongkir_pelanggan'   => $ongkirPelanggan,
@@ -714,8 +714,9 @@ class RfqController extends Controller
                     $item->product_name     = $data['product_name'];
                     $item->qty              = $data['qty'];
                     $item->unit             = $data['unit'] ?? null;
-                    $item->description      = $data['description'] ?? null;
-                    $item->detail_item      = $data['detail_item'] ?? $item->detail_item;
+                    $desc                   = $data['description'] ?? $data['detail_item'] ?? null;
+                    $item->description      = $desc;
+                    $item->detail_item      = $desc;
                     $item->hpp              = $data['hpp'];
                     $item->ongkir_pedia     = (float) ($data['ongkir_pedia'] ?? $item->ongkir_pedia);
                     $item->biaya_kirim      = (float) ($data['biaya_kirim'] ?? 0);

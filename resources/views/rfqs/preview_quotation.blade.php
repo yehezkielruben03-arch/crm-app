@@ -200,9 +200,9 @@
                                 <span class="font-bold">{{ (int) $item->qty }}</span> {{ $item->unit ?: 'Unit' }}
                             </td>
                             <td>
-                                <div class="font-bold text-[13px] leading-snug">{{ $item->product_name }}</div>
-                                @if($item->detail_item || $item->description)
-                                <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($item->detail_item ?? $item->description) !!}</div>
+                                @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                                @if(!empty($itemSpec))
+                                <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
                                 @endif
                             </td>
                             <td class="font-bold">

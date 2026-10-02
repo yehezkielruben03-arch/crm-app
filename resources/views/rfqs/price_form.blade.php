@@ -201,19 +201,11 @@
                                         </div>
                                     </div>
 
-                                    <div class="space-y-2">
-                                        <div>
-                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Deskripsi Singkat</label>
-                                            <textarea name="items[{{ $item->id }}][description]" rows="1"
-                                                      class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                                      placeholder="Deskripsi singkat barang...">{{ old('items.'.$item->id.'.description', $item->description) }}</textarea>
-                                        </div>
-                                        <div>
-                                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi Detail</label>
-                                            <textarea name="items[{{ $item->id }}][detail_item]" rows="2"
-                                                      class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs font-mono text-[11px]"
-                                                      placeholder="Part number, spesifikasi teknis...">{{ old('items.'.$item->id.'.detail_item', $item->detail_item) }}</textarea>
-                                        </div>
+                                    <div>
+                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi / Keterangan Item</label>
+                                        <textarea name="items[{{ $item->id }}][description]" rows="2"
+                                                  class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                                  placeholder="Part number, spesifikasi teknis, atau keterangan barang...">{{ old('items.'.$item->id.'.description', $item->description ?: $item->detail_item) }}</textarea>
                                     </div>
                                 </div>
                             </div>

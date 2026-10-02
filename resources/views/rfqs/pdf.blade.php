@@ -168,9 +168,9 @@
                         {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
                     </td>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px 8px; font-size: 9px; line-height: 1.35; vertical-align: top;">
-                        <div style="font-weight: bold; font-size: 9.5px;">{{ $item->product_name }}</div>
-                        @if($item->detail_item || $item->description)
-                        <div style="color: #333; margin-top: 2px;">{!! nl2br(e($item->detail_item ?? $item->description)) !!}</div>
+                        @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                        @if(!empty($itemSpec))
+                        <div style="color: #333; margin-top: 2px;">{!! nl2br(e($itemSpec)) !!}</div>
                         @endif
                     </td>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">

@@ -361,12 +361,11 @@
                                             <div class="pmx-row pmx-row--data">
                                                 <input type="hidden" :name="`items[${item.id}][category]`" :value="category.name">
 
-                                            {{-- Baris Utama: No | Item Descriptions (stacked) | Qty | Units | Hapus --}}
+                                            {{-- Baris Utama: No | Item Descriptions | Qty | Units | Hapus --}}
                                             <span class="pmx-cell pmx-cell--num text-center" x-text="itemNumber(category, index)"></span>
                                             <span class="pmx-cell pmx-cell--desc">
                                                 <input type="text" :name="`items[${item.id}][product_name]`" x-model="item.product_name" placeholder="Nama Item *" class="pmx-input pmx-input--name">
-                                                <textarea rows="1" :name="`items[${item.id}][detail_item]`" x-model="item.detail_item" class="pmx-input pmx-input--spec auto-grow" placeholder="Spesifikasi / Detail Item"></textarea>
-                                                <textarea rows="1" :name="`items[${item.id}][description]`" x-model="item.description" class="pmx-input pmx-input--spec auto-grow" placeholder="Deskripsi Singkat"></textarea>
+                                                <textarea rows="1" :name="`items[${item.id}][description]`" x-model="item.description" class="pmx-input pmx-input--spec auto-grow" placeholder="Spesifikasi / Keterangan Item (part number, spek, dll)"></textarea>
                                             </span>
                                             <span class="pmx-cell pmx-cell--center">
                                                 <input type="number" :name="`items[${item.id}][qty]`" step="0.01" x-model="item.qty" placeholder="Qty *" class="pmx-input pmx-input--center">

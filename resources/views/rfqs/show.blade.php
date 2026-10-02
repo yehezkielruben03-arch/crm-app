@@ -332,9 +332,8 @@
                                 <div class="rfq-grid__row {{ $loop->even ? 'rfq-grid__row--zebra' : '' }}">
                                     <span class="rfq-grid__cell rfq-grid__num text-center">{{ $rowNum++ }}</span>
                                     <span class="rfq-grid__cell rfq-grid__desc-block">
-                                        <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
-                                        @if($item->detail_item)<span class="rfq-grid__detail text-xs text-slate-500">{{ $item->detail_item }}</span>@endif
-                                        @if($item->description)<span class="rfq-grid__desc text-xs text-slate-500">{{ $item->description }}</span>@endif
+                                        @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
                                     </span>
                                     <span class="rfq-grid__cell text-center">
                                         <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
@@ -413,7 +412,8 @@
                                 <span class="rfq-grid__cell rfq-grid__num text-center">{{ $loop->iteration }}</span>
                                 <span class="rfq-grid__cell rfq-grid__desc-block">
                                     <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
-                                    @if($item->description)<span class="rfq-grid__desc text-xs text-slate-500">{{ $item->description }}</span>@endif
+                                    @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
                                 </span>
                                 <span class="rfq-grid__cell text-center">
                                     <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
