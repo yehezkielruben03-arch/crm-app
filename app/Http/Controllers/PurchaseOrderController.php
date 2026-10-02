@@ -305,13 +305,22 @@ class PurchaseOrderController extends Controller
 
     public function downloadPdf(PurchaseOrder $po)
     {
-        abort_if(!auth()->user()->hasPermission('CRUD'), 403);
+        abort_if(!auth()->user()->isAdminOrAbove() && $po->sales_id !== auth()->id(), 403);
 
         if (!$po->file_path) {
             abort(404, 'File tidak ditemukan.');
         }
 
-        return \Storage::disk('public')->download($po->file_path, $po->po_number . '.pdf');
+        $path = $po->file_path;
+        if (str_starts_with($path, 'public/')) {
+            $path = substr($path, 7);
+        }
+
+        if (!\Storage::disk('public')->exists($path)) {
+            abort(404, 'File lampiran PO tidak ditemukan di server.');
+        }
+
+        return \Storage::disk('public')->download($path, $po->po_number . '.pdf');
     }
 
     public function requestChange(Request $request, PurchaseOrder $po)

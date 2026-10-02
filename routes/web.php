@@ -128,6 +128,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/rfqs/{rfq}/revisi-qty', [RfqController::class, 'updateQty'])->name('rfq.update_qty');
         Route::post('/rfqs/{rfq}/verify-po', [RfqController::class, 'verifyPo'])->name('rfq.verify_po');
         Route::post('/rfqs/{rfq}/upload-po', [RfqController::class, 'uploadPo'])->name('rfq.upload_po');
+        Route::get('/rfqs/{rfq}/po-file', [RfqController::class, 'viewPoFile'])->name('rfq.view_po');
         Route::post('/rfqs/{rfq}/approve-goal', [RfqController::class, 'approveGoal'])->name('rfq.approve_goal');
 
         Route::get('/sales/history', [RfqController::class, 'history'])->name('sales.history');

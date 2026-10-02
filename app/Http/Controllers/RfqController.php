@@ -1215,6 +1215,26 @@ class RfqController extends Controller
             ->with('success', 'Yeay! Quotation ' . $rfq->rfq_number . ' resmi menjadi GOAL dan diteruskan ke Admin Purchase.');
     }
 
+    public function viewPoFile(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen PO ini.');
+
+        $path = $rfq->po_file_path;
+        if (!$path) {
+            abort(404, 'File lampiran bukti PO tidak ditemukan.');
+        }
+
+        if (str_starts_with($path, 'public/')) {
+            $path = substr($path, 7);
+        }
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File lampiran bukti PO tidak ditemukan di server.');
+        }
+
+        return Storage::disk('public')->response($path);
+    }
+
     private function authUser(): User
     {
         $user = Auth::user();

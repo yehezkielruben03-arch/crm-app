@@ -276,6 +276,13 @@ class E2eRfqFlowTest extends TestCase
         
         $this->assertNotNull($rfq->po_file_path);
 
+        // Verify Admin & Sales can access PO attachment without 403 Forbidden
+        $adminViewPo = $this->actingAs($this->admin)->get(route('rfq.view_po', $rfq));
+        $adminViewPo->assertStatus(200);
+
+        $salesViewPo = $this->actingAs($this->sales)->get(route('rfq.view_po', $rfq));
+        $salesViewPo->assertStatus(200);
+
         // ─── Step 11: Admin verifies PO ───────────────────────────────────
         $response = $this->actingAs($this->admin)->post(route('rfq.verify_po', $rfq));
         $response->assertSessionHas('success');
@@ -314,7 +321,14 @@ class E2eRfqFlowTest extends TestCase
         $response = $this->actingAs($this->sales)->get(route('po.show', $po));
         $response->assertStatus(200);
 
-        // ─── Step 14: Verify notification was created for Admin ──────────
+        // ─── Step 14: Admin & Sales can download PO PDF ──────────────────
+        $adminPoDownload = $this->actingAs($this->admin)->get(route('po.download-pdf', $po));
+        $adminPoDownload->assertStatus(200);
+
+        $salesPoDownload = $this->actingAs($this->sales)->get(route('po.download-pdf', $po));
+        $salesPoDownload->assertStatus(200);
+
+        // ─── Step 15: Verify notification was created for Admin ──────────
         $this->assertDatabaseHas('notifications', [
             'user_id' => $this->admin->id,
             'title'   => 'PO Baru (Dari GOAL Sales)',

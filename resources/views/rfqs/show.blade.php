@@ -836,9 +836,9 @@
             </div>
             @endif
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, 'GOAL']) && $rfq->po_file_path)
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, \App\Models\Rfq::STATUS_GOAL]) && $rfq->po_file_path)
             <div class="mt-4">
-                <a href="{{ Storage::url($rfq->po_file_path) }}" target="_blank"
+                <a href="{{ route('rfq.view_po', $rfq) }}" target="_blank"
                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
                    style="background: rgba(16,185,129,0.1); color: var(--accent-emerald); border: 1px solid rgba(16,185,129,0.2);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
