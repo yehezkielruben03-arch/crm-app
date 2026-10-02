@@ -2,8 +2,8 @@
 set -e
 
 # Ensure storage directories exist with correct permissions
-mkdir -p /var/www/storage/framework/{sessions,views,cache} /var/www/storage/logs /var/www/storage/app/public/po_files
-chmod -R 775 /var/www/storage /var/www/bootstrap/cache || true
+mkdir -p /var/www/storage/framework/{sessions,views,cache} /var/www/storage/logs /var/www/storage/app/public/{po_files,purchase_orders,signatures,quotations}
+chmod -R 777 /var/www/storage /var/www/bootstrap/cache || true
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache || true
 
 # Generate key if not present
