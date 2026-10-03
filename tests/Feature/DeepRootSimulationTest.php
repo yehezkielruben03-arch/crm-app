@@ -401,4 +401,125 @@ class DeepRootSimulationTest extends TestCase
         $guestResp = $this->get(route('rfq.price_form', $rfq));
         $guestResp->assertRedirect(route('login'));
     }
+
+    /**
+     * SIMULASI 4: Pengujian Anti-IDOR (Insecure Direct Object Reference) Antar Sales
+     */
+    public function test_idor_horizontal_isolation_between_sales_users(): void
+    {
+        // Buat Sales B (Penyerang / Sales lain)
+        $salesB = User::create([
+            'name'     => 'Sales B (Competitor)',
+            'username' => 'sales_b',
+            'email'    => 'sales_b@crm.com',
+            'password' => Hash::make('password123'),
+            'role'     => 'Sales',
+            'status'   => 'Active',
+            'phone'    => '081299990001',
+        ]);
+
+        // RFQ milik Sales A (Ade Zulvida) dalam status Approved
+        $rfq = Rfq::create([
+            'rfq_number'          => 'RFQ-IDOR-001',
+            'customer_id'         => $this->customer->id,
+            'customer_name'       => $this->customer->company_name,
+            'customer_contact_id' => $this->contact->id,
+            'sales_id'            => $this->sales->id,
+            'sales_name'          => $this->sales->name,
+            'status'              => Rfq::STATUS_APPROVED,
+            'type'                => 'Projek',
+            'rfq_date'            => now()->format('Y-m-d'),
+            'po_file_path'        => 'purchase_orders/dummy_po.pdf',
+        ]);
+
+        Storage::disk('public')->put('purchase_orders/dummy_po.pdf', 'dummy content');
+
+        $item = $rfq->items()->create([
+            'category'           => 'Hardware',
+            'product_name'       => 'Secure Door Unit',
+            'qty'                => 2,
+            'unit'               => 'pcs',
+            'hpp'                => 1000000,
+            'margin'             => 20,
+            'price_after_margin' => 1250000,
+            'total_price'        => 2500000,
+        ]);
+
+        // 1. Sales B tidak boleh melihat detail RFQ Sales A (show) -> 403
+        $respShow = $this->actingAs($salesB)->get(route('rfq.show', $rfq));
+        $this->assertEquals(403, $respShow->status());
+
+        // 2. Sales B tidak boleh mengedit RFQ Sales A (edit) -> 403
+        $rfq->update(['status' => Rfq::STATUS_PENDING_ADMIN]);
+        $respEdit = $this->actingAs($salesB)->get(route('rfq.edit', $rfq));
+        $this->assertEquals(403, $respEdit->status());
+
+        // 3. Sales B tidak boleh mengubah data RFQ Sales A (update) -> 403
+        $respUpdate = $this->actingAs($salesB)->put(route('rfq.update', $rfq), [
+            'customer_id' => $this->customer->id,
+        ]);
+        $this->assertEquals(403, $respUpdate->status());
+
+        // 4. Sales B tidak boleh menghapus RFQ Sales A (destroy) -> 403
+        $respDestroy = $this->actingAs($salesB)->delete(route('rfq.destroy', $rfq));
+        $this->assertEquals(403, $respDestroy->status());
+
+        // Kembalikan ke Approved untuk pengujian Quotation & PO
+        $rfq->update(['status' => Rfq::STATUS_APPROVED]);
+
+        // 5. Sales B tidak boleh download quotation Sales A -> 403
+        $respDownload = $this->actingAs($salesB)->get(route('rfq.download_quotation', $rfq));
+        $this->assertEquals(403, $respDownload->status());
+
+        // 6. Sales B tidak boleh preview quotation Sales A -> 403
+        $respPreview = $this->actingAs($salesB)->get(route('rfq.preview_quotation', $rfq));
+        $this->assertEquals(403, $respPreview->status());
+
+        // 7. Sales B tidak boleh menandai penawaran terkirim (markQuotationSent) -> 403
+        $respSent = $this->actingAs($salesB)->post(route('rfq.mark_quotation_sent', $rfq));
+        $this->assertEquals(403, $respSent->status());
+
+        // 8. Sales B tidak boleh buka form revisi QTY (editQty) -> 403
+        $respEditQty = $this->actingAs($salesB)->get(route('rfq.edit_qty', $rfq));
+        $this->assertEquals(403, $respEditQty->status());
+
+        // 9. Sales B tidak boleh simpan revisi QTY (updateQty) -> 403
+        $respUpdateQty = $this->actingAs($salesB)->put(route('rfq.update_qty', $rfq), [
+            'items' => [
+                [
+                    'id'           => $item->id,
+                    'product_name' => 'Hacked Item',
+                    'qty'          => 99,
+                    'unit'         => 'pcs',
+                ],
+            ],
+            'revision_notes' => 'Tamper Qty',
+        ]);
+        $this->assertEquals(403, $respUpdateQty->status());
+
+        // 10. Sales B tidak boleh upload PO pada RFQ Sales A (uploadPo) -> 403
+        $fakePo = UploadedFile::fake()->create('fake_po.pdf', 200, 'application/pdf');
+        $respUploadPo = $this->actingAs($salesB)->post(route('rfq.upload_po', $rfq), [
+            'po_file' => $fakePo,
+        ]);
+        $this->assertEquals(403, $respUploadPo->status());
+
+        // 11. Sales B tidak boleh melihat file PO Sales A (viewPoFile) -> 403
+        $respViewPo = $this->actingAs($salesB)->get(route('rfq.view_po', $rfq));
+        $this->assertEquals(403, $respViewPo->status());
+
+        // 12. Sales A (Pemilik Sah) DAPAT mengakses data miliknya dengan normal
+        $respOwnerShow = $this->actingAs($this->sales)->get(route('rfq.show', $rfq));
+        $this->assertEquals(200, $respOwnerShow->status());
+
+        $respOwnerPreview = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
+        $this->assertEquals(200, $respOwnerPreview->status());
+
+        // 13. Super Admin Syarwani DAPAT mengakses semua dokumen (Super Admin Privilege)
+        $respAdminShow = $this->actingAs($this->syarwani)->get(route('rfq.show', $rfq));
+        $this->assertEquals(200, $respAdminShow->status());
+
+        $respAdminPreview = $this->actingAs($this->syarwani)->get(route('rfq.preview_quotation', $rfq));
+        $this->assertEquals(200, $respAdminPreview->status());
+    }
 }

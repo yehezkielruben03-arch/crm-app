@@ -324,6 +324,7 @@ class QuotationController extends Controller
     public function processGoal(Request $request, Quotation $quotation)
     {
         abort_if(!$this->authUser()->isSales(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $quotation->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk Quotation ini.');
         abort_if(!$quotation->isSent(), 422, 'Hanya Quotation yang sudah Sent yang bisa diproses GOAL.');
 
         $validated = $request->validate([

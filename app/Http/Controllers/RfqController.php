@@ -917,6 +917,7 @@ class RfqController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
 
         if ($rfq->status === Rfq::STATUS_APPROVED) {
@@ -964,6 +965,7 @@ class RfqController extends Controller
 
     public function previewQuotation(Rfq $rfq)
     {
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
 
         $rfq->load(['customer', 'customerContact', 'items', 'sales']);
@@ -983,6 +985,7 @@ class RfqController extends Controller
     public function markQuotationSent(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403, 'Anda tidak memiliki izin menandai penawaran terkirim.');
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke RFQ ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Hanya RFQ yang sudah disetujui / terbit quotation yang dapat ditandai terkirim ke klien.');
 
         if ($rfq->status !== Rfq::STATUS_QUOTATION_SENT) {
@@ -998,6 +1001,7 @@ class RfqController extends Controller
     public function editQty(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Revisi QTY hanya bisa dilakukan setelah di-approve.');
 
         $rfq->load('items');
@@ -1007,6 +1011,7 @@ class RfqController extends Controller
     public function updateQty(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403);
 
         $request->validate([
@@ -1142,6 +1147,7 @@ class RfqController extends Controller
     public function uploadPo(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak upload PO untuk RFQ ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Upload PO hanya bisa dilakukan saat status Approved, Quotation Created, atau Quotation Sent.');
 
         $request->validate([
