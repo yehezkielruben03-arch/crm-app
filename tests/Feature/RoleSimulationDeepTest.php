@@ -281,6 +281,11 @@ class RoleSimulationDeepTest extends TestCase
         $rfq->refresh();
         $this->assertEquals(Rfq::STATUS_APPROVED, $rfq->status, 'RFQ status should now be Approved');
 
+        // Idempotency check: Leader double-submits approve -> must not throw 403, should redirect with info
+        $doubleApproveResp = $this->actingAs($this->leader)->post(route('rfq.approve', $rfq));
+        $doubleApproveResp->assertSessionHas('info');
+        $this->assertEquals(Rfq::STATUS_APPROVED, $rfq->fresh()->status);
+
         // =========================================================================
         // STEP 6: ROLE SALES A - Download Quotation PDF & Check Content
         // =========================================================================

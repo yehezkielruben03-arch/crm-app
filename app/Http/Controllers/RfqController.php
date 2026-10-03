@@ -827,11 +827,16 @@ class RfqController extends Controller
     public function approve(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-        abort_if($rfq->status !== Rfq::STATUS_PENDING_LEADER, 403, 'RFQ hanya bisa di-approve saat status Pending Leader.');
 
-        if (!$rfq->canTransitionTo(Rfq::STATUS_APPROVED)) {
-            return redirect()->back()
-                ->with('error', 'RFQ ini tidak bisa disetujui dari status saat ini.');
+        // Idempoten: jika sudah disetujui (misal double-click atau re-submit), kembalikan pesan info tanpa error 403
+        if ($rfq->status === Rfq::STATUS_APPROVED) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_APPROVED)) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa disetujui dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
         }
 
         $rfq->update(['status' => Rfq::STATUS_APPROVED]);
@@ -848,18 +853,23 @@ class RfqController extends Controller
             );
         }
 
-        return redirect()->back()
+        return redirect()->back(fallback: route('rfq.show', $rfq))
             ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil disetujui. Dokumen Quotation sudah bisa di-generate.');
     }
 
     public function reject(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-        abort_if($rfq->status !== Rfq::STATUS_PENDING_LEADER, 403, 'RFQ hanya bisa di-reject saat status Pending Leader.');
 
-        if (!$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
-            return redirect()->back()
-                ->with('error', 'RFQ ini tidak bisa dikembalikan ke Admin Purchase dari status saat ini.');
+        // Idempoten: jika sudah dikembalikan ke admin sebelumnya
+        if ($rfq->status === Rfq::STATUS_PENDING_ADMIN) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah dikembalikan untuk revisi sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dikembalikan ke Admin dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
         }
 
         $validated = $request->validate([
@@ -1095,11 +1105,16 @@ class RfqController extends Controller
     public function verifyPo(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isAdminOrAbove(), 403);
-        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya status PO Received (Pending Admin) yang bisa diverifikasi.');
 
-        if (!$rfq->canTransitionTo(Rfq::STATUS_PO_PENDING_LEADER)) {
+        // Idempoten jika sudah diverifikasi
+        if ($rfq->status === Rfq::STATUS_PO_PENDING_LEADER) {
             return redirect()->route('rfq.show', $rfq)
-                ->with('error', 'PO ini tidak bisa diverifikasi dari status saat ini.');
+                ->with('info', 'PO untuk RFQ ' . $rfq->rfq_number . ' sudah diverifikasi sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN || !$rfq->canTransitionTo(Rfq::STATUS_PO_PENDING_LEADER)) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('error', 'PO ini tidak bisa diverifikasi dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
         }
 
         $rfq->update(['status' => Rfq::STATUS_PO_PENDING_LEADER]);
@@ -1167,6 +1182,13 @@ class RfqController extends Controller
     public function approveGoal(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
+
+        // Idempoten jika sudah GOAL
+        if ($rfq->status === Rfq::STATUS_GOAL) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui menjadi GOAL sebelumnya.');
+        }
+
         abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_LEADER, 403, 'Hanya PO yang sudah diverifikasi Admin (Pending Leader) yang bisa diproses menjadi GOAL.');
 
         try {

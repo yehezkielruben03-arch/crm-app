@@ -122,7 +122,7 @@
                                     Review
                                 </a>
                                 @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
-                                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" class="inline-block" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
+                                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" class="inline-block" onsubmit="if(!confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
                                     @csrf
                                     <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +197,7 @@
                         </td>
                         <td class="py-3 text-right">
                             <div class="flex justify-end gap-2">
-                                <form action="{{ route('po.approve', $po) }}" method="POST" onsubmit="return confirm('Approve PO ini?');">
+                                <form action="{{ route('po.approve', $po) }}" method="POST" onsubmit="if(!confirm('Approve PO ini?')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
                                     @csrf
                                     <button type="submit" class="action-btn text-xs px-3 py-1.5" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-emerald);">
@@ -206,7 +206,7 @@
                                         Approve
                                     </button>
                                 </form>
-                                <form action="{{ route('po.reject', $po) }}" method="POST" onsubmit="return confirm('Reject PO ini?');">
+                                <form action="{{ route('po.reject', $po) }}" method="POST" onsubmit="if(!confirm('Reject PO ini?')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
                                     @csrf
                                     <button type="submit" class="action-btn text-xs px-3 py-1.5" style="border-color: rgba(225,29,72,0.3); color: var(--accent-rose);">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-rose);">
@@ -303,7 +303,7 @@
                 </button>
             </div>
             <p class="text-xs text-gray-600 mb-4" id="rejectModalSubtitle">Masukkan catatan revisi untuk Admin Purchase:</p>
-            <form id="rejectForm" method="POST" action="">
+            <form id="rejectForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Mengirim...'; return true;">
                 @csrf
                 <div class="mb-4">
                     <label for="modalRevisionNotes" class="block text-xs font-semibold text-gray-700 mb-1">Alasan / Catatan Revisi:</label>

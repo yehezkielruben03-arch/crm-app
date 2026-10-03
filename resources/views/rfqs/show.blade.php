@@ -700,7 +700,7 @@
                 @endif
 
                 @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
-                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" onsubmit="return confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.');">
+                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" onsubmit="if(!confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses...'; return true;">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                         style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 14px rgba(5,150,105,0.35);">
@@ -806,7 +806,7 @@
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Verifikasi PO dari Sales Marketing</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Sales Marketing telah menyesuaikan QTY dan mengunggah bukti PO dari customer. Silakan cek bukti PO dan pastikan QTY sesuai.</p>
-                <form action="{{ route('rfq.verify_po', $rfq) }}" method="POST">
+                <form action="{{ route('rfq.verify_po', $rfq) }}" method="POST" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses...'; return true;">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                         style="background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 4px 14px rgba(5,150,105,0.35);">
@@ -823,7 +823,7 @@
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Persetujuan Akhir (GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Admin Purchase telah memverifikasi PO ini. Setujui untuk menandai sebagai GOAL.</p>
-                <form action="{{ route('rfq.approve_goal', $rfq) }}" method="POST">
+                <form action="{{ route('rfq.approve_goal', $rfq) }}" method="POST" onsubmit="if(!confirm('Setujui RFQ {{ $rfq->rfq_number }} sebagai GOAL? PO resmi akan diterbitkan ke Admin Purchase.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses GOAL...'; return true;">
                     @csrf
                     <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                         style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
@@ -866,7 +866,7 @@
                 </button>
             </div>
             <p class="text-xs text-gray-600 mb-4" id="rejectModalSubtitle">Masukkan catatan revisi untuk Admin Purchase:</p>
-            <form id="rejectForm" method="POST" action="">
+            <form id="rejectForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Mengirim...'; return true;">
                 @csrf
                 <div class="mb-4">
                     <label for="modalRevisionNotes" class="block text-xs font-semibold text-gray-700 mb-1">Alasan / Catatan Revisi:</label>
