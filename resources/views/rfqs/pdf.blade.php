@@ -40,9 +40,9 @@
 
     @php
         $clientCompanyName = $rfq->customer?->company_name ?: ($rfq->customer_name ?: 'Pelanggan');
-        $custAddress       = trim($rfq->customer?->address ?? '');
-        $custPhone         = $rfq->customer?->phone ?: ($rfq->customerContact?->phone ?: $rfq->customerContact?->office_phone);
-        $custPic           = $rfq->customerContact?->name ?: ($rfq->customer?->cp_name ?: 'Bpk/Ibu');
+        $custAddress       = $rfq->resolved_customer_address;
+        $custPhone         = $rfq->resolved_customer_phone;
+        $custPic           = $rfq->resolved_pic_name;
         $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
         $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
         $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');

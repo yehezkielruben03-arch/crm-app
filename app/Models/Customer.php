@@ -132,7 +132,74 @@ class Customer extends Model
 
     public function primaryContact()
     {
-        return $this->contacts()->where('is_primary', true)->first();
+        if ($this->relationLoaded('contacts')) {
+            return $this->contacts->firstWhere('is_primary', true) ?: $this->contacts->first();
+        }
+        return $this->contacts()->where('is_primary', true)->first() ?: $this->contacts()->first();
+    }
+
+    public function getFullAddressAttribute(): string
+    {
+        $parts = [];
+        $addr = trim($this->address ?? '');
+        if ($addr !== '') {
+            $parts[] = $addr;
+        }
+
+        $lowerAddr = strtolower($addr);
+
+        if (!empty(trim($this->village ?? ''))) {
+            $val = trim($this->village);
+            if (!str_contains($lowerAddr, strtolower($val))) {
+                $parts[] = $val;
+            }
+        }
+
+        if (!empty(trim($this->district ?? ''))) {
+            $val = trim($this->district);
+            if (!str_contains($lowerAddr, strtolower($val))) {
+                $parts[] = $val;
+            }
+        }
+
+        if (!empty(trim($this->city ?? ''))) {
+            $val = trim($this->city);
+            if (!str_contains($lowerAddr, strtolower($val))) {
+                $parts[] = $val;
+            }
+        }
+
+        if (!empty(trim($this->province ?? ''))) {
+            $val = trim($this->province);
+            if (!str_contains($lowerAddr, strtolower($val))) {
+                $parts[] = $val;
+            }
+        }
+
+        $res = implode(', ', $parts);
+
+        if (!empty(trim($this->postal_code ?? ''))) {
+            $postal = trim($this->postal_code);
+            if (!str_contains($res, $postal)) {
+                $res = ($res !== '') ? ($res . ' ' . $postal) : $postal;
+            }
+        }
+
+        return $res;
+    }
+
+    public function getResolvedPicNameAttribute(): ?string
+    {
+        $primary = $this->primaryContact();
+        $name = $primary?->name 
+            ?: ($this->contacts->first()?->name 
+            ?: ($this->cp_name ?: null));
+
+        if (!$name) {
+            return null;
+        }
+
+        return preg_replace('/^(up[\.\:\s]+)/i', '', trim($name));
     }
 
     public function rfqs(): HasMany

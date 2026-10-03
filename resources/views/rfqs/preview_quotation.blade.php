@@ -84,9 +84,9 @@
 
     @php
         $clientCompanyName = $rfq->customer?->company_name ?: ($rfq->customer_name ?: 'Pelanggan');
-        $custAddress       = trim($rfq->customer?->address ?? '');
-        $custPhone         = $rfq->customer?->phone ?: ($rfq->customerContact?->phone ?: $rfq->customerContact?->office_phone);
-        $custPic           = $rfq->customerContact?->name ?: ($rfq->customer?->cp_name ?: 'Bpk/Ibu');
+        $custAddress       = $rfq->resolved_customer_address;
+        $custPhone         = $rfq->resolved_customer_phone;
+        $custPic           = $rfq->resolved_pic_name;
         $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
         $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
         $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
@@ -147,11 +147,11 @@
             <!-- INFO KLIEN & BERLAKU S/D -->
             <div class="flex justify-between items-end mt-4 mb-2 text-[11.5px]">
                 <!-- Info Klien (Kiri) -->
-                <div class="leading-relaxed" style="font-family: Arial, sans-serif;">
+                <div class="leading-relaxed max-w-[58%]" style="font-family: Arial, sans-serif;">
                     <div class="text-black" style="font-family: Calibri, sans-serif;">Kepada YTH</div>
                     <div class="font-bold text-[13px] text-black mt-0.5">{{ $clientCompanyName }}</div>
                     @if(!empty($custAddress))
-                    <div class="whitespace-pre-line text-[#222]">{{ $custAddress }}</div>
+                    <div class="text-[#222]">{{ $custAddress }}</div>
                     @endif
                     @if(!empty($custPhone))
                     <div class="text-[#222]">Telp : {{ $custPhone }}</div>

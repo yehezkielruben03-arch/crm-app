@@ -954,7 +954,7 @@ class RfqController extends Controller
             }
         }
 
-        $rfq->load(['customer', 'customerContact', 'items', 'sales']);
+        $rfq->load(['customer.contacts', 'customerContact', 'items', 'sales']);
         
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')
@@ -1002,7 +1002,7 @@ class RfqController extends Controller
             Rfq::STATUS_GOAL
         ]), 403, 'Quotation belum tersedia.');
 
-        $rfq->load(['customer', 'customerContact', 'items', 'sales']);
+        $rfq->load(['customer.contacts', 'customerContact', 'items', 'sales']);
         
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')

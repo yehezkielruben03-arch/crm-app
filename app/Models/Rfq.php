@@ -217,4 +217,42 @@ class Rfq extends Model
 
         return 'Q' . $seq . '/PTI/' . $romanMonth . '/' . $year;
     }
+
+    public function getResolvedCustomerAddressAttribute(): string
+    {
+        if ($this->customer) {
+            return $this->customer->full_address;
+        }
+
+        return '';
+    }
+
+    public function getResolvedPicNameAttribute(): string
+    {
+        $name = $this->customerContact?->name;
+        if (empty($name) && $this->customer) {
+            $name = $this->customer->resolved_pic_name;
+        }
+
+        $clean = preg_replace('/^(up[\.\:\s]+)/i', '', trim($name ?? ''));
+        return !empty($clean) ? $clean : 'Bpk/Ibu';
+    }
+
+    public function getResolvedCustomerPhoneAttribute(): ?string
+    {
+        $raw = $this->customer?->phone 
+            ?: ($this->customer?->office_phone 
+            ?: ($this->customerContact?->office_phone 
+            ?: ($this->customerContact?->phone 
+            ?: ($this->customer?->primaryContact()?->phone 
+            ?: ($this->customer?->primaryContact()?->office_phone 
+            ?: ($this->customer?->cp_phone ?? null))))));
+
+        if (!$raw) {
+            return null;
+        }
+
+        $clean = preg_replace('/^(telp?[\.\:\s]+)/i', '', trim($raw));
+        return !empty($clean) ? $clean : null;
+    }
 }
