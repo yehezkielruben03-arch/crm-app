@@ -388,11 +388,20 @@ class RfqController extends Controller
             ->orderByDesc('version')
             ->get();
 
+        $isApproved = in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]);
+
         $maxVersion = $priceHistories->max('version') ?? 0;
-        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
+        $revisionCount = ($isApproved && $maxVersion > 1) ? ($maxVersion - 1) : 0;
         $latestHistory = $priceHistories->first();
 
-        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'latestHistory'));
+        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'latestHistory', 'isApproved'));
     }
 
     public function edit(Rfq $rfq)
@@ -754,51 +763,15 @@ class RfqController extends Controller
             $updatedData = $rfq->items()->get()->toArray();
 
             if (count($updatedData) > 0) {
-                $latestHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-                    ->orderByDesc('version')
-                    ->first();
-
-                $wasApprovedBefore = in_array($oldStatus, [
-                    Rfq::STATUS_APPROVED,
-                    Rfq::STATUS_QUOTATION_CREATED,
-                    Rfq::STATUS_QUOTATION_SENT,
-                    Rfq::STATUS_PO_PENDING_ADMIN,
-                    Rfq::STATUS_PO_PENDING_LEADER,
-                    Rfq::STATUS_GOAL
+                $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
+                
+                \App\Models\RfqPriceHistory::create([
+                    'rfq_id'       => $rfq->id,
+                    'version'      => $lastVersion + 1,
+                    'history_data' => $updatedData,
+                    'created_by'   => $this->authUser()->id,
+                    'approved_at'  => null,
                 ]);
-
-                $isLatestApproved = $latestHistory && (
-                    $latestHistory->approved_at !== null || $wasApprovedBefore
-                );
-
-                if ($latestHistory && $wasApprovedBefore && $latestHistory->approved_at === null) {
-                    $latestHistory->update(['approved_at' => $latestHistory->created_at ?? now()]);
-                }
-
-                $approvedAtVal = ($isLeaderUser && $wasApprovedBefore) ? now() : null;
-
-                if (!$latestHistory) {
-                    \App\Models\RfqPriceHistory::create([
-                        'rfq_id'       => $rfq->id,
-                        'version'      => 1,
-                        'history_data' => $updatedData,
-                        'created_by'   => $this->authUser()->id,
-                        'approved_at'  => $approvedAtVal,
-                    ]);
-                } elseif (!$isLatestApproved) {
-                    $latestHistory->update([
-                        'history_data' => $updatedData,
-                        'created_by'   => $this->authUser()->id,
-                    ]);
-                } else {
-                    \App\Models\RfqPriceHistory::create([
-                        'rfq_id'       => $rfq->id,
-                        'version'      => $latestHistory->version + 1,
-                        'history_data' => $updatedData,
-                        'created_by'   => $this->authUser()->id,
-                        'approved_at'  => $approvedAtVal,
-                    ]);
-                }
             }
 
             // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved

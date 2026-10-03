@@ -408,7 +408,7 @@
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
                         <div class="flex flex-wrap justify-between items-center mb-3 pb-2 border-b border-slate-100 gap-2">
                             <div class="flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $history->version > 1 ? 'bg-amber-600 text-white' : 'bg-slate-700 text-white' }}">{{ $history->version > 1 ? 'Revisi ke-' . ($history->version - 1) : 'Draf Awal (Versi 1)' }}</span>
+                                <span class="px-2 py-0.5 rounded text-xs font-bold {{ $history->approved_at ? ($history->version > 1 ? 'bg-amber-600 text-white' : 'bg-emerald-700 text-white') : 'bg-slate-700 text-white' }}">{{ $history->approved_at ? ($history->version > 1 ? 'Revisi ke-' . ($history->version - 1) . ' (Approved)' : 'Draf Awal (Approved)') : ($history->version > 1 ? 'Draf Penyesuaian ' . ($history->version - 1) . ' (Menunggu Approval)' : 'Draf Awal (Menunggu Approval)') }}</span>
                                 <span class="text-xs text-slate-500 font-medium">{{ $history->created_at->format('d M Y, H:i') }}</span>
                             </div>
                             <div class="text-xs text-slate-600">

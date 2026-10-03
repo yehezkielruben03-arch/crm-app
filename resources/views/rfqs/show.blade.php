@@ -540,8 +540,12 @@
                         <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
                             <div class="flex flex-wrap justify-between items-center mb-2.5 pb-2 border-b border-slate-100 gap-2">
                                 <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold {{ $loop->first && $history->version > 1 ? 'bg-amber-600 text-white' : 'bg-slate-700 text-white' }}">
-                                        {{ $history->version > 1 ? 'Revisi ke-' . ($history->version - 1) : 'Draf Awal (Versi 1)' }}
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold {{ $history->approved_at ? ($history->version > 1 ? 'bg-amber-600 text-white' : 'bg-emerald-700 text-white') : 'bg-slate-700 text-white' }}">
+                                        @if($history->approved_at)
+                                            {{ $history->version > 1 ? 'Revisi ke-' . ($history->version - 1) . ' (Approved)' : 'Draf Awal (Approved)' }}
+                                        @else
+                                            {{ $history->version > 1 ? 'Draf Penyesuaian ' . ($history->version - 1) . ' (Menunggu Approval)' : 'Draf Awal (Menunggu Approval)' }}
+                                        @endif
                                     </span>
                                     <span class="text-xs text-slate-500 font-medium">{{ $history->created_at->format('d M Y, H:i') }} WIB</span>
                                 </div>
@@ -639,7 +643,7 @@
                     <div class="flex justify-between text-sm items-center">
                         <span style="color: var(--text-muted);">Versi Penawaran</span>
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold {{ (isset($revisionCount) && $revisionCount > 0) ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-slate-100 text-slate-700' }}">
-                            {{ (isset($revisionCount) && $revisionCount > 0) ? 'Revisi ' . $revisionCount : 'Draf Awal' }}
+                            {{ (isset($revisionCount) && $revisionCount > 0) ? 'Revisi ' . $revisionCount : (!empty($isApproved) ? 'Draf Awal' : 'Draf (Menunggu Approval)') }}
                         </span>
                     </div>
                     @endif
