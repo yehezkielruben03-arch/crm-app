@@ -255,4 +255,37 @@ class Rfq extends Model
         $clean = preg_replace('/^(telp?[\.\:\s]+)/i', '', trim($raw));
         return !empty($clean) ? $clean : null;
     }
+
+    public function getResolvedCompanyNameAttribute(): string
+    {
+        if ($this->customer) {
+            return $this->customer->formal_company_name;
+        }
+
+        $raw = trim($this->customer_name ?? '');
+        if ($raw === '') {
+            return 'Pelanggan';
+        }
+
+        $detectedType = null;
+        if (preg_match('/^PT\.?\s+/i', $raw) || preg_match('/\s*,\s*PT\.?$/i', $raw)) {
+            $detectedType = 'PT';
+        } elseif (preg_match('/^CV\.?\s+/i', $raw) || preg_match('/\s*,\s*CV\.?$/i', $raw)) {
+            $detectedType = 'CV';
+        } elseif (preg_match('/\s*,\s*Perorangan$/i', $raw)) {
+            $detectedType = 'Perorangan';
+        } elseif (preg_match('/\s*,\s*Pemerintah$/i', $raw)) {
+            $detectedType = 'Pemerintah';
+        }
+
+        $clean = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', $raw);
+        $clean = preg_replace('/\s*,\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $clean);
+        $clean = trim($clean);
+
+        if (!empty($detectedType)) {
+            return $clean . ', ' . $detectedType;
+        }
+
+        return $clean;
+    }
 }

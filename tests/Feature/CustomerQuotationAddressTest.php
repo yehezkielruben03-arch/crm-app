@@ -47,6 +47,7 @@ class CustomerQuotationAddressTest extends TestCase
     public function test_customer_full_address_with_all_fields_matches_sample(): void
     {
         $customer = Customer::create([
+            'customer_type' => 'PT',
             'company_name'  => 'PT. Yoshino Indonesia',
             'company_code'  => 'PTI202610030000001',
             'address'       => 'Kawasan GIIC Blok CF No.01 Deltamas',
@@ -101,10 +102,11 @@ class CustomerQuotationAddressTest extends TestCase
         );
         $this->assertEquals('(021) 22156672', $rfq->resolved_customer_phone);
         $this->assertEquals('Bu Kristin', $rfq->resolved_pic_name);
+        $this->assertEquals('Yoshino Indonesia, PT', $rfq->resolved_company_name);
 
         $response = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
         $response->assertStatus(200);
-        $response->assertSee('PT. Yoshino Indonesia');
+        $response->assertSee('Yoshino Indonesia, PT');
         $response->assertSee("Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji,\nCentral Cikarang, Bekasi Regency, West Java 17530");
         $response->assertSee('Telp : (021) 22156672');
         $response->assertSee('Up. Bu Kristin');
@@ -113,7 +115,8 @@ class CustomerQuotationAddressTest extends TestCase
     public function test_customer_address_with_missing_components_still_renders_cleanly(): void
     {
         $customer = Customer::create([
-            'company_name'  => 'PT. Sinar Jaya Abadi',
+            'customer_type' => 'CV',
+            'company_name'  => 'Sinar Jaya Abadi',
             'company_code'  => 'PTI202610030000002',
             'address'       => 'Kawasan Industri MM2100',
             'village'       => null,
@@ -127,6 +130,7 @@ class CustomerQuotationAddressTest extends TestCase
             'created_by'    => $this->admin->id,
         ]);
 
+        $this->assertEquals('Sinar Jaya Abadi, CV', $customer->formal_company_name);
         $this->assertEquals(
             "Kawasan Industri MM2100,\nCikarang Barat, Jawa Barat 17520",
             $customer->full_address
@@ -153,11 +157,56 @@ class CustomerQuotationAddressTest extends TestCase
         ]);
 
         $this->assertEquals('Bpk. Budi Santoso', $rfq->resolved_pic_name);
+        $this->assertEquals('Sinar Jaya Abadi, CV', $rfq->resolved_company_name);
 
         $response = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
         $response->assertStatus(200);
+        $response->assertSee('Sinar Jaya Abadi, CV');
         $response->assertSee("Kawasan Industri MM2100,\nCikarang Barat, Jawa Barat 17520");
         $response->assertSee('Telp : 021-89901234');
         $response->assertSee('Up. Bpk. Budi Santoso');
+    }
+
+    public function test_all_customer_types_follow_uniform_name_suffix_format(): void
+    {
+        $pt = Customer::create([
+            'customer_type' => 'PT',
+            'company_name'  => 'PT. Yoshino Indonesia', // accidentally typed PT
+            'company_code'  => 'PTI202610030000003',
+            'status'        => Customer::STATUS_ACTIVE,
+            'sales_id'      => $this->sales->id,
+            'created_by'    => $this->admin->id,
+        ]);
+        $this->assertEquals('Yoshino Indonesia, PT', $pt->formal_company_name);
+
+        $cv = Customer::create([
+            'customer_type' => 'CV',
+            'company_name'  => 'Karya Bangsa, CV', // accidentally typed suffix
+            'company_code'  => 'PTI202610030000004',
+            'status'        => Customer::STATUS_ACTIVE,
+            'sales_id'      => $this->sales->id,
+            'created_by'    => $this->admin->id,
+        ]);
+        $this->assertEquals('Karya Bangsa, CV', $cv->formal_company_name);
+
+        $perorangan = Customer::create([
+            'customer_type' => 'Perorangan',
+            'company_name'  => 'Budi Santoso',
+            'company_code'  => 'PTI202610030000005',
+            'status'        => Customer::STATUS_ACTIVE,
+            'sales_id'      => $this->sales->id,
+            'created_by'    => $this->admin->id,
+        ]);
+        $this->assertEquals('Budi Santoso, Perorangan', $perorangan->formal_company_name);
+
+        $pemerintah = Customer::create([
+            'customer_type' => 'Pemerintah',
+            'company_name'  => 'Dinas Kominfo',
+            'company_code'  => 'PTI202610030000006',
+            'status'        => Customer::STATUS_ACTIVE,
+            'sales_id'      => $this->sales->id,
+            'created_by'    => $this->admin->id,
+        ]);
+        $this->assertEquals('Dinas Kominfo, Pemerintah', $pemerintah->formal_company_name);
     }
 }

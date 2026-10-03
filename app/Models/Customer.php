@@ -224,6 +224,39 @@ class Customer extends Model
         return preg_replace('/^(up[\.\:\s]+)/i', '', trim($name));
     }
 
+    public function getFormalCompanyNameAttribute(): string
+    {
+        $name = trim($this->company_name ?? '');
+        if ($name === '') {
+            return 'Pelanggan';
+        }
+
+        $detectedType = null;
+        if (preg_match('/^PT\.?\s+/i', $name) || preg_match('/\s*,\s*PT\.?$/i', $name)) {
+            $detectedType = 'PT';
+        } elseif (preg_match('/^CV\.?\s+/i', $name) || preg_match('/\s*,\s*CV\.?$/i', $name)) {
+            $detectedType = 'CV';
+        } elseif (preg_match('/\s*,\s*Perorangan$/i', $name)) {
+            $detectedType = 'Perorangan';
+        } elseif (preg_match('/\s*,\s*Pemerintah$/i', $name)) {
+            $detectedType = 'Pemerintah';
+        }
+
+        // Bersihkan prefix PT/CV jika user mengetiknya
+        $clean = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', $name);
+        // Bersihkan suffix koma tipe jika ada
+        $clean = preg_replace('/\s*,\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $clean);
+        $clean = trim($clean);
+
+        $type = !empty($this->customer_type) ? $this->customer_type : $detectedType;
+
+        if (!empty($type)) {
+            return $clean . ', ' . $type;
+        }
+
+        return $clean;
+    }
+
     public function rfqs(): HasMany
     {
         return $this->hasMany(Rfq::class);

@@ -162,8 +162,8 @@ class CustomerController extends Controller
             'shipping_addresses.*.country' => 'nullable|string|max:100',
         ]);
 
-        // Strip PT or CV from company name if present (case insensitive)
-        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name'] ?? '');
+        // Strip PT, CV, Perorangan, or Pemerintah from company name if present (case insensitive)
+        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $validated['company_name'] ?? '');
         $inputName = trim($cleanName);
         if (empty($inputName)) {
             $inputName = 'Pelanggan ' . date('d/m/Y H:i');
@@ -370,8 +370,8 @@ class CustomerController extends Controller
             'shipping_addresses.*.country' => 'nullable|string|max:100',
         ]);
 
-        // Strip PT or CV from company name if present (case insensitive)
-        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name'] ?? '');
+        // Strip PT, CV, Perorangan, or Pemerintah from company name if present (case insensitive)
+        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $validated['company_name'] ?? '');
         $inputName = trim($cleanName);
         if (!empty($inputName)) {
             $validated['company_name'] = $inputName;

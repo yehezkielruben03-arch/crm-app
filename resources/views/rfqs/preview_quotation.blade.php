@@ -83,7 +83,7 @@
     </div>
 
     @php
-        $clientCompanyName = $rfq->customer?->company_name ?: ($rfq->customer_name ?: 'Pelanggan');
+        $clientCompanyName = $rfq->resolved_company_name;
         $custAddress       = $rfq->resolved_customer_address;
         $custPhone         = $rfq->resolved_customer_phone;
         $custPic           = $rfq->resolved_pic_name;
