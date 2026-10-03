@@ -750,17 +750,55 @@ class RfqController extends Controller
                 }
             }
 
-            // Snapshot History (Versioning) — simpan data item setelah dihitung HPP & Margin
+            // Snapshot History (Versioning)
             $updatedData = $rfq->items()->get()->toArray();
-            $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
-            
+
             if (count($updatedData) > 0) {
-                \App\Models\RfqPriceHistory::create([
-                    'rfq_id'       => $rfq->id,
-                    'version'      => $lastVersion + 1,
-                    'history_data' => $updatedData,
-                    'created_by'   => $this->authUser()->id,
+                $latestHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+                    ->orderByDesc('version')
+                    ->first();
+
+                $wasApprovedBefore = in_array($oldStatus, [
+                    Rfq::STATUS_APPROVED,
+                    Rfq::STATUS_QUOTATION_CREATED,
+                    Rfq::STATUS_QUOTATION_SENT,
+                    Rfq::STATUS_PO_PENDING_ADMIN,
+                    Rfq::STATUS_PO_PENDING_LEADER,
+                    Rfq::STATUS_GOAL
                 ]);
+
+                $isLatestApproved = $latestHistory && (
+                    $latestHistory->approved_at !== null || $wasApprovedBefore
+                );
+
+                if ($latestHistory && $wasApprovedBefore && $latestHistory->approved_at === null) {
+                    $latestHistory->update(['approved_at' => $latestHistory->created_at ?? now()]);
+                }
+
+                $approvedAtVal = ($isLeaderUser && $wasApprovedBefore) ? now() : null;
+
+                if (!$latestHistory) {
+                    \App\Models\RfqPriceHistory::create([
+                        'rfq_id'       => $rfq->id,
+                        'version'      => 1,
+                        'history_data' => $updatedData,
+                        'created_by'   => $this->authUser()->id,
+                        'approved_at'  => $approvedAtVal,
+                    ]);
+                } elseif (!$isLatestApproved) {
+                    $latestHistory->update([
+                        'history_data' => $updatedData,
+                        'created_by'   => $this->authUser()->id,
+                    ]);
+                } else {
+                    \App\Models\RfqPriceHistory::create([
+                        'rfq_id'       => $rfq->id,
+                        'version'      => $latestHistory->version + 1,
+                        'history_data' => $updatedData,
+                        'created_by'   => $this->authUser()->id,
+                        'approved_at'  => $approvedAtVal,
+                    ]);
+                }
             }
 
             // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved
@@ -841,6 +879,13 @@ class RfqController extends Controller
 
         $rfq->update(['status' => Rfq::STATUS_APPROVED]);
 
+        $latestPriceHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->first();
+        if ($latestPriceHistory && $latestPriceHistory->approved_at === null) {
+            $latestPriceHistory->update(['approved_at' => now()]);
+        }
+
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
             // EVENT 3 — Leader Approve → notif + tanda merah di lonceng SALES terkait
@@ -917,6 +962,7 @@ class RfqController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
         abort_if(!in_array($rfq->status, [
             Rfq::STATUS_APPROVED,
             Rfq::STATUS_QUOTATION_CREATED,
@@ -944,7 +990,9 @@ class RfqController extends Controller
         $maxVersion = $priceHistories->max('version') ?? 0;
         $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
         $latestHistory = $priceHistories->first();
-        $revisionDate = $latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y');
+        $revisionDate = $latestHistory?->approved_at 
+            ? $latestHistory->approved_at->format('d M Y') 
+            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'));
 
@@ -990,7 +1038,9 @@ class RfqController extends Controller
         $maxVersion = $priceHistories->max('version') ?? 0;
         $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
         $latestHistory = $priceHistories->first();
-        $revisionDate = $latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y');
+        $revisionDate = $latestHistory?->approved_at 
+            ? $latestHistory->approved_at->format('d M Y') 
+            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
 
         return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate'));
     }

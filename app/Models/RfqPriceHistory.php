@@ -6,10 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class RfqPriceHistory extends Model
 {
-    protected $fillable = ['rfq_id', 'version', 'history_data', 'created_by'];
+    protected $fillable = ['rfq_id', 'version', 'history_data', 'created_by', 'approved_at'];
 
     protected $casts = [
         'history_data' => 'array',
+        'approved_at'  => 'datetime',
     ];
 
     public function rfq()
