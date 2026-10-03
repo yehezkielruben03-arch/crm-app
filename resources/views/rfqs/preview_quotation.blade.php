@@ -204,6 +204,7 @@
                                 @if($loop->last)
                                     <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-between">
                                         <div>
+                                            <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
                                             <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
@@ -228,6 +229,7 @@
                                         </div>
                                     </div>
                                 @else
+                                    <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
                                     <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
