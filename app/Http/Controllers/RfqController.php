@@ -1254,6 +1254,17 @@ class RfqController extends Controller
             );
         }
 
+        // Kirim notifikasi ucapan selamat ke Sales pemilik penawaran
+        if ($rfq->sales_id) {
+            \App\Models\Notification::send(
+                $rfq->sales_id,
+                'success',
+                'Selamat! Penawaran GOAL 🎉',
+                'Penawaran ' . $rfq->rfq_number . ' untuk ' . ($rfq->customer?->company_name ?? $rfq->customer_name) . ' telah disetujui Leader sebagai GOAL!',
+                route('rfq.show', $rfq)
+            );
+        }
+
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
         }
