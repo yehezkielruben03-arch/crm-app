@@ -917,8 +917,14 @@ class RfqController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
+        abort_if(!in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]), 403, 'Quotation belum tersedia.');
 
         if ($rfq->status === Rfq::STATUS_APPROVED) {
             if ($rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
@@ -966,7 +972,14 @@ class RfqController extends Controller
     public function previewQuotation(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Quotation belum tersedia.');
+        abort_if(!in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]), 403, 'Quotation belum tersedia.');
 
         $rfq->load(['customer', 'customerContact', 'items', 'sales']);
         
