@@ -46,10 +46,10 @@
                         {{-- Nama Perusahaan (tanpa prefix PT/CV, karena sudah dipilih di Tipe) --}}
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Nama Perusahaan <span style="color: var(--accent-rose);">*</span>
+                                Nama Perusahaan <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
                             <input type="text" name="company_name" value="{{ old('company_name') }}"
-                                placeholder="Contoh: Karya Bangsa"
+                                placeholder="Contoh: Karya Bangsa (Opsional)"
                                 class="form-input {{ $errors->has('company_name') ? 'error' : '' }}"
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid {{ $errors->has('company_name') ? 'var(--accent-rose)' : 'var(--border-color)' }}; color: var(--text-primary); transition: border-color 0.15s;"
                                 onfocus="this.style.borderColor='var(--accent-blue)'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.10)'"
@@ -207,9 +207,9 @@
 
                         {{-- Website --}}
                         <div>
-                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Website</label>
-                            <input type="url" name="website" value="{{ old('website') }}"
-                                placeholder="https://perusahaan.com"
+                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Website <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span></label>
+                            <input type="text" name="website" value="{{ old('website') }}"
+                                placeholder="Contoh: www.perusahaan.com (Opsional)"
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid {{ $errors->has('website') ? 'var(--accent-rose)' : 'var(--border-color)' }}; color: var(--text-primary);"
                                 onfocus="this.style.borderColor='var(--accent-blue)'"
                                 onblur="this.style.borderColor='var(--border-color)'">
@@ -503,7 +503,7 @@
                         @if(auth()->user()->isAdminOrAbove())
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Status <span style="color: var(--accent-rose);">*</span>
+                                Status <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
                             <x-custom-select name="status" :value="old('status', 'Prospect')" placeholder="Pilih Status" :options="[
                                 'Prospect' => 'Prospect',
@@ -739,8 +739,8 @@
             </button>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama <span style="color:var(--accent-rose);">*</span></label>
-                    <input type="text" name="contacts[${idx}][name]" required placeholder="Nama Kontak" style="${inputStyle}" ${focusBlur}>
+                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama PIC</label>
+                    <input type="text" name="contacts[${idx}][name]" placeholder="Nama Kontak (Opsional)" style="${inputStyle}" ${focusBlur}>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Jabatan</label>

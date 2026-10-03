@@ -52,9 +52,10 @@
                         {{-- Nama Perusahaan --}}
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Nama Perusahaan <span style="color: var(--accent-rose);">*</span>
+                                Nama Perusahaan <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
                             <input type="text" name="company_name" value="{{ old('company_name', $customer->company_name) }}"
+                                placeholder="Nama Perusahaan (Opsional)"
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid {{ $errors->has('company_name') ? 'var(--accent-rose)' : 'var(--border-color)' }}; color: var(--text-primary);"
                                 onfocus="this.style.borderColor='var(--accent-blue)'"
                                 onblur="this.style.borderColor='var(--border-color)'">
@@ -231,9 +232,9 @@
 
                         {{-- Website --}}
                         <div>
-                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Website</label>
-                            <input type="url" name="website" value="{{ old('website', $customer->website) }}"
-                                placeholder="https://perusahaan.com"
+                            <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Website <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span></label>
+                            <input type="text" name="website" value="{{ old('website', $customer->website) }}"
+                                placeholder="Contoh: www.perusahaan.com (Opsional)"
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid {{ $errors->has('website') ? 'var(--accent-rose)' : 'var(--border-color)' }}; color: var(--text-primary);"
                                 onfocus="this.style.borderColor='var(--accent-blue)'"
                                 onblur="this.style.borderColor='var(--border-color)'">
@@ -334,8 +335,8 @@
                             <input type="hidden" name="contacts[{{ $ci }}][id]" value="{{ $contact->id }}">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                 <div>
-                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama <span style="color:var(--accent-rose);">*</span></label>
-                                    <input type="text" name="contacts[{{ $ci }}][name]" value="{{ old("contacts.$ci.name", $contact->name) }}" required placeholder="Budi Santoso"
+                                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama PIC</label>
+                                    <input type="text" name="contacts[{{ $ci }}][name]" value="{{ old("contacts.$ci.name", $contact->name) }}" placeholder="Nama PIC (Opsional)"
                                         style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
                                         onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
                                 </div>
@@ -533,7 +534,7 @@
                         @if(auth()->user()->isAdminOrAbove())
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Status <span style="color: var(--accent-rose);">*</span>
+                                Status <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
                             <x-custom-select name="status" :value="old('status', $customer->status)" placeholder="Pilih Status" :options="[
                                 'Prospect' => 'Prospect',
@@ -677,8 +678,8 @@
             </button>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama <span style="color:var(--accent-rose);">*</span></label>
-                    <input type="text" name="contacts[${idx}][name]" required placeholder="Nama Kontak" style="${inputStyle}" ${focusBlur}>
+                    <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Nama PIC</label>
+                    <input type="text" name="contacts[${idx}][name]" placeholder="Nama Kontak (Opsional)" style="${inputStyle}" ${focusBlur}>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Jabatan</label>

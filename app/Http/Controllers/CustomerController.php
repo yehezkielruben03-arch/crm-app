@@ -112,9 +112,9 @@ class CustomerController extends Controller
     {
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales() && !$this->authUser()->isLeader(), 403);
 
-        // Validasi: pastikan data yang masuk bersih dan lengkap
+        // Validasi: pastikan data yang masuk bersih dan lengkap (semua field dibuat opsional)
         $validated = $request->validate([
-            'company_name'  => 'required|string|max:150',
+            'company_name'  => 'nullable|string|max:150',
             'brand_name'    => 'nullable|string|max:150',
             'customer_type' => 'nullable|in:PT,CV,Perorangan,Pemerintah,Perusahaan',
             'industry'      => 'nullable|string|max:100',
@@ -130,10 +130,10 @@ class CustomerController extends Controller
             'address'       => 'nullable|string',
             'phone'         => 'nullable|string|max:30',
             'email'         => 'nullable|email|max:100',
-            'website'       => 'nullable|url|max:200',
+            'website'       => 'nullable|string|max:200',
             'npwp'          => 'nullable|string|max:30',
             'nib'           => 'nullable|string|max:30',
-            'status'        => 'required|in:Prospect,Active,Inactive,Blacklist,Pending,Lead,Rejected',
+            'status'        => 'nullable|in:Prospect,Active,Inactive,Blacklist,Pending,Lead,Rejected',
             'sales_id'      => 'nullable|exists:users,id',
             'notes'         => 'nullable|string',
             'cp_name'       => 'nullable|string|max:100',
@@ -163,9 +163,13 @@ class CustomerController extends Controller
         ]);
 
         // Strip PT or CV from company name if present (case insensitive)
-        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name']);
+        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name'] ?? '');
         $inputName = trim($cleanName);
+        if (empty($inputName)) {
+            $inputName = 'Pelanggan ' . date('d/m/Y H:i');
+        }
         $validated['company_name'] = $inputName;
+        $validated['status'] = $validated['status'] ?? Customer::STATUS_PROSPECT;
 
         // ============================================================
         // ALGORITMA SMART EXACT MATCH (Mencegah Duplikasi Trivial)
@@ -317,7 +321,7 @@ class CustomerController extends Controller
         }
 
         $validated = $request->validate([
-            'company_name'  => 'required|string|max:150',
+            'company_name'  => 'nullable|string|max:150',
             'brand_name'    => 'nullable|string|max:150',
             'customer_type' => 'nullable|in:PT,CV,Perorangan,Pemerintah,Perusahaan',
             'industry'      => 'nullable|string|max:100',
@@ -333,10 +337,10 @@ class CustomerController extends Controller
             'address'       => 'nullable|string',
             'phone'         => 'nullable|string|max:30',
             'email'         => 'nullable|email|max:100',
-            'website'       => 'nullable|url|max:200',
+            'website'       => 'nullable|string|max:200',
             'npwp'          => 'nullable|string|max:30',
             'nib'           => 'nullable|string|max:30',
-            'status'        => 'required|in:Prospect,Active,Inactive,Blacklist,Pending,Lead,Rejected',
+            'status'        => 'nullable|in:Prospect,Active,Inactive,Blacklist,Pending,Lead,Rejected',
             'sales_id'      => 'nullable|exists:users,id',
             'notes'         => 'nullable|string',
             'cp_name'       => 'nullable|string|max:100',
@@ -367,8 +371,17 @@ class CustomerController extends Controller
         ]);
 
         // Strip PT or CV from company name if present (case insensitive)
-        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name']);
-        $validated['company_name'] = trim($cleanName);
+        $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $validated['company_name'] ?? '');
+        $inputName = trim($cleanName);
+        if (!empty($inputName)) {
+            $validated['company_name'] = $inputName;
+        } else {
+            unset($validated['company_name']); // Pertahankan nama sebelumnya jika dikosongkan
+        }
+
+        if (empty($validated['status'])) {
+            unset($validated['status']);
+        }
 
         // Sales tidak bisa pindah-pindah ownership customer, manipulasi status, atau ubah NPWP/NIB
         if (!$this->authUser()->isAdminOrAbove()) {
