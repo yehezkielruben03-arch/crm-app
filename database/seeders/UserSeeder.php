@@ -12,6 +12,15 @@ class UserSeeder extends Seeder
     {
         $users = [
             [
+                'name'     => 'Syarwani',
+                'username' => 'syarwani',
+                'email'    => 'syarwani@pedia-group.jp',
+                'password' => Hash::make('Pedia551%'),
+                'role'     => 'Super Admin',
+                'phone'    => '081200000008',
+                'status'   => 'Active',
+            ],
+            [
                 'name'     => 'Ruben (Super Admin)',
                 'username' => 'ruben',
                 'email'    => 'ruben@crm.com',
