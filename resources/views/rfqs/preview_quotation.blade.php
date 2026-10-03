@@ -100,9 +100,10 @@
 
         $itemCount = count($rfq->items);
         $noteMinHeight = match(true) {
+            $itemCount <= 1 => '210px',
             $itemCount <= 2 => '160px',
-            $itemCount <= 3 => '130px',
-            $itemCount <= 4 => '90px',
+            $itemCount <= 3 => '120px',
+            $itemCount <= 4 => '80px',
             default => 'auto'
         };
     @endphp
@@ -188,7 +189,7 @@
                         $totalQty = 0;
                     @endphp
 
-                    @foreach($rfq->items as $item)
+                    @forelse($rfq->items as $item)
                         @php
                             $unitPrice = (float) $item->price_after_margin;
                             $rowTotal = $unitPrice * $item->qty;
@@ -196,13 +197,41 @@
                             $totalQty += $item->qty;
                         @endphp
                         <tr class="item-row">
-                            <td class="text-center">
-                                <span class="font-bold">{{ (int) $item->qty }}</span> {{ $item->unit ?: 'Unit' }}
+                            <td class="text-center font-bold">
+                                {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
                             </td>
                             <td>
-                                @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                @if(!empty($itemSpec))
-                                <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                @if($loop->last)
+                                    <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-between">
+                                        <div>
+                                            @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                                            @if(!empty($itemSpec))
+                                            <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                            @endif
+                                        </div>
+                                        <div class="mt-4 mb-1">
+                                            <div class="font-bold text-[12px] text-black mb-1">Note :</div>
+                                            @php
+                                                $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
+                                                    $clean = strtolower(trim(ltrim($line, '- ')));
+                                                    return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
+                                                });
+                                            @endphp
+                                            @foreach($customNotes as $cNote)
+                                                @php
+                                                    $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
+                                                @endphp
+                                                <div class="italic text-rose-600 font-semibold text-[11.5px] leading-relaxed">{{ $formattedNote }}</div>
+                                            @endforeach
+                                            <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
+                                            <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                                        </div>
+                                    </div>
+                                @else
+                                    @php $itemSpec = $item->description ?: $item->detail_item; @endphp
+                                    @if(!empty($itemSpec))
+                                    <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                    @endif
                                 @endif
                             </td>
                             <td class="font-bold">
@@ -212,33 +241,20 @@
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($rowTotal, 0, ',', '.') }}</span></div>
                             </td>
                         </tr>
-                    @endforeach
-
-                    {{-- Baris Note (Selalu tampil: Catatan kustom warna merah di atas, template tetap warna hitam di bawah) --}}
-                    <tr class="item-row">
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; padding: 8px 8px; vertical-align: bottom;">
-                            <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-end">
-                                <div class="font-bold text-[12px] text-black mb-1">Note :</div>
-                                @php
-                                    $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                                        $clean = strtolower(trim(ltrim($line, '- ')));
-                                        return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
-                                    });
-                                @endphp
-                                @foreach($customNotes as $cNote)
-                                    @php
-                                        $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
-                                    @endphp
-                                    <div class="italic text-rose-600 font-semibold text-[11.5px] leading-relaxed">{{ $formattedNote }}</div>
-                                @endforeach
-                                <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
-                                <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
-                            </div>
-                        </td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
-                    </tr>
+                    @empty
+                        <tr class="item-row">
+                            <td></td>
+                            <td>
+                                <div style="min-height: 180px;" class="flex flex-col justify-end">
+                                    <div class="font-bold text-[12px] text-black mb-1">Note :</div>
+                                    <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
+                                    <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                                </div>
+                            </td>
+                            <td></td>
+                            <td></td>
+                        </tr>
+                    @endforelse
 
                     @php
                         $ppn = $grandSubtotal * 0.11;

@@ -64,9 +64,10 @@
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
         $itemCount = count($rfq->items);
-        $noteTopPadding = match(true) {
-            $itemCount <= 2 => '45px',
-            $itemCount <= 3 => '25px',
+        $noteTopMargin = match(true) {
+            $itemCount <= 1 => '60px',
+            $itemCount <= 2 => '40px',
+            $itemCount <= 3 => '20px',
             $itemCount <= 4 => '10px',
             default => '6px'
         };
@@ -156,7 +157,7 @@
                 $grandSubtotal = 0;
                 $totalQty = 0;
             @endphp
-            @foreach($rfq->items as $item)
+            @forelse($rfq->items as $item)
                 @php
                     $unitPrice = (float) $item->price_after_margin;
                     $rowTotal = $unitPrice * $item->qty;
@@ -164,47 +165,54 @@
                     $totalQty += $item->qty;
                 @endphp
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; text-align: center; font-weight: bold; font-size: 9px; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 5px; text-align: center; font-weight: bold; font-size: 9px; vertical-align: top;">
                         {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px 8px; font-size: 9px; line-height: 1.35; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 5px 8px; font-size: 9px; line-height: 1.35; vertical-align: top;">
                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                         @if(!empty($itemSpec))
                         <div style="color: #333; margin-top: 2px;">{!! nl2br(e($itemSpec)) !!}</div>
                         @endif
+
+                        @if($loop->last)
+                        <div style="margin-top: {{ $noteTopMargin }}; font-size: 8.5px; line-height: 1.35;">
+                            <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
+                            @php
+                                $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
+                                    $clean = strtolower(trim(ltrim($line, '- ')));
+                                    return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
+                                });
+                            @endphp
+                            @foreach($customNotes as $cNote)
+                                @php
+                                    $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
+                                @endphp
+                                <div style="font-style: italic; color: #e00000; line-height: 1.35; font-weight: bold;">{{ $formattedNote }}</div>
+                            @endforeach
+                            <div style="font-style: italic; color: #000; line-height: 1.35;">- Harga dapat berubah tanpa pemberitahuan</div>
+                            <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                        </div>
+                        @endif
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 5px; font-size: 9px; font-weight: bold; vertical-align: top;">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
-            @endforeach
-
-            {{-- Baris Note (Selalu tampil: Catatan kustom warna merah di atas, template tetap warna hitam di bawah) --}}
-            <tr>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $noteTopPadding }} 8px 6px 8px; font-size: 8.5px; line-height: 1.35; vertical-align: bottom;">
-                    <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
-                    @php
-                        $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                            $clean = strtolower(trim(ltrim($line, '- ')));
-                            return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
-                        });
-                    @endphp
-                    @foreach($customNotes as $cNote)
-                        @php
-                            $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
-                        @endphp
-                        <div style="font-style: italic; color: #e00000; line-height: 1.35; font-weight: bold;">{{ $formattedNote }}</div>
-                    @endforeach
-                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Harga dapat berubah tanpa pemberitahuan</div>
-                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
-                </td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
-            </tr>
+            @empty
+                <tr>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 50px 8px 6px 8px; font-size: 8.5px; line-height: 1.35; vertical-align: bottom;">
+                        <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
+                        <div style="font-style: italic; color: #000; line-height: 1.35;">- Harga dapat berubah tanpa pemberitahuan</div>
+                        <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                    </td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                </tr>
+            @endforelse
 
             @php
                 $ppn = $grandSubtotal * 0.11;
