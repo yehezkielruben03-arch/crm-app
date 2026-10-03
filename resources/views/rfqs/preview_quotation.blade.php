@@ -216,14 +216,14 @@
 
                     {{-- Baris Note (Selalu tampil: Catatan kustom warna merah di atas, template tetap warna hitam di bawah) --}}
                     <tr class="item-row">
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; padding: 8px 8px; vertical-align: top;">
-                            <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-start">
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; padding: 8px 8px; vertical-align: bottom;">
+                            <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-end">
                                 <div class="font-bold text-[12px] text-black mb-1">Note :</div>
                                 @php
                                     $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                                        $clean = strtolower(trim(ltrim($line, '-* ')));
-                                        return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok dan warna');
+                                        $clean = strtolower(trim(ltrim($line, '- ')));
+                                        return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
                                     });
                                 @endphp
                                 @foreach($customNotes as $cNote)
@@ -233,11 +233,11 @@
                                     <div class="italic text-rose-600 font-semibold text-[11.5px] leading-relaxed">{{ $formattedNote }}</div>
                                 @endforeach
                                 <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
-                                <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok dan warna terlebih dahulu sebelum mengirim PO</div>
+                                <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                             </div>
                         </td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
-                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: top;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
+                        <td style="border-left: 1px solid #555555; border-right: 1px solid #555555; border-bottom: 1px solid #555555; vertical-align: bottom;"></td>
                     </tr>
 
                     @php

@@ -64,9 +64,9 @@
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
         $itemCount = count($rfq->items);
-        $noteBottomPadding = match(true) {
-            $itemCount <= 2 => '35px',
-            $itemCount <= 3 => '20px',
+        $noteTopPadding = match(true) {
+            $itemCount <= 2 => '45px',
+            $itemCount <= 3 => '25px',
             $itemCount <= 4 => '10px',
             default => '6px'
         };
@@ -184,13 +184,13 @@
 
             {{-- Baris Note (Selalu tampil: Catatan kustom warna merah di atas, template tetap warna hitam di bawah) --}}
             <tr>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 6px 8px {{ $noteBottomPadding }} 8px; font-size: 8.5px; line-height: 1.35; vertical-align: top;">
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $noteTopPadding }} 8px 6px 8px; font-size: 8.5px; line-height: 1.35; vertical-align: bottom;">
                     <div style="font-weight: bold; color: #000; margin-bottom: 2px;">Note :</div>
                     @php
                         $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                            $clean = strtolower(trim(ltrim($line, '-* ')));
-                            return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok dan warna');
+                            $clean = strtolower(trim(ltrim($line, '- ')));
+                            return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
                         });
                     @endphp
                     @foreach($customNotes as $cNote)
@@ -200,10 +200,10 @@
                         <div style="font-style: italic; color: #e00000; line-height: 1.35; font-weight: bold;">{{ $formattedNote }}</div>
                     @endforeach
                     <div style="font-style: italic; color: #000; line-height: 1.35;">- Harga dapat berubah tanpa pemberitahuan</div>
-                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok dan warna terlebih dahulu sebelum mengirim PO</div>
+                    <div style="font-style: italic; color: #000; line-height: 1.35;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                 </td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: top;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
             </tr>
 
             @php
