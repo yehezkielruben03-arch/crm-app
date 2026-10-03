@@ -138,54 +138,76 @@ class Customer extends Model
         return $this->contacts()->where('is_primary', true)->first() ?: $this->contacts()->first();
     }
 
-    public function getFullAddressAttribute(): string
+    public function getFormattedAddressLinesAttribute(): array
     {
-        $parts = [];
-        $addr = trim($this->address ?? '');
-        if ($addr !== '') {
-            $parts[] = $addr;
+        $rawAddr = trim($this->address ?? '');
+        $addrLines = array_values(array_filter(array_map('trim', explode("\n", str_replace("\r", '', $rawAddr))), fn($l) => $l !== ''));
+
+        $line1Parts = [];
+        if (!empty($addrLines)) {
+            $line1Parts[] = array_shift($addrLines);
         }
 
-        $lowerAddr = strtolower($addr);
+        $lowerAddr = strtolower($rawAddr);
 
         if (!empty(trim($this->village ?? ''))) {
             $val = trim($this->village);
             if (!str_contains($lowerAddr, strtolower($val))) {
-                $parts[] = $val;
+                $line1Parts[] = $val;
             }
         }
 
+        $line2Parts = [];
         if (!empty(trim($this->district ?? ''))) {
             $val = trim($this->district);
             if (!str_contains($lowerAddr, strtolower($val))) {
-                $parts[] = $val;
+                $line2Parts[] = $val;
             }
         }
 
         if (!empty(trim($this->city ?? ''))) {
             $val = trim($this->city);
             if (!str_contains($lowerAddr, strtolower($val))) {
-                $parts[] = $val;
+                $line2Parts[] = $val;
             }
         }
 
         if (!empty(trim($this->province ?? ''))) {
             $val = trim($this->province);
             if (!str_contains($lowerAddr, strtolower($val))) {
-                $parts[] = $val;
+                $line2Parts[] = $val;
             }
         }
 
-        $res = implode(', ', $parts);
+        $line1 = implode(', ', $line1Parts);
+        $line2 = implode(', ', $line2Parts);
 
         if (!empty(trim($this->postal_code ?? ''))) {
             $postal = trim($this->postal_code);
-            if (!str_contains($res, $postal)) {
-                $res = ($res !== '') ? ($res . ' ' . $postal) : $postal;
+            if (!str_contains($line1, $postal) && !str_contains($line2, $postal)) {
+                $line2 = ($line2 !== '') ? ($line2 . ' ' . $postal) : $postal;
             }
         }
 
-        return $res;
+        $lines = [];
+        if ($line1 !== '') {
+            $lines[] = ($line2 !== '' || !empty($addrLines)) ? rtrim($line1, ',') . ',' : $line1;
+        }
+
+        foreach ($addrLines as $extraLine) {
+            $lines[] = ($line2 !== '') ? rtrim($extraLine, ',') . ',' : $extraLine;
+        }
+
+        if ($line2 !== '') {
+            $lines[] = $line2;
+        }
+
+        return $lines;
+    }
+
+    public function getFullAddressAttribute(): string
+    {
+        return implode("\n", $this->formatted_address_lines);
     }
 
     public function getResolvedPicNameAttribute(): ?string

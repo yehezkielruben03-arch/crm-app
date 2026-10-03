@@ -62,7 +62,7 @@ class CustomerQuotationAddressTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji, Central Cikarang, Bekasi Regency, West Java 17530',
+            "Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji,\nCentral Cikarang, Bekasi Regency, West Java 17530",
             $customer->full_address
         );
 
@@ -96,7 +96,7 @@ class CustomerQuotationAddressTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji, Central Cikarang, Bekasi Regency, West Java 17530',
+            "Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji,\nCentral Cikarang, Bekasi Regency, West Java 17530",
             $rfq->resolved_customer_address
         );
         $this->assertEquals('(021) 22156672', $rfq->resolved_customer_phone);
@@ -105,7 +105,7 @@ class CustomerQuotationAddressTest extends TestCase
         $response = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
         $response->assertStatus(200);
         $response->assertSee('PT. Yoshino Indonesia');
-        $response->assertSee('Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji, Central Cikarang, Bekasi Regency, West Java 17530');
+        $response->assertSee("Kawasan GIIC Blok CF No.01 Deltamas, Pasirranji,\nCentral Cikarang, Bekasi Regency, West Java 17530");
         $response->assertSee('Telp : (021) 22156672');
         $response->assertSee('Up. Bu Kristin');
     }
@@ -128,7 +128,7 @@ class CustomerQuotationAddressTest extends TestCase
         ]);
 
         $this->assertEquals(
-            'Kawasan Industri MM2100, Cikarang Barat, Jawa Barat 17520',
+            "Kawasan Industri MM2100,\nCikarang Barat, Jawa Barat 17520",
             $customer->full_address
         );
 
@@ -156,7 +156,7 @@ class CustomerQuotationAddressTest extends TestCase
 
         $response = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
         $response->assertStatus(200);
-        $response->assertSee('Kawasan Industri MM2100, Cikarang Barat, Jawa Barat 17520');
+        $response->assertSee("Kawasan Industri MM2100,\nCikarang Barat, Jawa Barat 17520");
         $response->assertSee('Telp : 021-89901234');
         $response->assertSee('Up. Bpk. Budi Santoso');
     }
