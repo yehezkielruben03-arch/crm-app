@@ -46,13 +46,13 @@ class RfqController extends Controller
 
     public function createProject()
     {
-        abort_if(!$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdmin(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
         return redirect()->route('rfq.create', ['type' => 'Projek']);
     }
 
     public function storeProject(Request $request)
     {
-        abort_if(!$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdmin(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
 
         $validated = $request->validate([
             'customer_id'             => 'required|exists:customers,id',
@@ -421,7 +421,7 @@ class RfqController extends Controller
 
     public function edit(Rfq $rfq)
     {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
         if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
             abort(403);
         }
@@ -443,7 +443,7 @@ class RfqController extends Controller
 
     public function update(Request $request, Rfq $rfq)
     {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
         if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
             abort(403);
         }
@@ -626,7 +626,7 @@ class RfqController extends Controller
 
     public function destroy(Rfq $rfq)
     {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
         if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
             abort(403);
         }

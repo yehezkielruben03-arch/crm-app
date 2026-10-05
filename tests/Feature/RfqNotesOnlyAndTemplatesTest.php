@@ -268,4 +268,46 @@ class RfqNotesOnlyAndTemplatesTest extends TestCase
         $previewResponse->assertSee('Laptop ThinkPad L14');
         $previewResponse->assertSee('Unit ready stock garansi resmi.');
     }
+
+    public function test_leader_can_see_create_buttons_and_create_rfq(): void
+    {
+        // 1. Leader visits rfq index and sees both create buttons
+        $indexResponse = $this->actingAs($this->leader)->get(route('rfq.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('Buat RFQ Projek');
+        $indexResponse->assertSee('Buat RFQ Baru');
+
+        // 2. Leader accesses create project and create forms
+        $projectFormResponse = $this->actingAs($this->leader)->get(route('rfq.create_project'));
+        $projectFormResponse->assertRedirect(route('rfq.create', ['type' => 'Projek']));
+
+        $createFormResponse = $this->actingAs($this->leader)->get(route('rfq.create'));
+        $createFormResponse->assertStatus(200);
+
+        // 3. Leader submits a new RFQ successfully
+        $createResponse = $this->actingAs($this->leader)->post(route('rfq.store'), [
+            'customer_id'         => $this->customer->id,
+            'customer_contact_id' => $this->contact->id,
+            'type'                => 'Non Projek',
+            'rfq_date'            => now()->format('Y-m-d'),
+            'notes'               => 'Dibuat langsung oleh Leader Laras.',
+            'items'               => [
+                [
+                    'product_name' => 'Server Dell PowerEdge',
+                    'qty'          => 1,
+                    'unit'         => 'Unit',
+                ],
+            ],
+        ]);
+
+        $this->assertDatabaseHas('rfqs', [
+            'customer_id' => $this->customer->id,
+            'type'        => 'Non Projek',
+            'notes'       => 'Dibuat langsung oleh Leader Laras.',
+        ]);
+
+        $createdRfq = Rfq::where('notes', 'Dibuat langsung oleh Leader Laras.')->first();
+        $this->assertNotNull($createdRfq);
+        $createResponse->assertRedirect(route('rfq.show', $createdRfq));
+    }
 }

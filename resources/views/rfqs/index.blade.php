@@ -12,7 +12,7 @@
             <p class="mt-1 text-sm" style="color: var(--text-muted);">Kelola request quotation dari klien</p>
         </div>
         <div class="flex items-center gap-2">
-            @if(in_array(auth()->user()->role, ['Admin', 'Super Admin']))
+            @if(auth()->user()->isAdminOrAbove())
             <a href="{{ route('rfq.create', ['type' => 'Projek']) }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-md"
                style="background: linear-gradient(135deg, var(--accent-emerald), #059669); box-shadow: 0 4px 12px rgba(16,185,129,0.30);">
@@ -22,7 +22,7 @@
                 Buat RFQ Projek
             </a>
             @endif
-            @if(auth()->user()->hasPermission('CRUD') || auth()->user()->isSales())
+            @if(auth()->user()->isAdminOrAbove() || auth()->user()->hasPermission('CRUD') || auth()->user()->isSales())
             <a href="{{ route('rfq.create') }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-md"
                style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.30);">
@@ -151,7 +151,7 @@
                                 </a>
                                 @endif
 
-                                @if($rfq->canBeEdited() && (auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
+                                @if($rfq->canBeEdited() && (auth()->user()->isAdminOrAbove() || auth()->user()->hasPermission('CRUD') || auth()->user()->isSales()))
                                 <a href="{{ route('rfq.edit', $rfq) }}" title="Edit"
                                     class="p-1.5 rounded-lg transition-colors"
                                     style="color: var(--text-muted);"
