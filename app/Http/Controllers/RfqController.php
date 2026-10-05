@@ -178,10 +178,10 @@ class RfqController extends Controller
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
-            'items'                   => 'required|array|min:1',
+            'items'                   => 'nullable|array',
             'items.*.category'        => 'nullable|string',
-            'items.*.product_name'    => 'required|string',
-            'items.*.qty'             => 'required|numeric|min:0.01',
+            'items.*.product_name'    => 'nullable|string',
+            'items.*.qty'             => 'nullable|numeric|min:0.01',
             'items.*.unit'            => 'nullable|string|max:30',
             'items.*.detail_item'     => 'nullable|string',
             'items.*.description'     => 'nullable|string',
@@ -193,7 +193,42 @@ class RfqController extends Controller
             'items.*.validity_days'   => 'nullable|numeric|min:1',
         ]);
 
-        // NOTE: Sales & Admin sama-sama boleh membuat RFQ tipe Projek lewat form ini.
+        $rawItems = $validated['items'] ?? [];
+        $validItems = [];
+        foreach ($rawItems as $item) {
+            $productName = trim($item['product_name'] ?? '');
+            if ($productName !== '') {
+                $qty = (float)($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    return back()
+                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
+                        ->withInput();
+                }
+                $validItems[] = $item;
+            }
+        }
+
+        $hasNotes = !empty(trim($validated['notes'] ?? ''));
+        if (count($validItems) === 0 && !$hasNotes) {
+            return back()
+                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
+                ->withInput();
+        }
+
+        if ($validated['type'] === 'Projek') {
+            foreach ($validItems as $idx => $item) {
+                if (empty($item['category'])) {
+                    return back()
+                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
+                        ->withInput();
+                }
+            }
+        } else {
+            foreach ($validItems as &$item) {
+                $item['category'] = null;
+            }
+            unset($item);
+        }
 
         $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
 
@@ -207,27 +242,6 @@ class RfqController extends Controller
         } else {
             $salesId   = $customer->sales_id ?? Auth::id();
             $salesName = $customer->sales ? $customer->sales->name : $this->authUser()->name;
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Validasi integritas data: cegah bug "KATEGORI TIDAK DISEBUTKAN"
-        // Jika type=Projek, setiap item WAJIB punya category.
-        // Jika type=Non Projek, paksa category=null agar tidak ada data bocor.
-        // ─────────────────────────────────────────────────────────────────────
-        if ($validated['type'] === 'Projek') {
-            foreach ($validated['items'] as $idx => $item) {
-                if (empty($item['category'])) {
-                    return back()
-                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
-                        ->withInput();
-                }
-            }
-        } else {
-            // Non Projek: pastikan category selalu null (buang jika ada sisa dari form)
-            foreach ($validated['items'] as &$item) {
-                $item['category'] = null;
-            }
-            unset($item);
         }
 
         try {
@@ -245,6 +259,7 @@ class RfqController extends Controller
                 'customer_contact_id' => $validated['customer_contact_id'],
                 'need_date'           => $validated['need_date'] ?? null,
                 'type'                => $validated['type'],
+                'priority'            => $validated['priority'] ?? 'Normal',
                 'sales_id'            => $salesId,
                 'sales_name'          => $salesName,
                 'rfq_date'            => now()->format('Y-m-d'),
@@ -252,7 +267,7 @@ class RfqController extends Controller
                 'status'              => $status,
             ]);
 
-            foreach ($validated['items'] as $item) {
+            foreach ($validItems as $item) {
                 $hpp              = (float)($item['hpp'] ?? 0);
                 $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
                 $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
@@ -442,20 +457,42 @@ class RfqController extends Controller
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
-            'items'                   => 'required|array|min:1',
+            'items'                   => 'nullable|array',
             'items.*.category'        => 'nullable|string',
-            'items.*.product_name'    => 'required|string',
-            'items.*.qty'             => 'required|numeric|min:0.01',
+            'items.*.product_name'    => 'nullable|string',
+            'items.*.qty'             => 'nullable|numeric|min:0.01',
             'items.*.unit'            => 'nullable|string|max:30',
             'items.*.detail_item'     => 'nullable|string',
             'items.*.description'     => 'nullable|string',
             'items.*.hpp'             => 'nullable|numeric|min:0',
             'items.*.ongkir_pedia'    => 'nullable|numeric|min:0',
             'items.*.ongkir_pelanggan'=> 'nullable|numeric|min:0',
-            'items.*.margin'          => 'nullable|numeric|min:1',
+            'items.*.margin'          => 'nullable|numeric|min:0',
             'items.*.ceiling'         => 'nullable|numeric|min:1',
             'items.*.validity_days'   => 'nullable|numeric|min:1',
         ]);
+
+        $rawItems = $validated['items'] ?? [];
+        $validItems = [];
+        foreach ($rawItems as $item) {
+            $productName = trim($item['product_name'] ?? '');
+            if ($productName !== '') {
+                $qty = (float)($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    return back()
+                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
+                        ->withInput();
+                }
+                $validItems[] = $item;
+            }
+        }
+
+        $hasNotes = !empty(trim($validated['notes'] ?? ''));
+        if (count($validItems) === 0 && !$hasNotes) {
+            return back()
+                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
+                ->withInput();
+        }
 
         if (!$this->authUser()->isAdminOrAbove()) {
             $customer = Customer::findOrFail($validated['customer_id']);
@@ -477,13 +514,9 @@ class RfqController extends Controller
 
         $wasApproved = in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED]);
 
-        // ─────────────────────────────────────────────────────────────────────
-        // Validasi integritas data: cegah bug "KATEGORI TIDAK DISEBUTKAN"
-        // Jika type=Projek, setiap item WAJIB punya category.
-        // Jika type=Non Projek, paksa category=null agar tidak ada data bocor.
-        // ─────────────────────────────────────────────────────────────────────
+        // Validasi integritas data: cegah bug KATEGORI TIDAK DISEBUTKAN
         if ($validated['type'] === 'Projek') {
-            foreach ($validated['items'] as $idx => $item) {
+            foreach ($validItems as $idx => $item) {
                 if (empty($item['category'])) {
                     return back()
                         ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
@@ -491,8 +524,7 @@ class RfqController extends Controller
                 }
             }
         } else {
-            // Non Projek: pastikan category selalu null (buang jika ada sisa dari form)
-            foreach ($validated['items'] as &$item) {
+            foreach ($validItems as &$item) {
                 $item['category'] = null;
             }
             unset($item);
@@ -516,7 +548,7 @@ class RfqController extends Controller
             ]);
 
             $rfq->items()->delete();
-            foreach ($validated['items'] as $item) {
+            foreach ($validItems as $item) {
                 $hpp              = (float)($item['hpp'] ?? 0);
                 $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
                 $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
@@ -716,47 +748,55 @@ class RfqController extends Controller
                 $rfq->update(['notes' => $request->notes]);
             }
 
+            $submittedItemIds = [];
             foreach ($validated['items'] as $itemId => $data) {
-                $item = $rfq->items()->find($itemId);
-                if ($item) {
-                    $item->category         = $data['category'] ?? $item->category;
-                    // Support typed vendor name ("nama vendor ketik saja")
-                    $typedVendor = trim($data['vendor_name'] ?? '');
-                    if ($typedVendor !== '') {
-                        $vendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($typedVendor)])->first();
-                        if (!$vendor) {
-                            $vendor = \App\Models\Vendor::create([
-                                'nama_vendor' => $typedVendor,
-                                'kategori'    => 'General Trading & Office',
-                                'status'      => \App\Models\Vendor::STATUS_ACTIVE,
-                            ]);
-                        }
-                        $item->vendor_id = $vendor->id;
-                    } elseif (array_key_exists('vendor_name', $data) && $typedVendor === '') {
-                        $item->vendor_id = null;
-                    } else {
-                        $item->vendor_id = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
-                    }
-                    $item->product_name     = $data['product_name'];
-                    $item->qty              = $data['qty'];
-                    $item->unit             = $data['unit'] ?? null;
-                    $desc                   = $data['description'] ?? $data['detail_item'] ?? null;
-                    $item->description      = $desc;
-                    $item->detail_item      = $desc;
-                    $item->hpp              = $data['hpp'];
-                    $item->ongkir_pedia     = (float) ($data['ongkir_pedia'] ?? $item->ongkir_pedia);
-                    $item->biaya_kirim      = (float) ($data['biaya_kirim'] ?? 0);
-                    $item->fee_eu           = (float) ($data['fee_eu'] ?? 0);
-                    $item->margin_type      = $data['margin_type'] ?? 'percentage';
-                    $item->margin_value     = (float) ($data['margin_value'] ?? 0);
-                    $item->margin           = (float) ($data['margin_value'] ?? 0);
-                    $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
-                    $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
-                    $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
-
-                    $item->price_after_margin = $item->calculatePriceAfterMargin();
-                    $item->save();
+                $item = is_numeric($itemId) ? $rfq->items()->find($itemId) : null;
+                if (!$item) {
+                    $item = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
                 }
+
+                $item->category         = $data['category'] ?? $item->category;
+                // Support typed vendor name (nama vendor ketik saja)
+                $typedVendor = trim($data['vendor_name'] ?? '');
+                if ($typedVendor !== '') {
+                    $vendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($typedVendor)])->first();
+                    if (!$vendor) {
+                        $vendor = \App\Models\Vendor::create([
+                            'nama_vendor' => $typedVendor,
+                            'kategori'    => 'General Trading & Office',
+                            'status'      => \App\Models\Vendor::STATUS_ACTIVE,
+                        ]);
+                    }
+                    $item->vendor_id = $vendor->id;
+                } elseif (array_key_exists('vendor_name', $data) && $typedVendor === '') {
+                    $item->vendor_id = null;
+                } else {
+                    $item->vendor_id = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
+                }
+                $item->product_name     = $data['product_name'];
+                $item->qty              = $data['qty'];
+                $item->unit             = $data['unit'] ?? null;
+                $desc                   = $data['description'] ?? $data['detail_item'] ?? null;
+                $item->description      = $desc;
+                $item->detail_item      = $desc;
+                $item->hpp              = $data['hpp'];
+                $item->ongkir_pedia     = (float) ($data['ongkir_pedia'] ?? ($item->ongkir_pedia ?? 0));
+                $item->biaya_kirim      = (float) ($data['biaya_kirim'] ?? 0);
+                $item->fee_eu           = (float) ($data['fee_eu'] ?? 0);
+                $item->margin_type      = $data['margin_type'] ?? 'percentage';
+                $item->margin_value     = (float) ($data['margin_value'] ?? 0);
+                $item->margin           = (float) ($data['margin_value'] ?? 0);
+                $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
+                $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
+                $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
+
+                $item->price_after_margin = $item->calculatePriceAfterMargin();
+                $item->save();
+                $submittedItemIds[] = $item->id;
+            }
+
+            if (!empty($submittedItemIds)) {
+                $rfq->items()->whereNotIn('id', $submittedItemIds)->delete();
             }
 
             // Snapshot History (Versioning)

@@ -281,9 +281,9 @@
                                                 onblur="this.style.borderColor='#e2e8f0'">
                                         </td>
                                         <td class="px-3 py-2 text-center" style="vertical-align: middle;">
-                                            <button type="button" @click="removeNonProjekItem(item.id)" :disabled="nonProjekItems.length <= 1"
+                                            <button type="button" @click="removeNonProjekItem(item.id)"
                                                 class="p-1.5 rounded-lg transition-all"
-                                                :style="nonProjekItems.length <= 1 ? 'opacity: 0.3; cursor: not-allowed; color: var(--accent-rose);' : 'color: var(--accent-rose); background: rgba(239,68,68,0.08);'"
+                                                style="color: var(--accent-rose); background: rgba(239,68,68,0.08);"
                                                 title="Hapus item">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                             </button>
@@ -538,9 +538,7 @@
                 },
                 
                 removeNonProjekItem(id) {
-                    if (this.nonProjekItems.length > 1) {
-                        this.nonProjekItems = this.nonProjekItems.filter(i => i.id !== id);
-                    }
+                    this.nonProjekItems = this.nonProjekItems.filter(i => i.id !== id);
                 },
                 
                 addProjekItem(catName) {
@@ -650,8 +648,10 @@
                     cleanForm.append(key, value);
                 }
 
-                if (rowsWithName.size === 0) {
-                    showFormError('Minimal satu baris item wajib diisi (Nama Item + Qty).');
+                const notesVal = form.querySelector('[name="notes"]')?.value?.trim() || '';
+
+                if (rowsWithName.size === 0 && !notesVal) {
+                    showFormError('Mohon isi minimal satu baris item atau tulis Catatan permintaan RFQ.');
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.style.opacity = '';
@@ -746,29 +746,66 @@
             const state = (window.Alpine && Alpine.$data) ? Alpine.$data(form) : (form._x_dataStack && form._x_dataStack[0]);
             if (!state) return null;
 
+            const notes = form.querySelector('[name="notes"]')?.value?.trim() || '';
             const error = { message: '', name: '' };
 
             if (state.type === 'Non Projek') {
+                const filledItems = state.nonProjekItems.filter(item => (item.product_name && String(item.product_name).trim()) || (item.qty && parseFloat(item.qty) > 0));
+                if (filledItems.length === 0 && notes.length > 0) {
+                    return null;
+                }
+                if (state.nonProjekItems.length === 0 && !notes) {
+                    return 'Mohon isi minimal satu item atau tuliskan Catatan kebutuhan RFQ.';
+                }
+
                 state.nonProjekItems.forEach(item => {
                     if (error.name) return;
-                    if (!item.product_name || !String(item.product_name).trim()) {
+                    const hasName = item.product_name && String(item.product_name).trim();
+                    const hasQty = item.qty && parseFloat(item.qty) > 0;
+                    if (!hasName && !hasQty && notes.length > 0) return;
+
+                    if (!hasName) {
                         error.message = 'Nama Item wajib diisi!';
                         error.name = `items[${item.id}][product_name]`;
-                    } else if (!(parseFloat(item.qty) > 0)) {
+                    } else if (!hasQty) {
                         error.message = 'Qty wajib diisi!';
                         error.name = `items[${item.id}][qty]`;
                     }
                 });
             } else {
+                let totalItemsCount = 0;
+                let filledItemsCount = 0;
+                state.categories.forEach(cat => {
+                    if (cat.items && cat.items.length > 0) {
+                        totalItemsCount += cat.items.length;
+                        cat.items.forEach(item => {
+                            if ((item.product_name && String(item.product_name).trim()) || (item.qty && parseFloat(item.qty) > 0)) {
+                                filledItemsCount++;
+                            }
+                        });
+                    }
+                });
+
+                if (filledItemsCount === 0 && notes.length > 0) {
+                    return null;
+                }
+                if (totalItemsCount === 0 && !notes) {
+                    return 'Mohon isi minimal satu item atau tuliskan Catatan kebutuhan RFQ.';
+                }
+
                 state.categories.forEach(cat => {
                     if (error.name) return;
                     if (cat.items && cat.items.length > 0) {
                         cat.items.forEach(item => {
                             if (error.name) return;
-                            if (!item.product_name || !String(item.product_name).trim()) {
+                            const hasName = item.product_name && String(item.product_name).trim();
+                            const hasQty = item.qty && parseFloat(item.qty) > 0;
+                            if (!hasName && !hasQty && notes.length > 0) return;
+
+                            if (!hasName) {
                                 error.message = `Nama Item pada ${cat.name} wajib diisi!`;
                                 error.name = `items[${item.id}][product_name]`;
-                            } else if (!(parseFloat(item.qty) > 0)) {
+                            } else if (!hasQty) {
                                 error.message = `Qty pada ${cat.name} wajib diisi!`;
                                 error.name = `items[${item.id}][qty]`;
                             }
