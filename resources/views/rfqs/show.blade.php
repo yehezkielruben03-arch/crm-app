@@ -332,6 +332,7 @@
                                 <div class="rfq-grid__row {{ $loop->even ? 'rfq-grid__row--zebra' : '' }}">
                                     <span class="rfq-grid__cell rfq-grid__num text-center">{{ $rowNum++ }}</span>
                                     <span class="rfq-grid__cell rfq-grid__desc-block">
+                                        <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                         @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
                                     </span>

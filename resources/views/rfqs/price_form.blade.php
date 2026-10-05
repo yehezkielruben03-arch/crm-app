@@ -125,6 +125,14 @@
                         {{ $block['title'] }}
                     </h2>
                     <div class="flex items-center gap-2">
+                        @if($categoryName === 'Material Support')
+                        <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
+                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition shadow-2xs"
+                            title="Hitung otomatis 15% dari total harga jual barang material support">
+                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span>⚡ Hitung Miscelanious Material (15%)</span>
+                        </button>
+                        @endif
                         <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200" id="block-count-badge-{{ $blockKey }}">
                             {{ $categoryItems->count() }} Item
                         </span>
@@ -135,6 +143,96 @@
                         </button>
                     </div>
                 </div>
+
+                @if($categoryName === 'Jasa Pemasangan')
+                <div class="mb-5 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/40 rounded-2xl border border-amber-200 p-4 lg:p-5 shadow-xs">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-amber-200/80">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Kalkulator Teknisi (MP) &amp; Akomodasi Pedia</h3>
+                                <p class="text-[11px] text-amber-800">Tentukan durasi pengerjaan dan tarif per hari, lalu terapkan otomatis sebagai baris item mandiri di bawah.</p>
+                            </div>
+                        </div>
+                        <span class="text-[11px] bg-amber-100 text-amber-800 font-semibold px-2.5 py-0.5 rounded-full border border-amber-300">
+                            At-Cost / Margin 0%
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-end">
+                        <div>
+                            <label class="text-[11px] font-bold text-slate-700 mb-1 block">
+                                Durasi Pengerjaan <span class="text-rose-500">*</span>
+                            </label>
+                            <div class="relative rounded-xl shadow-2xs">
+                                <input type="number" id="calc-mp-days" value="1" min="1" step="1"
+                                       class="w-full text-xs font-bold text-center border-slate-300 rounded-xl focus:border-amber-500 focus:ring-amber-500"
+                                       oninput="updateMpCalcSummary()">
+                                <span class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-xs font-semibold text-slate-500">Hari</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-bold text-slate-700 block">Tarif MP Pedia / Hari</label>
+                                <span class="text-[10px] text-slate-500 font-normal">(bisa diedit)</span>
+                            </div>
+                            <div class="relative rounded-xl shadow-2xs">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                                <input type="text" inputmode="numeric" id="calc-mp-rate"
+                                       value="{{ number_format($mpPediaRate, 0, ',', '.') }}"
+                                       class="w-full pl-9 pr-3 text-xs font-bold text-slate-800 border-slate-300 rounded-xl rupiah-input focus:border-amber-500 focus:ring-amber-500"
+                                       oninput="updateMpCalcSummary()">
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-bold text-slate-700 block">Akomodasi &amp; Transport / Hari</label>
+                                <span class="text-[10px] text-slate-500 font-normal">(bensin, tol, makan)</span>
+                            </div>
+                            <div class="relative rounded-xl shadow-2xs">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                                <input type="text" inputmode="numeric" id="calc-transport-rate"
+                                       value="207.900"
+                                       class="w-full pl-9 pr-3 text-xs font-bold text-slate-800 border-slate-300 rounded-xl rupiah-input focus:border-amber-500 focus:ring-amber-500"
+                                       oninput="updateMpCalcSummary()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-4 text-xs">
+                            <span class="text-slate-600">
+                                Est. MP Team Pedia: <strong class="text-amber-900 font-mono" id="summary-mp-total">Rp {{ number_format($mpPediaRate, 0, ',', '.') }}</strong>
+                            </span>
+                            <span class="text-slate-300">|</span>
+                            <span class="text-slate-600">
+                                Est. Akomodasi: <strong class="text-amber-900 font-mono" id="summary-transport-total">Rp 207.900</strong>
+                            </span>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="applyMpItemToTable('{{ $blockKey }}')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ Terapkan MP Pedia</span>
+                            </button>
+                            <button type="button" onclick="applyTransportItemToTable('{{ $blockKey }}')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ Terapkan Akomodasi</span>
+                            </button>
+                            <button type="button" onclick="applyBothMpAndTransport('{{ $blockKey }}')"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition shadow-xs">
+                                <span>⚡ Terapkan Keduanya</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                @endif
                         
                 <div class="space-y-5" id="items-container-{{ $blockKey }}">
                     <div id="empty-state-{{ $blockKey }}" class="{{ $categoryItems->count() > 0 ? 'hidden ' : '' }}bg-white rounded-2xl border border-dashed border-slate-300 p-8 text-center">
@@ -210,11 +308,6 @@
                                                 <label class="text-[11px] font-semibold text-slate-600 block">Vendor / Supplier</label>
                                                 <span class="text-[10px] text-slate-400 font-normal">(bisa ketik langsung)</span>
                                             </div>
-                                            @if($categoryName == 'Jasa Pemasangan' || str_contains(strtolower($item->product_name ?? ''), 'jasa') || str_contains(strtolower($item->product_name ?? ''), 'instalasi') || str_contains(strtolower($item->product_name ?? ''), 'pasang'))
-                                                <button type="button" onclick="useMpPedia('{{ $item->id }}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
-                                                    ⚡ Tarif MP Pedia (Rp {{ number_format($mpPediaRate, 0, ',', '.') }})
-                                                </button>
-                                            @endif
                                         </div>
                                         <div class="relative">
                                             <input type="text"
@@ -695,17 +788,25 @@
             }
         }
 
-        function addNewPriceItem(categoryName, blockKey) {
+        function addNewPriceItem(categoryName, blockKey, initialData = {}) {
             const tempId = 'new_' + Date.now() + '_' + (tempItemSeq++);
             const container = document.getElementById('items-container-' + blockKey);
             if (!container) return;
 
+            const initName = initialData.product_name || '';
+            const initVendor = initialData.vendor_name || '';
+            const initQty = initialData.qty !== undefined ? initialData.qty : 1;
+            const initUnit = initialData.unit || 'Unit';
+            const initDesc = initialData.description || '';
+            const initHpp = initialData.hpp !== undefined ? initialData.hpp : 0;
+            const initBiayaKirim = initialData.biaya_kirim !== undefined ? initialData.biaya_kirim : 0;
+            const initOngkirPedia = initialData.ongkir_pedia !== undefined ? initialData.ongkir_pedia : defaultCustomerOngkir;
+            const initFeeEu = initialData.fee_eu !== undefined ? initialData.fee_eu : 0;
+            const initMarginType = initialData.margin_type || 'percentage';
+            const initMarginValue = initialData.margin_value !== undefined ? initialData.margin_value : 12.5;
+            const initCeiling = initialData.custom_ceiling !== undefined ? initialData.custom_ceiling : 50000;
+
             const catBadge = categoryName ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">${categoryName}</span>` : '';
-            const mpButton = (categoryName === 'Jasa Pemasangan') ? `
-                <button type="button" onclick="useMpPedia('${tempId}')" class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 text-[10px] px-2 py-0.5 rounded-md border border-amber-300 hover:bg-amber-100 font-semibold transition shadow-2xs" title="Tarik tarif standar teknisi dari Portal Mainpower">
-                    ⚡ Tarif MP Pedia (Rp ${formatRupiah(mpPediaRate)})
-                </button>
-            ` : '';
 
             const html = `
             <div class="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden item-card-row" id="card-item-${tempId}">
@@ -716,14 +817,14 @@
                         </span>
                         <div>
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                                <span id="display-name-${tempId}">Item Baru</span>
+                                <span id="display-name-${tempId}">${initName || 'Item Baru'}</span>
                                 ${catBadge}
                             </h3>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-                            Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-${tempId}">1</span> Unit
+                            Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-${tempId}">${initQty}</span> <span id="badge-unit-${tempId}">${initUnit}</span>
                         </div>
                         <button type="button" onclick="deletePriceItem('${tempId}', '${blockKey}')"
                             class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition"
@@ -747,7 +848,7 @@
 
                             <div>
                                 <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Nama Item / Produk <span class="text-rose-500">*</span></label>
-                                <input type="text" name="items[${tempId}][product_name]" value=""
+                                <input type="text" name="items[${tempId}][product_name]" value="${initName}"
                                        class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
                                        placeholder="Nama barang atau jasa..."
                                        oninput="document.getElementById('display-name-${tempId}').innerText = this.value || 'Item Baru'" required>
@@ -759,14 +860,13 @@
                                         <label class="text-[11px] font-semibold text-slate-600 block">Vendor / Supplier</label>
                                         <span class="text-[10px] text-slate-400 font-normal">(bisa ketik langsung)</span>
                                     </div>
-                                    ${mpButton}
                                 </div>
                                 <div class="relative">
                                     <input type="text"
                                            name="items[${tempId}][vendor_name]"
                                            id="vendor-input-${tempId}"
                                            list="vendor-datalist"
-                                           value=""
+                                           value="${initVendor}"
                                            class="vendor-input-field w-full text-xs text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs font-medium placeholder:text-slate-400"
                                            placeholder="Ketik langsung nama vendor / supplier...">
                                 </div>
@@ -775,13 +875,13 @@
                             <div class="grid grid-cols-2 gap-2.5">
                                 <div>
                                     <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Qty <span class="text-rose-500">*</span></label>
-                                    <input type="number" name="items[${tempId}][qty]" id="qty-${tempId}" value="1"
+                                    <input type="number" name="items[${tempId}][qty]" id="qty-${tempId}" value="${initQty}"
                                            class="w-full text-xs font-bold text-center border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
                                            oninput="document.getElementById('badge-qty-${tempId}').innerText = this.value" required min="1">
                                 </div>
                                 <div>
                                     <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
-                                    <input type="text" name="items[${tempId}][unit]" value="Unit"
+                                    <input type="text" name="items[${tempId}][unit]" value="${initUnit}"
                                            class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Pcs">
                                 </div>
                             </div>
@@ -790,7 +890,7 @@
                                 <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi / Keterangan Item</label>
                                 <textarea name="items[${tempId}][description]" rows="2"
                                           class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
-                                          placeholder="Part number, spesifikasi teknis, atau keterangan barang..."></textarea>
+                                          placeholder="Part number, spesifikasi teknis, atau keterangan barang...">${initDesc}</textarea>
                             </div>
                         </div>
                     </div>
@@ -809,7 +909,7 @@
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
-                                           value="0"
+                                           value="${formatRupiah(initHpp)}"
                                            class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
                                            required placeholder="0">
                                 </div>
@@ -824,7 +924,7 @@
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
                                         <input type="text" inputmode="numeric" name="items[${tempId}][biaya_kirim]" id="biaya-kirim-${tempId}" data-item-id="${tempId}"
-                                               value="0"
+                                               value="${formatRupiah(initBiayaKirim)}"
                                                class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
                                                placeholder="0">
                                     </div>
@@ -838,7 +938,7 @@
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
                                         <input type="text" inputmode="numeric" name="items[${tempId}][ongkir_pedia]" id="ongkir-pedia-${tempId}" data-item-id="${tempId}"
-                                               value="${formatRupiah(defaultCustomerOngkir)}"
+                                               value="${formatRupiah(initOngkirPedia)}"
                                                class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500">
                                     </div>
                                 </div>
@@ -850,7 +950,7 @@
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
                                         <input type="text" inputmode="numeric" name="items[${tempId}][fee_eu]" id="fee-eu-${tempId}" data-item-id="${tempId}"
-                                               value="0"
+                                               value="${formatRupiah(initFeeEu)}"
                                                class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
                                                placeholder="0">
                                     </div>
@@ -884,11 +984,11 @@
                                     <div class="flex rounded-xl shadow-2xs overflow-hidden border border-slate-200 bg-white">
                                         <select name="items[${tempId}][margin_type]" id="margin-type-${tempId}" data-item-id="${tempId}"
                                                 class="text-xs font-bold text-slate-700 border-0 bg-slate-50 focus:ring-0 w-16 py-1.5 pl-2 pr-6 calc-trigger">
-                                            <option value="percentage" selected>%</option>
-                                            <option value="nominal">Rp</option>
+                                            <option value="percentage" ${initMarginType === 'percentage' ? 'selected' : ''}>%</option>
+                                            <option value="nominal" ${initMarginType === 'nominal' ? 'selected' : ''}>Rp</option>
                                         </select>
                                         <input type="text" inputmode="numeric" name="items[${tempId}][margin_value]" id="margin-val-${tempId}" data-item-id="${tempId}"
-                                               value="12.5"
+                                               value="${initMarginType === 'nominal' ? formatRupiah(initMarginValue) : initMarginValue}"
                                                class="w-full text-xs font-bold text-right border-0 border-l border-slate-200 focus:ring-0 py-1.5 pr-2.5 calc-trigger"
                                                required placeholder="12.5">
                                     </div>
@@ -922,7 +1022,7 @@
                                 <div class="relative rounded-xl shadow-2xs mt-1.5">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][custom_ceiling]" id="ceiling-${tempId}" data-item-id="${tempId}"
-                                           value="50.000"
+                                           value="${formatRupiah(initCeiling)}"
                                            class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500"
                                            placeholder="Custom ceiling">
                                 </div>
@@ -979,6 +1079,229 @@
             updateBlockCount(blockKey);
             updateAllCardNumbers();
             calculateRow(tempId);
+        }
+
+        function updateMpCalcSummary() {
+            const days = parseInt(document.getElementById('calc-mp-days')?.value) || 1;
+            const mpRate = parseRupiah(document.getElementById('calc-mp-rate')?.value) || 0;
+            const trRate = parseRupiah(document.getElementById('calc-transport-rate')?.value) || 0;
+
+            const mpEl = document.getElementById('summary-mp-total');
+            if (mpEl) mpEl.innerText = 'Rp ' + formatRupiah(days * mpRate);
+
+            const trEl = document.getElementById('summary-transport-total');
+            if (trEl) trEl.innerText = 'Rp ' + formatRupiah(days * trRate);
+        }
+
+        function applyMpItemToTable(blockKey) {
+            const days = parseInt(document.getElementById('calc-mp-days')?.value) || 1;
+            const rate = parseRupiah(document.getElementById('calc-mp-rate')?.value) || mpPediaRate;
+            const block = document.getElementById('items-container-' + blockKey);
+            if (!block) return;
+
+            let existingItemCard = null;
+            block.querySelectorAll('.item-card-row').forEach(card => {
+                const nameInput = card.querySelector('input[name$="[product_name]"]');
+                if (nameInput && (nameInput.value.toLowerCase().includes('mp team pedia') || nameInput.value.toLowerCase().includes('tarif mp'))) {
+                    existingItemCard = card;
+                }
+            });
+
+            const itemName = `MP Team Pedia @${days}day`;
+            if (existingItemCard) {
+                const itemId = existingItemCard.id.replace('card-item-', '');
+                const nameInput = existingItemCard.querySelector('input[name$="[product_name]"]');
+                if (nameInput) {
+                    nameInput.value = itemName;
+                    const displayName = document.getElementById('display-name-' + itemId);
+                    if (displayName) displayName.innerText = itemName;
+                }
+                const qtyInput = document.getElementById('qty-' + itemId);
+                if (qtyInput) {
+                    qtyInput.value = days;
+                    const badgeQty = document.getElementById('badge-qty-' + itemId);
+                    if (badgeQty) badgeQty.innerText = days;
+                }
+                const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
+                if (unitInput) unitInput.value = 'Hari';
+                const hppInput = document.getElementById('hpp-' + itemId);
+                if (hppInput) hppInput.value = formatRupiah(rate);
+                const marginType = document.getElementById('margin-type-' + itemId);
+                if (marginType) marginType.value = 'nominal';
+                const marginVal = document.getElementById('margin-val-' + itemId);
+                if (marginVal) marginVal.value = '0';
+                const ceilingInput = document.getElementById('ceiling-' + itemId);
+                if (ceilingInput) ceilingInput.value = '1';
+                const vendorInput = document.getElementById('vendor-input-' + itemId);
+                if (vendorInput) vendorInput.value = 'Mainpower Pedia';
+
+                calculateRow(itemId);
+                alert(`Item "${itemName}" berhasil diperbarui di tabel!`);
+            } else {
+                addNewPriceItem('Jasa Pemasangan', blockKey, {
+                    product_name: itemName,
+                    vendor_name: 'Mainpower Pedia',
+                    qty: days,
+                    unit: 'Hari',
+                    description: `Tenaga teknisi internal tim Pedia (${days} hari kerja)`,
+                    hpp: rate,
+                    biaya_kirim: 0,
+                    ongkir_pedia: 0,
+                    fee_eu: 0,
+                    margin_type: 'nominal',
+                    margin_value: 0,
+                    custom_ceiling: 1
+                });
+                alert(`Item "${itemName}" berhasil ditambahkan ke tabel!`);
+            }
+        }
+
+        function applyTransportItemToTable(blockKey) {
+            const days = parseInt(document.getElementById('calc-mp-days')?.value) || 1;
+            const rate = parseRupiah(document.getElementById('calc-transport-rate')?.value) || 207900;
+            const block = document.getElementById('items-container-' + blockKey);
+            if (!block) return;
+
+            let existingItemCard = null;
+            block.querySelectorAll('.item-card-row').forEach(card => {
+                const nameInput = card.querySelector('input[name$="[product_name]"]');
+                if (nameInput && (nameInput.value.toLowerCase().includes('akomodasi') || nameInput.value.toLowerCase().includes('transport'))) {
+                    existingItemCard = card;
+                }
+            });
+
+            const itemName = `Akomodasi & Transport Pedia @${days}day`;
+            if (existingItemCard) {
+                const itemId = existingItemCard.id.replace('card-item-', '');
+                const nameInput = existingItemCard.querySelector('input[name$="[product_name]"]');
+                if (nameInput) {
+                    nameInput.value = itemName;
+                    const displayName = document.getElementById('display-name-' + itemId);
+                    if (displayName) displayName.innerText = itemName;
+                }
+                const qtyInput = document.getElementById('qty-' + itemId);
+                if (qtyInput) {
+                    qtyInput.value = days;
+                    const badgeQty = document.getElementById('badge-qty-' + itemId);
+                    if (badgeQty) badgeQty.innerText = days;
+                }
+                const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
+                if (unitInput) unitInput.value = 'Hari';
+                const hppInput = document.getElementById('hpp-' + itemId);
+                if (hppInput) hppInput.value = formatRupiah(rate);
+                const marginType = document.getElementById('margin-type-' + itemId);
+                if (marginType) marginType.value = 'nominal';
+                const marginVal = document.getElementById('margin-val-' + itemId);
+                if (marginVal) marginVal.value = '0';
+                const ceilingInput = document.getElementById('ceiling-' + itemId);
+                if (ceilingInput) ceilingInput.value = '1';
+                const vendorInput = document.getElementById('vendor-input-' + itemId);
+                if (vendorInput) vendorInput.value = 'Operasional Pedia';
+
+                calculateRow(itemId);
+                alert(`Item "${itemName}" berhasil diperbarui di tabel!`);
+            } else {
+                addNewPriceItem('Jasa Pemasangan', blockKey, {
+                    product_name: itemName,
+                    vendor_name: 'Operasional Pedia',
+                    qty: days,
+                    unit: 'Hari',
+                    description: `Biaya transportasi, bensin, tol, dan konsumsi teknisi (${days} hari kerja)`,
+                    hpp: rate,
+                    biaya_kirim: 0,
+                    ongkir_pedia: 0,
+                    fee_eu: 0,
+                    margin_type: 'nominal',
+                    margin_value: 0,
+                    custom_ceiling: 1
+                });
+                alert(`Item "${itemName}" berhasil ditambahkan ke tabel!`);
+            }
+        }
+
+        function applyBothMpAndTransport(blockKey) {
+            applyMpItemToTable(blockKey);
+            applyTransportItemToTable(blockKey);
+        }
+
+        function calculateAndApplyMiscellaneousMaterial(blockKey) {
+            const container = document.getElementById('items-container-' + blockKey);
+            if (!container) return;
+
+            const cards = container.querySelectorAll('.item-card-row');
+            let totalMaterialSales = 0;
+            let materialItemCount = 0;
+            let existingMiscCard = null;
+
+            cards.forEach(card => {
+                const nameInput = card.querySelector('input[name$="[product_name]"]');
+                const name = nameInput ? nameInput.value.trim().toLowerCase() : '';
+                const itemId = card.id.replace('card-item-', '');
+
+                if (name.includes('miscelanious') || name.includes('miscellaneous')) {
+                    existingMiscCard = card;
+                } else {
+                    const finalTotalText = document.getElementById('final-total-' + itemId)?.innerText || '0';
+                    const rowTotal = parseRupiah(finalTotalText);
+                    totalMaterialSales += rowTotal;
+                    materialItemCount++;
+                }
+            });
+
+            if (materialItemCount === 0) {
+                alert('Belum ada item barang material support. Tambahkan item material terlebih dahulu sebelum menghitung Miscellaneous.');
+                return;
+            }
+
+            const miscAmount = Math.round(totalMaterialSales * 0.15);
+            const itemName = 'Miscelanious Material';
+
+            if (existingMiscCard) {
+                const itemId = existingMiscCard.id.replace('card-item-', '');
+                const nameInput = existingMiscCard.querySelector('input[name$="[product_name]"]');
+                if (nameInput) {
+                    nameInput.value = itemName;
+                    const displayName = document.getElementById('display-name-' + itemId);
+                    if (displayName) displayName.innerText = itemName;
+                }
+                const qtyInput = document.getElementById('qty-' + itemId);
+                if (qtyInput) {
+                    qtyInput.value = 1;
+                    const badgeQty = document.getElementById('badge-qty-' + itemId);
+                    if (badgeQty) badgeQty.innerText = 1;
+                }
+                const unitInput = existingMiscCard.querySelector('input[name$="[unit]"]');
+                if (unitInput) unitInput.value = 'Lot';
+                const hppInput = document.getElementById('hpp-' + itemId);
+                if (hppInput) hppInput.value = formatRupiah(miscAmount);
+                const marginType = document.getElementById('margin-type-' + itemId);
+                if (marginType) marginType.value = 'nominal';
+                const marginVal = document.getElementById('margin-val-' + itemId);
+                if (marginVal) marginVal.value = '0';
+                const ceilingInput = document.getElementById('ceiling-' + itemId);
+                if (ceilingInput) ceilingInput.value = '1';
+                const vendorInput = document.getElementById('vendor-input-' + itemId);
+                if (vendorInput) vendorInput.value = 'Toko Material / Operasional';
+
+                calculateRow(itemId);
+                alert(`Miscelanious Material berhasil diupdate: Rp ${formatRupiah(miscAmount)} (15% dari total Rp ${formatRupiah(totalMaterialSales)})`);
+            } else {
+                addNewPriceItem('Material Support', blockKey, {
+                    product_name: itemName,
+                    vendor_name: 'Toko Material / Operasional',
+                    qty: 1,
+                    unit: 'Lot',
+                    description: 'Material pendukung & habis pakai (sekrup, fischer, klem, isolasi, seal, dll)',
+                    hpp: miscAmount,
+                    biaya_kirim: 0,
+                    ongkir_pedia: 0,
+                    fee_eu: 0,
+                    margin_type: 'nominal',
+                    margin_value: 0,
+                    custom_ceiling: 1
+                });
+                alert(`Miscelanious Material berhasil ditambahkan: Rp ${formatRupiah(miscAmount)} (15% dari total Rp ${formatRupiah(totalMaterialSales)})`);
+            }
         }
         
         function useMpPedia(itemId) {
