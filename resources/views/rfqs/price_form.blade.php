@@ -264,10 +264,14 @@
                                         <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
                                         <div class="relative rounded-xl shadow-2xs">
                                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
-                                            <input type="number" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.hpp', (float) $item->hpp) }}"
-                                                   class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                                   required min="0" placeholder="0">
+                                            @php
+                                                $oldHpp = old('items.'.$item->id.'.hpp');
+                                                $valHpp = $oldHpp !== null ? $oldHpp : (($item->hpp && (float)$item->hpp > 0) ? number_format((float)$item->hpp, 0, ',', '.') : '');
+                                            @endphp
+                                            <input type="text" inputmode="numeric" name="items[{{ $item->id }}][hpp]" id="hpp-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                   value="{{ $valHpp }}"
+                                                   class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                   required placeholder="0">
                                         </div>
                                     </div>
 
@@ -279,10 +283,14 @@
                                             </label>
                                             <div class="relative rounded-xl shadow-2xs">
                                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                                <input type="number" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}"
-                                                       value="{{ old('items.'.$item->id.'.biaya_kirim', (float) ($item->biaya_kirim ?? 0)) }}"
-                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                                       min="0" placeholder="0">
+                                                @php
+                                                    $oldBiayaKirim = old('items.'.$item->id.'.biaya_kirim');
+                                                    $valBiayaKirim = $oldBiayaKirim !== null ? $oldBiayaKirim : (($item->biaya_kirim && (float)$item->biaya_kirim > 0) ? number_format((float)$item->biaya_kirim, 0, ',', '.') : '0');
+                                                @endphp
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][biaya_kirim]" id="biaya-kirim-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                       value="{{ $valBiayaKirim }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                       placeholder="0">
                                             </div>
                                         </div>
 
@@ -293,10 +301,14 @@
                                             </label>
                                             <div class="relative rounded-xl shadow-2xs">
                                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
-                                                <input type="number" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}"
-                                                       value="{{ old('items.'.$item->id.'.ongkir_pedia', (float) (($item->ongkir_pedia && $item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0))) }}"
-                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                                       min="0">
+                                                @php
+                                                    $oldOngkirPedia = old('items.'.$item->id.'.ongkir_pedia');
+                                                    $rawOngkirPedia = ($item->ongkir_pedia && (float)$item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0);
+                                                    $valOngkirPedia = $oldOngkirPedia !== null ? $oldOngkirPedia : ((float)$rawOngkirPedia > 0 ? number_format((float)$rawOngkirPedia, 0, ',', '.') : '0');
+                                                @endphp
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                       value="{{ $valOngkirPedia }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500">
                                             </div>
                                         </div>
 
@@ -306,10 +318,14 @@
                                             </label>
                                             <div class="relative rounded-xl shadow-2xs">
                                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                                <input type="number" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}"
-                                                       value="{{ old('items.'.$item->id.'.fee_eu', (float) ($item->fee_eu ?? 0)) }}"
-                                                       class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                                       min="0" placeholder="0">
+                                                @php
+                                                    $oldFeeEu = old('items.'.$item->id.'.fee_eu');
+                                                    $valFeeEu = $oldFeeEu !== null ? $oldFeeEu : (($item->fee_eu && (float)$item->fee_eu > 0) ? number_format((float)$item->fee_eu, 0, ',', '.') : '0');
+                                                @endphp
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][fee_eu]" id="fee-eu-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                       value="{{ $valFeeEu }}"
+                                                       class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                                       placeholder="0">
                                             </div>
                                         </div>
                                     </div>
@@ -342,15 +358,21 @@
                                         <div class="col-span-6">
                                             <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Tipe &amp; Nilai Margin</label>
                                             <div class="flex rounded-xl shadow-2xs overflow-hidden border border-slate-200 bg-white">
-                                                <select name="items[{{ $item->id }}][margin_type]" id="margin-type-{{ $item->id }}"
+                                                <select name="items[{{ $item->id }}][margin_type]" id="margin-type-{{ $item->id }}" data-item-id="{{ $item->id }}"
                                                         class="text-xs font-bold text-slate-700 border-0 bg-slate-50 focus:ring-0 w-16 py-1.5 pl-2 pr-6 calc-trigger">
                                                     <option value="percentage" {{ ($item->margin_type ?? 'percentage') == 'percentage' ? 'selected' : '' }}>%</option>
                                                     <option value="nominal" {{ ($item->margin_type ?? 'percentage') == 'nominal' ? 'selected' : '' }}>Rp</option>
                                                 </select>
-                                                <input type="number" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}"
-                                                       value="{{ old('items.'.$item->id.'.margin_value', (float) (($item->margin_value && $item->margin_value > 0) ? $item->margin_value : (($item->margin && $item->margin > 0) ? $item->margin : 12.5))) }}"
+                                                @php
+                                                    $isNominalMargin = ($item->margin_type ?? 'percentage') === 'nominal';
+                                                    $oldMarginVal = old('items.'.$item->id.'.margin_value');
+                                                    $rawMarginVal = ($item->margin_value && (float)$item->margin_value > 0) ? $item->margin_value : (($item->margin && (float)$item->margin > 0) ? $item->margin : 12.5);
+                                                    $valMargin = $oldMarginVal !== null ? $oldMarginVal : ($isNominalMargin ? number_format((float)$rawMarginVal, 0, ',', '.') : (float)$rawMarginVal);
+                                                @endphp
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][margin_value]" id="margin-val-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                       value="{{ $valMargin }}"
                                                        class="w-full text-xs font-bold text-right border-0 border-l border-slate-200 focus:ring-0 py-1.5 pr-2.5 calc-trigger"
-                                                       required min="0" step="any">
+                                                       required placeholder="12.5">
                                             </div>
                                         </div>
 
@@ -382,10 +404,15 @@
                                         </div>
                                         <div class="relative rounded-xl shadow-2xs mt-1.5">
                                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                            <input type="number" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}"
-                                                   value="{{ old('items.'.$item->id.'.custom_ceiling', (float) ($item->custom_ceiling ?? $item->ceiling ?? 50000)) }}"
-                                                   class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                                   min="0" placeholder="Custom ceiling">
+                                            @php
+                                                $oldCeiling = old('items.'.$item->id.'.custom_ceiling');
+                                                $rawCeiling = $item->custom_ceiling ?? $item->ceiling ?? 50000;
+                                                $valCeiling = $oldCeiling !== null ? $oldCeiling : number_format((float)$rawCeiling, 0, ',', '.');
+                                            @endphp
+                                            <input type="text" inputmode="numeric" name="items[{{ $item->id }}][custom_ceiling]" id="ceiling-{{ $item->id }}" data-item-id="{{ $item->id }}"
+                                                   value="{{ $valCeiling }}"
+                                                   class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500"
+                                                   placeholder="Custom ceiling">
                                         </div>
                                     </div>
                                 </div>
@@ -730,10 +757,10 @@
                                 <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
-                                    <input type="number" name="items[${tempId}][hpp]" id="hpp-${tempId}"
+                                    <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
                                            value="0"
-                                           class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                           required min="0" placeholder="0">
+                                           class="w-full pl-9 pr-3 text-sm font-bold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                           required placeholder="0">
                                 </div>
                             </div>
 
@@ -745,10 +772,10 @@
                                     </label>
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                        <input type="number" name="items[${tempId}][biaya_kirim]" id="biaya-kirim-${tempId}"
+                                        <input type="text" inputmode="numeric" name="items[${tempId}][biaya_kirim]" id="biaya-kirim-${tempId}" data-item-id="${tempId}"
                                                value="0"
-                                               class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                               min="0" placeholder="0">
+                                               class="w-full pl-9 pr-3 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                               placeholder="0">
                                     </div>
                                 </div>
 
@@ -759,10 +786,9 @@
                                     </label>
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
-                                        <input type="number" name="items[${tempId}][ongkir_pedia]" id="ongkir-pedia-${tempId}"
-                                               value="${defaultCustomerOngkir}"
-                                               class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                               min="0">
+                                        <input type="text" inputmode="numeric" name="items[${tempId}][ongkir_pedia]" id="ongkir-pedia-${tempId}" data-item-id="${tempId}"
+                                               value="${formatRupiah(defaultCustomerOngkir)}"
+                                               class="w-full pl-9 pr-3 text-xs font-semibold text-blue-900 bg-blue-50/50 border-blue-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500">
                                     </div>
                                 </div>
 
@@ -772,10 +798,10 @@
                                     </label>
                                     <div class="relative rounded-xl shadow-2xs">
                                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                        <input type="number" name="items[${tempId}][fee_eu]" id="fee-eu-${tempId}"
+                                        <input type="text" inputmode="numeric" name="items[${tempId}][fee_eu]" id="fee-eu-${tempId}" data-item-id="${tempId}"
                                                value="0"
-                                               class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
-                                               min="0" placeholder="0">
+                                               class="w-full pl-9 pr-3 text-xs font-medium text-slate-700 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-indigo-500 focus:ring-indigo-500"
+                                               placeholder="0">
                                     </div>
                                 </div>
                             </div>
@@ -805,15 +831,15 @@
                                 <div class="col-span-6">
                                     <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Tipe &amp; Nilai Margin</label>
                                     <div class="flex rounded-xl shadow-2xs overflow-hidden border border-slate-200 bg-white">
-                                        <select name="items[${tempId}][margin_type]" id="margin-type-${tempId}"
+                                        <select name="items[${tempId}][margin_type]" id="margin-type-${tempId}" data-item-id="${tempId}"
                                                 class="text-xs font-bold text-slate-700 border-0 bg-slate-50 focus:ring-0 w-16 py-1.5 pl-2 pr-6 calc-trigger">
                                             <option value="percentage" selected>%</option>
                                             <option value="nominal">Rp</option>
                                         </select>
-                                        <input type="number" name="items[${tempId}][margin_value]" id="margin-val-${tempId}"
+                                        <input type="text" inputmode="numeric" name="items[${tempId}][margin_value]" id="margin-val-${tempId}" data-item-id="${tempId}"
                                                value="12.5"
                                                class="w-full text-xs font-bold text-right border-0 border-l border-slate-200 focus:ring-0 py-1.5 pr-2.5 calc-trigger"
-                                               required min="0" step="any">
+                                               required placeholder="12.5">
                                     </div>
                                 </div>
 
@@ -844,10 +870,10 @@
                                 </div>
                                 <div class="relative rounded-xl shadow-2xs mt-1.5">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
-                                    <input type="number" name="items[${tempId}][custom_ceiling]" id="ceiling-${tempId}"
-                                           value="50000"
-                                           class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500"
-                                           min="0" placeholder="Custom ceiling">
+                                    <input type="text" inputmode="numeric" name="items[${tempId}][custom_ceiling]" id="ceiling-${tempId}" data-item-id="${tempId}"
+                                           value="50.000"
+                                           class="w-full pl-9 pr-3 py-1.5 text-xs font-semibold text-slate-800 border-slate-200 rounded-xl rupiah-input calc-trigger focus:border-blue-500 focus:ring-blue-500"
+                                           placeholder="Custom ceiling">
                                 </div>
                             </div>
                         </div>
@@ -889,6 +915,7 @@
             container.insertAdjacentHTML('beforeend', html);
 
             const newCard = document.getElementById('card-item-' + tempId);
+            attachRupiahListeners(newCard);
             newCard.querySelectorAll('.calc-trigger').forEach(function(el) {
                 el.addEventListener('input', function() {
                     calculateRow(tempId);
@@ -904,7 +931,10 @@
         }
         
         function useMpPedia(itemId) {
-            document.getElementById('hpp-' + itemId).value = mpPediaRate;
+            const hppInput = document.getElementById('hpp-' + itemId);
+            if (hppInput) {
+                hppInput.value = formatRupiah(mpPediaRate);
+            }
             const vInput = document.getElementById('vendor-input-' + itemId);
             if (vInput && !vInput.value) {
                 vInput.value = 'Mainpower Pedia';
@@ -915,24 +945,98 @@
         function setCeiling(itemId, val) {
             const input = document.getElementById('ceiling-' + itemId);
             if (input) {
-                input.value = val;
+                input.value = formatRupiah(val);
                 calculateRow(itemId);
             }
         }
 
         function formatRupiah(number) {
+            if (isNaN(number) || number === null || number === undefined) return '0';
             return new Intl.NumberFormat('id-ID').format(Math.round(number));
         }
 
+        function parseRupiah(val) {
+            if (val === null || val === undefined || val === '') return 0;
+            if (typeof val === 'number') return isNaN(val) ? 0 : val;
+            const clean = String(val).replace(/[^\d]/g, '');
+            const num = parseFloat(clean);
+            return isNaN(num) ? 0 : num;
+        }
+
+        function parseMarginVal(val, type) {
+            if (val === null || val === undefined || val === '') return 0;
+            if (type === 'percentage') {
+                const clean = String(val).replace(/,/g, '.').replace(/[^\d.-]/g, '');
+                const num = parseFloat(clean);
+                return isNaN(num) ? 0 : num;
+            }
+            return parseRupiah(val);
+        }
+
+        function formatRupiahInput(input) {
+            if (!input) return;
+            const cursor = input.selectionStart;
+            const oldLength = input.value.length;
+            const digits = input.value.replace(/\D/g, '');
+
+            if (!digits) {
+                input.value = '';
+                return;
+            }
+
+            const formatted = new Intl.NumberFormat('id-ID').format(digits);
+            input.value = formatted;
+
+            const diff = formatted.length - oldLength;
+            const newPos = Math.max(0, cursor + diff);
+            try {
+                input.setSelectionRange(newPos, newPos);
+            } catch (e) {}
+        }
+
+        function attachRupiahListeners(container) {
+            const root = container || document;
+
+            root.querySelectorAll('.rupiah-input').forEach(function(input) {
+                input.addEventListener('input', function() {
+                    formatRupiahInput(this);
+                });
+                if (input.value && !input.value.includes('.')) {
+                    formatRupiahInput(input);
+                }
+            });
+
+            root.querySelectorAll('[id^="margin-val-"]').forEach(function(input) {
+                const itemId = input.dataset.itemId || input.id.replace('margin-val-', '');
+                const typeSelect = document.getElementById('margin-type-' + itemId);
+
+                input.addEventListener('input', function() {
+                    if (typeSelect && typeSelect.value === 'nominal') {
+                        formatRupiahInput(this);
+                    }
+                });
+
+                if (typeSelect) {
+                    typeSelect.addEventListener('change', function() {
+                        if (this.value === 'nominal') {
+                            formatRupiahInput(input);
+                        } else {
+                            input.value = input.value.replace(/\./g, '');
+                        }
+                    });
+                }
+            });
+        }
+
         function calculateRow(itemId) {
-            const hpp = parseFloat(document.getElementById('hpp-' + itemId)?.value) || 0;
-            const ongkirPedia = parseFloat(document.getElementById('ongkir-pedia-' + itemId)?.value) || 0;
-            const biayaKirim = parseFloat(document.getElementById('biaya-kirim-' + itemId)?.value) || 0;
-            const feeEu = parseFloat(document.getElementById('fee-eu-' + itemId)?.value) || 0;
+            const hpp = parseRupiah(document.getElementById('hpp-' + itemId)?.value);
+            const ongkirPedia = parseRupiah(document.getElementById('ongkir-pedia-' + itemId)?.value);
+            const biayaKirim = parseRupiah(document.getElementById('biaya-kirim-' + itemId)?.value);
+            const feeEu = parseRupiah(document.getElementById('fee-eu-' + itemId)?.value);
             
             const marginType = document.getElementById('margin-type-' + itemId)?.value || 'percentage';
-            const marginVal = parseFloat(document.getElementById('margin-val-' + itemId)?.value) || 0;
-            const ceiling = parseFloat(document.getElementById('ceiling-' + itemId)?.value) || 1;
+            const marginVal = parseMarginVal(document.getElementById('margin-val-' + itemId)?.value, marginType);
+            const ceiling = parseRupiah(document.getElementById('ceiling-' + itemId)?.value) || 1;
             const qty = parseFloat(document.getElementById('qty-' + itemId)?.value) || 1;
 
             // 1. Total Modal Satuan
@@ -999,19 +1103,19 @@
             let grandProfit = 0;
             let grandSales = 0;
 
-            document.querySelectorAll('input[name*="[hpp]"]').forEach(el => {
-                const itemId = el.id.replace('hpp-', '');
-                const hpp = parseFloat(el.value) || 0;
-                const ongkirPedia = parseFloat(document.getElementById('ongkir-pedia-' + itemId)?.value) || 0;
-                const biayaKirim = parseFloat(document.getElementById('biaya-kirim-' + itemId)?.value) || 0;
-                const feeEu = parseFloat(document.getElementById('fee-eu-' + itemId)?.value) || 0;
+            document.querySelectorAll('input[id^="hpp-"]').forEach(el => {
+                const itemId = el.dataset.itemId || el.id.replace('hpp-', '');
+                const hpp = parseRupiah(el.value);
+                const ongkirPedia = parseRupiah(document.getElementById('ongkir-pedia-' + itemId)?.value);
+                const biayaKirim = parseRupiah(document.getElementById('biaya-kirim-' + itemId)?.value);
+                const feeEu = parseRupiah(document.getElementById('fee-eu-' + itemId)?.value);
                 const qty = parseFloat(document.getElementById('qty-' + itemId)?.value) || 1;
 
                 const baseModal = (hpp + ongkirPedia + biayaKirim + feeEu) * qty;
                 grandModal += baseModal;
 
-                const finalTotalText = document.getElementById('final-total-' + itemId)?.innerText.replace(/\./g, '') || '0';
-                const finalTotal = parseFloat(finalTotalText) || 0;
+                const finalTotalText = document.getElementById('final-total-' + itemId)?.innerText || '0';
+                const finalTotal = parseRupiah(finalTotalText);
                 grandSales += finalTotal;
             });
 
@@ -1028,20 +1132,22 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            attachRupiahListeners(document);
+
             // Initial Calculation for all items
-            document.querySelectorAll('input[name*="[hpp]"]').forEach(function(el) {
-                const itemId = el.id.replace('hpp-', '');
+            document.querySelectorAll('input[id^="hpp-"]').forEach(function(el) {
+                const itemId = el.dataset.itemId || el.id.replace('hpp-', '');
                 calculateRow(itemId);
             });
 
             // Trigger events
             document.querySelectorAll('.calc-trigger').forEach(function(el) {
                 el.addEventListener('input', function() {
-                    const itemId = this.id.split('-').pop();
+                    const itemId = this.dataset.itemId || this.id.split('-').pop();
                     calculateRow(itemId);
                 });
                 el.addEventListener('change', function() {
-                    const itemId = this.id.split('-').pop();
+                    const itemId = this.dataset.itemId || this.id.split('-').pop();
                     calculateRow(itemId);
                 });
             });

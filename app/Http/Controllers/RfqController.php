@@ -727,6 +727,31 @@ class RfqController extends Controller
         abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
         abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa dikirim dari status saat ini.');
 
+        if ($request->has('items') && is_array($request->items)) {
+            $cleanedItems = $request->items;
+            foreach ($cleanedItems as $key => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $field) {
+                    if (isset($item[$field]) && is_string($item[$field])) {
+                        $cleanedVal = preg_replace('/[^\d]/', '', $item[$field]);
+                        $cleanedItems[$key][$field] = $cleanedVal !== '' ? $cleanedVal : 0;
+                    }
+                }
+                if (isset($item['margin_value']) && is_string($item['margin_value'])) {
+                    $mType = $item['margin_type'] ?? 'percentage';
+                    if ($mType === 'nominal') {
+                        $cleanedVal = preg_replace('/[^\d]/', '', $item['margin_value']);
+                        $cleanedItems[$key]['margin_value'] = $cleanedVal !== '' ? $cleanedVal : 0;
+                    } else {
+                        $cleanedItems[$key]['margin_value'] = str_replace(',', '.', trim($item['margin_value']));
+                    }
+                }
+            }
+            $request->merge(['items' => $cleanedItems]);
+        }
+
         $validated = $request->validate([
             'notes'                    => 'nullable|string|max:3000',
             'items'                    => 'required|array',
@@ -813,13 +838,18 @@ class RfqController extends Controller
             if (count($updatedData) > 0) {
                 $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
                 
-                \App\Models\RfqPriceHistory::create([
+                $historyPayload = [
                     'rfq_id'       => $rfq->id,
                     'version'      => $lastVersion + 1,
                     'history_data' => $updatedData,
                     'created_by'   => $this->authUser()->id,
-                    'approved_at'  => null,
-                ]);
+                ];
+
+                if (\Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
+                    $historyPayload['approved_at'] = null;
+                }
+
+                \App\Models\RfqPriceHistory::create($historyPayload);
             }
 
             // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved

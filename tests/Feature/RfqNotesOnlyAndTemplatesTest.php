@@ -420,4 +420,70 @@ class RfqNotesOnlyAndTemplatesTest extends TestCase
         $adminRfq->refresh();
         $this->assertEquals(Rfq::STATUS_PENDING_LEADER, $adminRfq->status);
     }
+
+    public function test_purchasing_can_submit_prices_with_indonesian_thousand_separator_dots(): void
+    {
+        $rfq = Rfq::create([
+            'rfq_number'          => 'RFQ-DOT-202610-001',
+            'customer_id'         => $this->customer->id,
+            'customer_name'       => $this->customer->company_name,
+            'customer_contact_id' => $this->contact->id,
+            'sales_id'            => $this->sales->id,
+            'sales_name'          => $this->sales->name,
+            'type'                => 'Non Projek',
+            'status'              => Rfq::STATUS_PENDING_ADMIN,
+            'rfq_date'            => now(),
+            'notes'               => 'Laptop gaming high end',
+            'created_by'          => $this->sales->id,
+        ]);
+
+        $item = $rfq->items()->create([
+            'product_name'     => 'Acer Nitro V 15',
+            'qty'              => 1,
+            'unit'             => 'Unit',
+            'hpp'              => 0,
+            'ongkir_pedia'     => 0,
+            'biaya_kirim'      => 0,
+            'fee_eu'           => 0,
+            'margin_type'      => 'percentage',
+            'margin_value'     => 12.5,
+            'custom_ceiling'   => 50000,
+            'ceiling'          => 50000,
+        ]);
+
+        // Submit price with thousand separator dots as typed by Purchasing
+        $response = $this->actingAs($this->admin)->post(route('rfq.submit_price', $rfq), [
+            'notes' => 'Catatan penawaran',
+            'items' => [
+                $item->id => [
+                    'product_name'   => 'Acer Nitro V 15',
+                    'qty'            => 1,
+                    'unit'           => 'Unit',
+                    'hpp'            => '23.000.000',
+                    'ongkir_pedia'   => '13.000',
+                    'biaya_kirim'    => '25.000',
+                    'fee_eu'         => '0',
+                    'margin_type'    => 'percentage',
+                    'margin_value'   => '12.5',
+                    'custom_ceiling' => '50.000',
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect(route('rfq.show', $rfq));
+
+        $item->refresh();
+        $this->assertEquals(23000000.00, (float)$item->hpp);
+        $this->assertEquals(13000.00, (float)$item->ongkir_pedia);
+        $this->assertEquals(25000.00, (float)$item->biaya_kirim);
+        $this->assertEquals(50000.00, (float)$item->custom_ceiling);
+        $this->assertGreaterThan(23038000.00, (float)$item->price_after_margin);
+
+        // Verify price form renders thousand separators
+        $formResp = $this->actingAs($this->admin)->get(route('rfq.price_form', $rfq));
+        $formResp->assertStatus(200);
+        $formResp->assertSee('23.000.000');
+        $formResp->assertSee('13.000');
+    }
 }
+
