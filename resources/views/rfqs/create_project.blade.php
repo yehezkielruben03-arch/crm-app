@@ -153,7 +153,7 @@
                                 </div>
                                 <div class="col-span-2 sm:col-span-4">
                                     <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Masa Berlaku (hari)</label>
-                                    <input type="number" name="items[0][validity_days]" required min="1" value="7"
+                                    <input type="number" name="items[0][validity_days]" required min="1" value="3"
                                         style="width:100%;padding:0.85rem 0.95rem;border-radius:1rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);height:3.4rem;box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
                                         onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='rgba(148,163,184,0.24)'">
                                 </div>
@@ -323,7 +323,7 @@
                     </div>
                     <div class="col-span-2 sm:col-span-4">
                         <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Masa Berlaku (hari)</label>
-                        <input type="number" name="items[${idx}][validity_days]" required min="1" value="7"
+                        <input type="number" name="items[${idx}][validity_days]" required min="1" value="3"
                             style="width:100%;padding:0.85rem 0.95rem;border-radius:1rem;font-size:0.95rem;outline:none;background:var(--bg-primary);border:1px solid rgba(148,163,184,0.24);color:var(--text-primary);height:3.4rem;box-shadow: inset 0 1px 2px rgba(15,23,42,0.04);transition: border-color 0.2s, box-shadow 0.2s;"
                             onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='rgba(148,163,184,0.24)'">
                     </div>

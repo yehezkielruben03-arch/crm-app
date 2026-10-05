@@ -118,7 +118,7 @@ class RfqController extends Controller
                     'margin_value'       => $marginPct,
                     'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
-                    'validity_days'      => $itemData['validity_days'] ?? 7,
+                    'validity_days'      => $itemData['validity_days'] ?? 3,
                     'price_after_margin' => 0, // Akan dihitung ulang di bawah
                 ]);
 
@@ -280,7 +280,7 @@ class RfqController extends Controller
                     'margin'             => $marginVal,
                     'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
-                    'validity_days'      => (int)($item['validity_days'] ?? 7),
+                    'validity_days'      => (int)($item['validity_days'] ?? 3),
                 ]);
                 $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
                 $rfq->items()->save($rfqItem);
@@ -544,7 +544,7 @@ class RfqController extends Controller
                     'margin'             => $marginVal,
                     'ceiling'            => $ceiling,
                     'custom_ceiling'     => $ceiling,
-                    'validity_days'      => (int)($item['validity_days'] ?? 7),
+                    'validity_days'      => (int)($item['validity_days'] ?? 3),
                 ]);
                 $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
                 $rfq->items()->save($rfqItem);
@@ -752,7 +752,7 @@ class RfqController extends Controller
                     $item->margin           = (float) ($data['margin_value'] ?? 0);
                     $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
                     $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
-                    $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 7));
+                    $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
 
                     $item->price_after_margin = $item->calculatePriceAfterMargin();
                     $item->save();

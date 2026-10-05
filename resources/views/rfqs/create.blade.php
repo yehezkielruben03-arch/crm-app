@@ -411,7 +411,7 @@
                                                     </div>
                                                     <div>
                                                         <label class="pmx-band-label">Masa Berlaku (hari)</label>
-                                                        <input type="number" :name="`items[${item.id}][validity_days]`" min="1" step="1" x-model="item.validity_days" placeholder="7" class="pmx-input pmx-input--center">
+                                                        <input type="number" :name="`items[${item.id}][validity_days]`" min="1" step="1" x-model="item.validity_days" placeholder="3" class="pmx-input pmx-input--center">
                                                     </div>
                                                 </div>
                                             </span>
@@ -501,7 +501,7 @@
                     ongkir_pelanggan: '',
                     margin: 25,
                     ceiling: '10000',
-                    validity_days: 7
+                    validity_days: 3
                 });
             } else {
                 nonProj.push({ id: globId++, product_name: '', qty: 1, unit: '', description: '' });
@@ -559,7 +559,7 @@
                             ongkir_pelanggan: '',
                             margin: 25,
                             ceiling: '10000',
-                            validity_days: 7
+                            validity_days: 3
                         });
                     }
                 },

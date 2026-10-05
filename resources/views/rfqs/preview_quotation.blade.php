@@ -163,7 +163,7 @@
                 <div class="self-end mb-1">
                     <div class="bg-[#f2f2f2] px-3.5 py-1 w-[240px] flex items-center justify-between text-[11.5px]">
                         <span class="italic text-black" style="font-family: Arial, sans-serif;">Berlaku s/d tgl :</span>
-                        <span class="font-normal text-black" style="font-family: Calibri, sans-serif;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->addDays($validityDays)->format('d M Y') }}</span>
+                        <span class="font-normal text-black" style="font-family: Calibri, sans-serif;">{{ $rfq->formatted_valid_until }}</span>
                     </div>
                 </div>
             </div>

@@ -129,7 +129,7 @@
                     <tr>
                         <td style="background-color: #f2f2f2; padding: 4px 10px; font-size: 9px; width: 190px;">
                             <span style="font-style: italic; color: #333;">Berlaku s/d tgl :</span>
-                            <span style="float: right; font-weight: bold; color: #111;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->addDays($validityDays)->format('d M Y') }}</span>
+                            <span style="float: right; font-weight: bold; color: #111;">{{ $rfq->formatted_valid_until }}</span>
                         </td>
                     </tr>
                 </table>

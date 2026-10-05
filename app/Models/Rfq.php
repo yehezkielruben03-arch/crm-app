@@ -288,4 +288,21 @@ class Rfq extends Model
 
         return $clean;
     }
+
+    public function getValidUntilDateAttribute(): \Carbon\Carbon
+    {
+        $raw = $this->rfq_date ?: ($this->created_at ?: now());
+        $baseDate = \Carbon\Carbon::parse($raw);
+        $days = (int) ($this->items->max('validity_days') ?: 3);
+        if ($days <= 0 || $days === 7) {
+            $days = 3;
+        }
+
+        return $baseDate->copy()->addWeekdays($days);
+    }
+
+    public function getFormattedValidUntilAttribute(): string
+    {
+        return $this->valid_until_date->format('d M Y');
+    }
 }
