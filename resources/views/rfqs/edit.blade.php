@@ -375,44 +375,6 @@
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                                 </button>
                                             </span>
-
-                                            @if(auth()->user()->isAdminOrAbove())
-                                            {{-- Band harga admin: HPP | Ongkir Pedia | Ongkir Pelanggan | Margin | Ceiling | Validity --}}
-                                            <span class="pmx-cell pmx-cell--band">
-                                                <div class="pmx-band">
-                                                    <div>
-                                                        <label class="pmx-band-label">HPP (Rp)</label>
-                                                        <input type="number" :name="`items[${item.id}][hpp]`" min="0" step="0.01" x-model="item.hpp" placeholder="0" class="pmx-input">
-                                                    </div>
-                                                    <div>
-                                                        <label class="pmx-band-label">Ongkir Pedia (Rp)</label>
-                                                        <input type="number" :name="`items[${item.id}][ongkir_pedia]`" min="0" step="0.01" x-model="item.ongkir_pedia" placeholder="0" class="pmx-input">
-                                                    </div>
-                                                    <div>
-                                                        <label class="pmx-band-label">Ongkir Pelanggan (Rp)</label>
-                                                        <input type="number" :name="`items[${item.id}][ongkir_pelanggan]`" min="0" step="0.01" x-model="item.ongkir_pelanggan" placeholder="0" class="pmx-input">
-                                                    </div>
-                                                    <div>
-                                                        <label class="pmx-band-label">Margin (%)</label>
-                                                        <input type="number" :name="`items[${item.id}][margin]`" min="0" step="1" x-model="item.margin" placeholder="25" class="pmx-input pmx-input--center">
-                                                    </div>
-                                                    <div>
-                                                        <label class="pmx-band-label">Ceiling (Pembulatan)</label>
-                                                        <input type="number" list="ceiling-options" :name="`items[${item.id}][ceiling]`" x-model="item.ceiling" min="1" step="1" placeholder="10000" class="pmx-input pmx-input--center">
-                                                        <div class="flex items-center gap-1 mt-1">
-                                                            <button type="button" @click="item.ceiling = '1'" class="flex-1 text-[9px] py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200" title="Tanpa Pembulatan">1</button>
-                                                            <button type="button" @click="item.ceiling = '1000'" class="flex-1 text-[9px] py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200" title="Ribuan">1k</button>
-                                                            <button type="button" @click="item.ceiling = '10000'" class="flex-1 text-[9px] py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200" title="Puluh Ribuan">10k</button>
-                                                            <button type="button" @click="item.ceiling = '50000'" class="flex-1 text-[9px] py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200" title="Rp 50.000">50k</button>
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <label class="pmx-band-label">Masa Berlaku (hari)</label>
-                                                        <input type="number" :name="`items[${item.id}][validity_days]`" min="1" step="1" x-model="item.validity_days" placeholder="3" class="pmx-input pmx-input--center">
-                                                    </div>
-                                                </div>
-                                            </span>
-                                            @endif
                                         </div>
                                         </template>
 
@@ -503,13 +465,7 @@
                         qty: parseFloat(item.qty),
                         unit: item.unit || '',
                         detail_item: item.detail_item || '',
-                        description: item.description || item.detail_item || '',
-                        hpp: item.hpp || '',
-                        ongkir_pedia: item.ongkir_pedia || '',
-                        ongkir_pelanggan: item.ongkir_pelanggan || '',
-                        margin: item.margin || 25,
-                        ceiling: String((parseFloat(item.custom_ceiling) > 0) ? Math.round(parseFloat(item.custom_ceiling)) : ((parseFloat(item.ceiling) > 0) ? Math.round(parseFloat(item.ceiling)) : '10000')),
-                        validity_days: (item.validity_days && item.validity_days != 7) ? item.validity_days : 3
+                        description: item.description || item.detail_item || ''
                     });
                 });
             } else {
@@ -559,13 +515,7 @@
                             qty: 1,
                             unit: '',
                             detail_item: '',
-                            description: '',
-                            hpp: '',
-                            ongkir_pedia: '',
-                            ongkir_pelanggan: '',
-                            margin: 25,
-                            ceiling: '10000',
-                            validity_days: 3
+                            description: ''
                         });
                     }
                 },
@@ -1122,13 +1072,11 @@
             overflow-wrap: break-word;
         }
 
-        .pmx-row--data:hover .pmx-cell,
-        .pmx-row--data:hover .pmx-cell--band {
+        .pmx-row--data:hover .pmx-cell {
             background: rgba(37, 99, 235, 0.03);
         }
 
-        .pmx-row--data:last-child .pmx-cell,
-        .pmx-row--data:last-child .pmx-cell--band {
+        .pmx-row--data:last-child .pmx-cell {
             border-bottom: none;
         }
 
@@ -1262,35 +1210,6 @@
             border-bottom: 1px solid #f1f5f9;
         }
 
-        .pmx-cell--band {
-            grid-column: 1 / -1;
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .pmx-band {
-            display: grid;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 10px;
-        }
-
-        .pmx-band-label {
-            display: block;
-            font-size: 0.625rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--text-muted);
-            margin-bottom: 4px;
-        }
-
-        @media (max-width: 1023px) {
-            .pmx-band {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-        }
-
         @media (max-width: 767px) {
             .pmx-row--head {
                 display: none;
@@ -1303,14 +1222,6 @@
 
             .pmx-cell {
                 padding: 8px 8px;
-            }
-
-            .pmx-cell--band {
-                grid-column: 1 / -1;
-            }
-
-            .pmx-band {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
     </style>

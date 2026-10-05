@@ -308,6 +308,91 @@ class RfqNotesOnlyAndTemplatesTest extends TestCase
 
         $createdRfq = Rfq::where('notes', 'Dibuat langsung oleh Leader Laras.')->first();
         $this->assertNotNull($createdRfq);
+        $this->assertEquals(Rfq::STATUS_PENDING_ADMIN, $createdRfq->status);
         $createResponse->assertRedirect(route('rfq.show', $createdRfq));
+    }
+
+    public function test_rfq_projek_creation_sets_pending_admin_and_centralizes_hpp_to_price_form(): void
+    {
+        // 1. Verify create form view does not contain HPP band inputs
+        $adminCreateView = $this->actingAs($this->admin)->get(route('rfq.create', ['type' => 'Projek']));
+        $adminCreateView->assertStatus(200);
+        $adminCreateView->assertDontSee('pmx-cell--band');
+        $adminCreateView->assertDontSee('HPP (Rp)');
+
+        // 2. Admin creates RFQ Projek -> status is Pending Admin
+        $this->actingAs($this->admin)->post(route('rfq.store'), [
+            'customer_id'         => $this->customer->id,
+            'customer_contact_id' => $this->contact->id,
+            'type'                => 'Projek',
+            'rfq_date'            => now()->format('Y-m-d'),
+            'notes'               => 'RFQ Projek oleh Admin Purchase',
+            'items'               => [
+                [
+                    'category'     => 'Hardware',
+                    'product_name' => 'Switch 24 Port Gigabit',
+                    'qty'          => 2,
+                    'unit'         => 'Unit',
+                ],
+            ],
+        ]);
+
+        $adminRfq = Rfq::where('notes', 'RFQ Projek oleh Admin Purchase')->first();
+        $this->assertNotNull($adminRfq);
+        $this->assertEquals(Rfq::STATUS_PENDING_ADMIN, $adminRfq->status);
+
+        // 3. Edit view does not contain HPP band inputs
+        $editView = $this->actingAs($this->admin)->get(route('rfq.edit', $adminRfq));
+        $editView->assertStatus(200);
+        $editView->assertDontSee('pmx-cell--band');
+        $editView->assertDontSee('HPP (Rp)');
+
+        // 4. Leader creates RFQ Projek -> status is Pending Admin
+        $this->actingAs($this->leader)->post(route('rfq.store'), [
+            'customer_id'         => $this->customer->id,
+            'customer_contact_id' => $this->contact->id,
+            'type'                => 'Projek',
+            'rfq_date'            => now()->format('Y-m-d'),
+            'notes'               => 'RFQ Projek oleh Leader',
+            'items'               => [
+                [
+                    'category'     => 'Hardware',
+                    'product_name' => 'Router Core MikroTik',
+                    'qty'          => 1,
+                    'unit'         => 'Unit',
+                ],
+            ],
+        ]);
+
+        $leaderRfq = Rfq::where('notes', 'RFQ Projek oleh Leader')->first();
+        $this->assertNotNull($leaderRfq);
+        $this->assertEquals(Rfq::STATUS_PENDING_ADMIN, $leaderRfq->status);
+
+        // 5. Pricing is done via price_form and transitions to Pending Leader upon submit
+        $priceFormResp = $this->actingAs($this->admin)->get(route('rfq.price_form', $adminRfq));
+        $priceFormResp->assertStatus(200);
+
+        $item = $adminRfq->items->first();
+        $submitPriceResp = $this->actingAs($this->admin)->post(route('rfq.submit_price', $adminRfq), [
+            'notes' => 'Catatan revisi kalkulasi HPP',
+            'items' => [
+                $item->id => [
+                    'category'       => 'Hardware',
+                    'product_name'   => 'Switch 24 Port Gigabit',
+                    'qty'            => 2,
+                    'unit'           => 'Unit',
+                    'hpp'            => 1500000,
+                    'ongkir_pedia'   => 50000,
+                    'biaya_kirim'    => 0,
+                    'fee_eu'         => 0,
+                    'margin_type'    => 'percentage',
+                    'margin_value'   => 25,
+                    'custom_ceiling' => 10000,
+                ],
+            ],
+        ]);
+
+        $adminRfq->refresh();
+        $this->assertEquals(Rfq::STATUS_PENDING_LEADER, $adminRfq->status);
     }
 }

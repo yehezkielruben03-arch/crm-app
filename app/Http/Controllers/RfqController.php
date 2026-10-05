@@ -247,9 +247,7 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
-            $status = ($this->authUser()->isAdminOrAbove() && $validated['type'] === 'Projek')
-                ? Rfq::STATUS_PENDING_LEADER
-                : Rfq::STATUS_PENDING_ADMIN;
+            $status = Rfq::STATUS_PENDING_ADMIN;
 
             $rfq = Rfq::create([
                 'rfq_number'          => Rfq::generateRfqNumber(),
@@ -533,9 +531,7 @@ class RfqController extends Controller
         try {
             DB::beginTransaction();
 
-            $status = ($this->authUser()->isAdminOrAbove() && $validated['type'] === 'Projek')
-                ? Rfq::STATUS_PENDING_LEADER
-                : Rfq::STATUS_PENDING_ADMIN;
+            $status = Rfq::STATUS_PENDING_ADMIN;
 
             $rfq->update([
                 'customer_id'         => $validated['customer_id'],
