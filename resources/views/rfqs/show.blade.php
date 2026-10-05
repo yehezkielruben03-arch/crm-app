@@ -637,7 +637,11 @@
                     </div>
                     <div class="flex justify-between text-sm">
                         <span style="color: var(--text-muted);">Total Item</span>
-                        <span style="color: var(--text-secondary);">{{ number_format($rfq->items->sum('qty'), 0, ',', '.') }}</span>
+                        <span style="color: var(--text-secondary);">{{ $rfq->items->count() }} Produk</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span style="color: var(--text-muted);">Total Kuantitas</span>
+                        <span style="color: var(--text-secondary);">{{ number_format($rfq->items->sum('qty'), 0, ',', '.') }} Unit</span>
                     </div>
                     @if(isset($priceHistories) && $priceHistories->count() > 0)
                     <div class="flex justify-between text-sm items-center">
