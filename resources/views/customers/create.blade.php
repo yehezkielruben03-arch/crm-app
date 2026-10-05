@@ -505,9 +505,9 @@
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
                                 Status <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
-                            <x-custom-select name="status" :value="old('status', 'Prospect')" placeholder="Pilih Status" :options="[
-                                'Prospect' => 'Prospect',
+                            <x-custom-select name="status" :value="old('status', 'Active')" placeholder="Pilih Status" :options="[
                                 'Active' => 'Active (Aktif)',
+                                'Prospect' => 'Prospect',
                                 'Inactive' => 'Inactive',
                                 'Blacklist' => 'Blacklist',
                             ]" />

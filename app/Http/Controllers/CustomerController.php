@@ -226,8 +226,10 @@ class CustomerController extends Controller
             $validated['company_code'] = null; // Kode dibuat saat Admin approve
             unset($validated['npwp'], $validated['nib']); // Khusus Admin
 
-            // Notifikasi ke semua Admin/Super Admin
-            $admins = User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+            // Notifikasi ke semua Admin/Super Admin/Leader
+            $admins = User::whereIn('role', ['Admin', 'Admin Purchase', 'Leader', 'Super Admin'])
+                ->where('status', 'Active')
+                ->get();
             foreach ($admins as $admin) {
                 \App\Jobs\CreateNotification::dispatch([
                     'user_id' => $admin->id,
@@ -238,9 +240,17 @@ class CustomerController extends Controller
                 ]);
             }
         } else {
-            // Admin input langsung: gunakan owner sales yang tersedia, atau fallback ke owner default
+            // Admin/Leader/Super Admin input langsung: gunakan owner sales yang tersedia, atau fallback ke owner default
             $validated['sales_id'] = Customer::resolveSalesOwner($validated['sales_id']);
             $validated['company_code'] = Customer::generateCompanyCode();
+            // Default langsung Active untuk Admin, Leader, dan Super Admin jika tidak ditentukan lain
+            if (empty($validated['status']) || $validated['status'] === Customer::STATUS_PROSPECT) {
+                $validated['status'] = Customer::STATUS_ACTIVE;
+            }
+            if ($validated['status'] === Customer::STATUS_ACTIVE) {
+                $validated['approved_by'] = Auth::id();
+                $validated['approved_at'] = now();
+            }
         }
 
         try {
@@ -637,7 +647,9 @@ class CustomerController extends Controller
             $newPending   = $pendingAfter - $pendingBefore;
 
             if ($newPending > 0 && !$this->authUser()->isAdminOrAbove()) {
-                $admins = User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+                $admins = User::whereIn('role', ['Admin', 'Admin Purchase', 'Leader', 'Super Admin'])
+                    ->where('status', 'Active')
+                    ->get();
                 foreach ($admins as $admin) {
                     \App\Jobs\CreateNotification::dispatch([
                         'user_id' => $admin->id,
