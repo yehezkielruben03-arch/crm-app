@@ -538,9 +538,9 @@
                 
                 totalItems() {
                     if (this.type === 'Non Projek') {
-                        return this.nonProjekItems.length;
+                        return this.nonProjekItems.filter(i => i.product_name && String(i.product_name).trim() !== '').length;
                     } else {
-                        return this.categories.reduce((total, cat) => total + cat.items.length, 0);
+                        return this.categories.reduce((total, cat) => total + (cat.items || []).filter(i => i.product_name && String(i.product_name).trim() !== '').length, 0);
                     }
                 },
 
@@ -712,46 +712,47 @@
             const error = { message: '', name: '' };
 
             if (state.type === 'Non Projek') {
-                const filledItems = state.nonProjekItems.filter(item => (item.product_name && String(item.product_name).trim()) || (item.qty && parseFloat(item.qty) > 0));
-                if (filledItems.length === 0 && notes.length > 0) {
-                    return null;
-                }
-                if (state.nonProjekItems.length === 0 && !notes) {
+                const itemsWithName = state.nonProjekItems.filter(item => item.product_name && String(item.product_name).trim() !== '');
+
+                // Jika tidak ada nama item sama sekali
+                if (itemsWithName.length === 0) {
+                    if (notes.length > 0) {
+                        return null; // Notes-only RFQ valid
+                    }
                     return 'Mohon isi minimal satu item atau tuliskan Catatan kebutuhan RFQ.';
                 }
 
+                // Jika ada baris yang dinamai, baris tersebut wajib punya Qty > 0
                 state.nonProjekItems.forEach(item => {
                     if (error.name) return;
-                    const hasName = item.product_name && String(item.product_name).trim();
+                    const hasName = item.product_name && String(item.product_name).trim() !== '';
                     const hasQty = item.qty && parseFloat(item.qty) > 0;
-                    if (!hasName && !hasQty && notes.length > 0) return;
 
-                    if (!hasName) {
-                        error.message = 'Nama Item wajib diisi!';
-                        error.name = `items[${item.id}][product_name]`;
-                    } else if (!hasQty) {
-                        error.message = 'Qty wajib diisi!';
+                    // Baris kosong diabaikan
+                    if (!hasName) return;
+
+                    if (!hasQty) {
+                        error.message = 'Qty wajib diisi dan lebih besar dari 0!';
                         error.name = `items[${item.id}][qty]`;
                     }
                 });
             } else {
-                let totalItemsCount = 0;
-                let filledItemsCount = 0;
+                let namedItemsCount = 0;
                 state.categories.forEach(cat => {
                     if (cat.items && cat.items.length > 0) {
-                        totalItemsCount += cat.items.length;
                         cat.items.forEach(item => {
-                            if ((item.product_name && String(item.product_name).trim()) || (item.qty && parseFloat(item.qty) > 0)) {
-                                filledItemsCount++;
+                            if (item.product_name && String(item.product_name).trim() !== '') {
+                                namedItemsCount++;
                             }
                         });
                     }
                 });
 
-                if (filledItemsCount === 0 && notes.length > 0) {
-                    return null;
-                }
-                if (totalItemsCount === 0 && !notes) {
+                // Jika tidak ada nama item sama sekali
+                if (namedItemsCount === 0) {
+                    if (notes.length > 0) {
+                        return null; // Notes-only RFQ valid
+                    }
                     return 'Mohon isi minimal satu item atau tuliskan Catatan kebutuhan RFQ.';
                 }
 
@@ -760,15 +761,14 @@
                     if (cat.items && cat.items.length > 0) {
                         cat.items.forEach(item => {
                             if (error.name) return;
-                            const hasName = item.product_name && String(item.product_name).trim();
+                            const hasName = item.product_name && String(item.product_name).trim() !== '';
                             const hasQty = item.qty && parseFloat(item.qty) > 0;
-                            if (!hasName && !hasQty && notes.length > 0) return;
 
-                            if (!hasName) {
-                                error.message = `Nama Item pada ${cat.name} wajib diisi!`;
-                                error.name = `items[${item.id}][product_name]`;
-                            } else if (!hasQty) {
-                                error.message = `Qty pada ${cat.name} wajib diisi!`;
+                            // Baris kosong diabaikan
+                            if (!hasName) return;
+
+                            if (!hasQty) {
+                                error.message = `Qty pada ${cat.name} wajib diisi dan lebih besar dari 0!`;
                                 error.name = `items[${item.id}][qty]`;
                             }
                         });

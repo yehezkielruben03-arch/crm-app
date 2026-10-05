@@ -200,6 +200,9 @@ class RfqController extends Controller
             if ($productName !== '') {
                 $qty = (float)($item['qty'] ?? 0);
                 if ($qty <= 0) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
+                    }
                     return back()
                         ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
                         ->withInput();
@@ -210,6 +213,9 @@ class RfqController extends Controller
 
         $hasNotes = !empty(trim($validated['notes'] ?? ''));
         if (count($validItems) === 0 && !$hasNotes) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
+            }
             return back()
                 ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
                 ->withInput();
@@ -477,6 +483,9 @@ class RfqController extends Controller
             if ($productName !== '') {
                 $qty = (float)($item['qty'] ?? 0);
                 if ($qty <= 0) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
+                    }
                     return back()
                         ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
                         ->withInput();
@@ -487,6 +496,9 @@ class RfqController extends Controller
 
         $hasNotes = !empty(trim($validated['notes'] ?? ''));
         if (count($validItems) === 0 && !$hasNotes) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
+            }
             return back()
                 ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
                 ->withInput();

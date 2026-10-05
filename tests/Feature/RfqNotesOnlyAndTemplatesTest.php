@@ -118,6 +118,31 @@ class RfqNotesOnlyAndTemplatesTest extends TestCase
         ]);
     }
 
+    public function test_sales_can_create_rfq_with_notes_when_default_blank_item_row_is_present(): void
+    {
+        $response = $this->actingAs($this->sales)->post(route('rfq.store'), [
+            'customer_id'         => $this->customer->id,
+            'customer_contact_id' => $this->contact->id,
+            'type'                => 'Non Projek',
+            'rfq_date'            => now()->format('Y-m-d'),
+            'notes'               => 'user ingin laptop gaming dengan tiper gahar serta beberapa aksesoris',
+            'items'               => [
+                [
+                    'product_name' => '',
+                    'qty'          => 1,
+                    'unit'         => '',
+                    'description'  => '',
+                ],
+            ],
+        ], ['Accept' => 'application/json']);
+
+        $response->assertStatus(201);
+        $rfq = Rfq::where('notes', 'user ingin laptop gaming dengan tiper gahar serta beberapa aksesoris')->first();
+        $this->assertNotNull($rfq);
+        $this->assertEquals(Rfq::STATUS_PENDING_ADMIN, $rfq->status);
+        $this->assertCount(0, $rfq->items);
+    }
+
     public function test_admin_sees_sales_notes_and_all_templates_on_price_form(): void
     {
         $rfq = Rfq::create([
