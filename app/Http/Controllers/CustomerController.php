@@ -167,8 +167,13 @@ class CustomerController extends Controller
         $inputName = trim($cleanName);
         if (empty($inputName)) {
             $inputName = 'Pelanggan ' . date('d/m/Y H:i');
+        } else {
+            $inputName = Customer::formatTitleCase($inputName);
         }
         $validated['company_name'] = $inputName;
+        if (!empty($validated['cp_name'])) {
+            $validated['cp_name'] = Customer::formatTitleCase($validated['cp_name']);
+        }
         $validated['status'] = $validated['status'] ?? Customer::STATUS_PROSPECT;
 
         // ============================================================
@@ -374,9 +379,13 @@ class CustomerController extends Controller
         $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $validated['company_name'] ?? '');
         $inputName = trim($cleanName);
         if (!empty($inputName)) {
-            $validated['company_name'] = $inputName;
+            $validated['company_name'] = Customer::formatTitleCase($inputName);
         } else {
             unset($validated['company_name']); // Pertahankan nama sebelumnya jika dikosongkan
+        }
+
+        if (!empty($validated['cp_name'])) {
+            $validated['cp_name'] = Customer::formatTitleCase($validated['cp_name']);
         }
 
         if (empty($validated['status'])) {

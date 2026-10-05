@@ -227,6 +227,11 @@ class Rfq extends Model
         return '';
     }
 
+    public function setCustomerNameAttribute($value): void
+    {
+        $this->attributes['customer_name'] = Customer::formatTitleCase($value);
+    }
+
     public function getResolvedPicNameAttribute(): string
     {
         $name = $this->customerContact?->name;
@@ -235,7 +240,7 @@ class Rfq extends Model
         }
 
         $clean = preg_replace('/^(up[\.\:\s]+)/i', '', trim($name ?? ''));
-        return !empty($clean) ? $clean : 'Bpk/Ibu';
+        return Customer::formatTitleCase($clean) ?: 'Bpk/Ibu';
     }
 
     public function getResolvedCustomerPhoneAttribute(): ?string
@@ -280,7 +285,7 @@ class Rfq extends Model
 
         $clean = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', $raw);
         $clean = preg_replace('/\s*,\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $clean);
-        $clean = trim($clean);
+        $clean = Customer::formatTitleCase($clean) ?? 'Pelanggan';
 
         if (!empty($detectedType)) {
             return $clean . ', ' . $detectedType;

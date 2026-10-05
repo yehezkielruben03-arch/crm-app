@@ -221,7 +221,42 @@ class Customer extends Model
             return null;
         }
 
-        return preg_replace('/^(up[\.\:\s]+)/i', '', trim($name));
+        $clean = preg_replace('/^(up[\.\:\s]+)/i', '', trim($name));
+        return self::formatTitleCase($clean);
+    }
+
+    public static function formatTitleCase(?string $string): ?string
+    {
+        $trimmed = trim($string ?? '');
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', ' ', $trimmed);
+
+        return mb_convert_case(mb_strtolower($normalized, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+    }
+
+    public function setCompanyNameAttribute($value): void
+    {
+        $val = trim($value ?? '');
+        if ($val === '') {
+            $this->attributes['company_name'] = null;
+            return;
+        }
+
+        if (preg_match('/^(PT\.?|CV\.?)\s+(.*)$/i', $val, $m)) {
+            $prefix = strtoupper(rtrim($m[1], '.'));
+            $rest = self::formatTitleCase($m[2]);
+            $this->attributes['company_name'] = $prefix . ' ' . $rest;
+        } else {
+            $this->attributes['company_name'] = self::formatTitleCase($val);
+        }
+    }
+
+    public function setCpNameAttribute($value): void
+    {
+        $this->attributes['cp_name'] = self::formatTitleCase($value);
     }
 
     public function getFormalCompanyNameAttribute(): string
@@ -246,7 +281,7 @@ class Customer extends Model
         $clean = preg_replace('/^(PT\.?|CV\.?)\s+/i', '', $name);
         // Bersihkan suffix koma tipe jika ada
         $clean = preg_replace('/\s*,\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $clean);
-        $clean = trim($clean);
+        $clean = self::formatTitleCase($clean) ?? 'Pelanggan';
 
         $type = !empty($this->customer_type) ? $this->customer_type : $detectedType;
 

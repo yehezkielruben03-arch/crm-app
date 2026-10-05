@@ -98,7 +98,7 @@ class RoleComprehensiveTest extends TestCase
         $response = $this->actingAs($this->sales)->get('/customers/create');
         $response->assertStatus(200);
 
-        $uniqueName = 'AuditCorp' . time();
+        $uniqueName = 'Audit Corp ' . time();
         $customerData = [
             'company_name' => $uniqueName,
             'industry' => 'Automotive',

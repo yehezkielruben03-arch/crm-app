@@ -22,4 +22,9 @@ class CustomerContact extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = Customer::formatTitleCase($value);
+    }
 }
