@@ -216,37 +216,49 @@
             @endforelse
 
             @php
+                $isIncludeTax = $rfq->isIncludeTax();
                 $ppn = $grandSubtotal * 0.11;
-                $grandTotal = $grandSubtotal + $ppn;
+                $grandTotal = $isIncludeTax ? $grandSubtotal : ($grandSubtotal + $ppn);
                 $firstUnit = $rfq->items->first()?->unit ?: 'Unit';
             @endphp
 
-            <!-- TOTAL ROW -->
-            <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px; text-align: center;">{{ (int) $totalQty }} {{ $firstUnit }}</td>
-                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL</td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
-                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
-                </td>
-            </tr>
+            @if($isIncludeTax)
+                <!-- TOTAL HARGA ROW (Include PPN / Perorangan) -->
+                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                </tr>
+            @else
+                <!-- TOTAL ROW -->
+                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px; text-align: center;">{{ (int) $totalQty }} {{ $firstUnit }}</td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                </tr>
 
-            <!-- PPN ROW -->
-            <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
-                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right;">PPn</td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
-                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($ppn, 0, ',', '.') }}</td></tr></table>
-                </td>
-            </tr>
+                <!-- PPN ROW -->
+                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right;">PPn</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($ppn, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                </tr>
 
-            <!-- TOTAL HARGA ROW -->
-            <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
-                <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
-                <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
-                    <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandTotal, 0, ',', '.') }}</td></tr></table>
-                </td>
-            </tr>
+                <!-- TOTAL HARGA ROW -->
+                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 12px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 4px 6px;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandTotal, 0, ',', '.') }}</td></tr></table>
+                    </td>
+                </tr>
+            @endif
         </tbody>
     </table>
 

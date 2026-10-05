@@ -752,6 +752,7 @@ class RfqController extends Controller
 
         $validated = $request->validate([
             'notes'                    => 'nullable|string|max:3000',
+            'tax_type'                 => 'nullable|string|in:auto,include,exclude',
             'items'                    => 'required|array',
             'items.*.category'         => 'nullable|string',
             'items.*.vendor_id'        => 'nullable|exists:vendors,id',
@@ -775,8 +776,15 @@ class RfqController extends Controller
         $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request) {
+            $rfqUpdate = [];
             if ($request->has('notes')) {
-                $rfq->update(['notes' => $request->notes]);
+                $rfqUpdate['notes'] = $request->notes;
+            }
+            if ($request->has('tax_type')) {
+                $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
+            }
+            if (!empty($rfqUpdate)) {
+                $rfq->update($rfqUpdate);
             }
 
             $submittedItemIds = [];

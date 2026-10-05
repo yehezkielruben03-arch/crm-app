@@ -15,7 +15,7 @@ class Rfq extends Model
         'rfq_number', 'customer_id', 'customer_name', 'customer_code',
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
         'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
-        'po_file_path'
+        'po_file_path', 'tax_type'
     ];
 
     protected $casts = [
@@ -39,6 +39,42 @@ class Rfq extends Model
     public const PRIORITY_NORMAL = 'Normal';
     public const PRIORITY_URGENT = 'Urgent';
     public const PRIORITY_HIGH = 'High Priority';
+
+    // Format Pajak Penawaran (Tax Type)
+    public const TAX_AUTO = 'auto';
+    public const TAX_INCLUDE = 'include';
+    public const TAX_EXCLUDE = 'exclude';
+
+    public function isIncludeTax(): bool
+    {
+        if ($this->tax_type === self::TAX_INCLUDE) {
+            return true;
+        }
+
+        if ($this->tax_type === self::TAX_EXCLUDE) {
+            return false;
+        }
+
+        // Auto-detect berdasarkan tipe customer
+        $type = null;
+        if ($this->relationLoaded('customer')) {
+            $type = $this->customer?->customer_type;
+        } elseif (!empty($this->customer_id)) {
+            $type = $this->customer?->customer_type;
+        }
+
+        if (!empty($type)) {
+            return strcasecmp($type, 'Perorangan') === 0 || strcasecmp($type, 'Pribadi') === 0;
+        }
+
+        // Fallback: deteksi dari nama customer
+        $raw = trim($this->customer_name ?? '');
+        if (preg_match('/\s*,\s*(Perorangan|Pribadi)$/i', $raw) || preg_match('/\b(Perorangan|Pribadi)\b/i', $raw)) {
+            return true;
+        }
+
+        return false;
+    }
 
     public function isPendingAdmin(): bool
     {

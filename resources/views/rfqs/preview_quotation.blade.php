@@ -259,37 +259,49 @@
                     @endforelse
 
                     @php
+                        $isIncludeTax = $rfq->isIncludeTax();
                         $ppn = $grandSubtotal * 0.11;
-                        $grandTotal = $grandSubtotal + $ppn;
+                        $grandTotal = $isIncludeTax ? $grandSubtotal : ($grandSubtotal + $ppn);
                         $firstUnit = $rfq->items->first()?->unit ?: 'Unit';
                     @endphp
 
-                    <!-- 1. TOTAL -->
-                    <tr class="total-row">
-                        <td class="text-center font-bold">{{ (int) $totalQty }} {{ $firstUnit }}</td>
-                        <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL</td>
-                        <td class="font-bold">
-                            <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
-                        </td>
-                    </tr>
+                    @if($isIncludeTax)
+                        <!-- TOTAL HARGA (Include PPN / Perorangan) -->
+                        <tr class="total-row">
+                            <td></td>
+                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
+                            <td class="font-bold">
+                                <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
+                            </td>
+                        </tr>
+                    @else
+                        <!-- 1. TOTAL -->
+                        <tr class="total-row">
+                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $firstUnit }}</td>
+                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL</td>
+                            <td class="font-bold">
+                                <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
+                            </td>
+                        </tr>
 
-                    <!-- 2. PPn -->
-                    <tr class="total-row" style="border-top: none;">
-                        <td></td>
-                        <td colspan="2" class="text-right pr-4 font-bold">PPn</td>
-                        <td class="font-bold">
-                            <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($ppn, 0, ',', '.') }}</span></div>
-                        </td>
-                    </tr>
+                        <!-- 2. PPn -->
+                        <tr class="total-row" style="border-top: none;">
+                            <td></td>
+                            <td colspan="2" class="text-right pr-4 font-bold">PPn</td>
+                            <td class="font-bold">
+                                <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($ppn, 0, ',', '.') }}</span></div>
+                            </td>
+                        </tr>
 
-                    <!-- 3. TOTAL HARGA -->
-                    <tr class="total-row" style="border-top: none;">
-                        <td></td>
-                        <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
-                        <td class="font-bold">
-                            <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandTotal, 0, ',', '.') }}</span></div>
-                        </td>
-                    </tr>
+                        <!-- 3. TOTAL HARGA -->
+                        <tr class="total-row" style="border-top: none;">
+                            <td></td>
+                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
+                            <td class="font-bold">
+                                <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandTotal, 0, ',', '.') }}</span></div>
+                            </td>
+                        </tr>
+                    @endif
                 </tbody>
             </table>
 

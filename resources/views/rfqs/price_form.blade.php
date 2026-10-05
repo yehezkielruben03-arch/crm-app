@@ -543,6 +543,57 @@
                 </div>
             </div>
 
+            {{-- Format Pajak & Tampilan Quotation (PPN) --}}
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs mb-6">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <label class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+                        </svg>
+                        Format Pajak &amp; Tampilan Quotation (PPN)
+                    </label>
+                    @php
+                        $isAutoInclude = $rfq->isIncludeTax();
+                        $currentTaxType = old('tax_type', $rfq->tax_type ?? 'auto');
+                    @endphp
+                    <span class="text-xs text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+                        Tipe Klien: {{ $rfq->customer?->customer_type ?? 'Otomatis' }} &bull; Default: {{ $isAutoInclude ? 'Include PPN' : 'Rincian PPN 11%' }}
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label class="flex items-start p-3.5 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50 bg-slate-50/40">
+                        <input type="radio" name="tax_type" value="auto" class="mt-0.5 text-blue-600 focus:ring-blue-500" {{ $currentTaxType === 'auto' ? 'checked' : '' }}>
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-slate-800">Otomatis (Sesuai Klien)</span>
+                            <span class="block text-[11px] text-slate-500 mt-0.5 leading-snug">
+                                Perorangan otomatis Include PPN (1 baris), PT/CV rincian PPN 11% (3 baris).
+                            </span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start p-3.5 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50 bg-slate-50/40">
+                        <input type="radio" name="tax_type" value="include" class="mt-0.5 text-blue-600 focus:ring-blue-500" {{ $currentTaxType === 'include' ? 'checked' : '' }}>
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-slate-800">Include PPN (Pribadi / Perorangan)</span>
+                            <span class="block text-[11px] text-slate-500 mt-0.5 leading-snug">
+                                Format 1 baris TOTAL HARGA. Baris PPN 11% disembunyikan agar harga tidak tampak besar.
+                            </span>
+                        </div>
+                    </label>
+
+                    <label class="flex items-start p-3.5 rounded-xl border border-slate-200 cursor-pointer transition hover:bg-slate-50 bg-slate-50/40">
+                        <input type="radio" name="tax_type" value="exclude" class="mt-0.5 text-blue-600 focus:ring-blue-500" {{ $currentTaxType === 'exclude' ? 'checked' : '' }}>
+                        <div class="ml-3">
+                            <span class="block text-xs font-bold text-slate-800">Rincian PPN 11% (PT / CV / B2B)</span>
+                            <span class="block text-[11px] text-slate-500 mt-0.5 leading-snug">
+                                Format 3 baris resmi: TOTAL (DPP), PPn 11%, dan TOTAL HARGA (Grand Total).
+                            </span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             {{-- Sticky Executive Grand Total Summary Bar --}}
             <div class="sticky bottom-4 z-20 bg-white/95 backdrop-blur-md p-4 rounded-2xl border border-slate-200/90 shadow-xl flex flex-col md:flex-row items-center justify-between gap-4 mt-6">
                 <div class="flex flex-wrap items-center gap-6 divide-y md:divide-y-0 md:divide-x divide-slate-200 w-full md:w-auto">
