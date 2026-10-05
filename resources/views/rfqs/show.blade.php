@@ -507,20 +507,27 @@
                             @if(isset($revisionCount) && $revisionCount > 0)
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
                                     <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                                    Keterangan HPP: Revisi ke-{{ $revisionCount }}
+                                    Keterangan HPP: Revisi ke-{{ $revisionCount }} (Approved)
                                 </span>
                                 <span class="text-xs text-slate-500">
-                                    Terakhir diperbarui: <strong class="text-slate-700">{{ $latestHistory?->created_at?->format('d M Y, H:i') }} WIB</strong>
-                                    @if($latestHistory?->creator)
-                                        oleh <strong class="text-slate-700">{{ $latestHistory->creator->name }}</strong>
-                                    @endif
+                                    Disetujui: <strong class="text-slate-700">{{ $revisionDate ?? ($latestHistory?->created_at?->format('d M Y, H:i') . ' WIB') }}</strong>
+                                </span>
+                            @elseif(!empty($isApproved))
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                    Keterangan HPP: Draf Awal (Approved)
+                                </span>
+                                <span class="text-xs text-slate-500">
+                                    Disetujui: <strong class="text-slate-700">{{ $revisionDate ?? ($latestHistory?->created_at?->format('d M Y, H:i') . ' WIB') }}</strong>
                                 </span>
                             @else
                                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-200 text-slate-700">
-                                    Keterangan HPP: Draf Awal (Versi 1)
+                                    Keterangan HPP: Draf Awal (Versi {{ $latestHistory?->version ?? 1 }})
                                 </span>
                                 <span class="text-xs text-slate-500">
                                     Dihitung: <strong class="text-slate-700">{{ $latestHistory?->created_at?->format('d M Y, H:i') }} WIB</strong>
+                                    @if($latestHistory?->creator)
+                                        oleh <strong class="text-slate-700">{{ $latestHistory->creator->name }}</strong>
+                                    @endif
                                 </span>
                             @endif
                         </div>
@@ -537,14 +544,17 @@
                     <div x-show="showHistory" x-collapse x-cloak class="mt-4 pt-4 border-t border-slate-200 space-y-4">
                         <p class="text-xs text-slate-500 mb-2">Audit trail rekam jejak setiap kali HPP atau margin disesuaikan:</p>
                         @foreach($priceHistories as $history)
+                        @php
+                            $approvedOrder = $priceHistories->where('version', '<=', $history->version)->whereNotNull('approved_at')->count();
+                        @endphp
                         <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
                             <div class="flex flex-wrap justify-between items-center mb-2.5 pb-2 border-b border-slate-100 gap-2">
                                 <div class="flex items-center gap-2">
-                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold {{ $history->approved_at ? ($history->version > 1 ? 'bg-amber-600 text-white' : 'bg-emerald-700 text-white') : 'bg-slate-700 text-white' }}">
+                                    <span class="px-2 py-0.5 rounded text-[11px] font-bold {{ $history->approved_at ? ($approvedOrder > 1 ? 'bg-amber-600 text-white' : 'bg-emerald-700 text-white') : 'bg-slate-700 text-white' }}">
                                         @if($history->approved_at)
-                                            {{ $history->version > 1 ? 'Revisi ke-' . ($history->version - 1) . ' (Approved)' : 'Draf Awal (Approved)' }}
+                                            {{ $approvedOrder > 1 ? 'Revisi ke-' . ($approvedOrder - 1) . ' (Approved)' : 'Draf Awal (Approved)' }}
                                         @else
-                                            {{ $history->version > 1 ? 'Draf Penyesuaian ' . ($history->version - 1) . ' (Menunggu Approval)' : 'Draf Awal (Menunggu Approval)' }}
+                                            Draf Penyesuaian (Versi {{ $history->version }}) - Menunggu Approval
                                         @endif
                                     </span>
                                     <span class="text-xs text-slate-500 font-medium">{{ $history->created_at->format('d M Y, H:i') }} WIB</span>

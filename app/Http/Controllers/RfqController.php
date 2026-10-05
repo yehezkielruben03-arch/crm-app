@@ -416,11 +416,9 @@ class RfqController extends Controller
             Rfq::STATUS_GOAL
         ]);
 
-        $maxVersion = $priceHistories->max('version') ?? 0;
-        $revisionCount = ($isApproved && $maxVersion > 1) ? ($maxVersion - 1) : 0;
-        $latestHistory = $priceHistories->first();
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
 
-        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'latestHistory', 'isApproved'));
+        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'revisionDate', 'latestHistory', 'isApproved'));
     }
 
     public function edit(Rfq $rfq)
@@ -846,7 +844,9 @@ class RfqController extends Controller
                 ];
 
                 if (\Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
-                    $historyPayload['approved_at'] = null;
+                    $historyPayload['approved_at'] = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
+                        ? now()
+                        : null;
                 }
 
                 \App\Models\RfqPriceHistory::create($historyPayload);
@@ -933,8 +933,10 @@ class RfqController extends Controller
         $latestPriceHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')
             ->first();
-        if ($latestPriceHistory && $latestPriceHistory->approved_at === null) {
-            $latestPriceHistory->update(['approved_at' => now()]);
+        if ($latestPriceHistory && \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
+            if ($latestPriceHistory->approved_at === null) {
+                $latestPriceHistory->update(['approved_at' => now()]);
+            }
         }
 
         if ($rfq->sales_id) {
@@ -1038,12 +1040,7 @@ class RfqController extends Controller
             ->orderByDesc('version')
             ->get();
 
-        $maxVersion = $priceHistories->max('version') ?? 0;
-        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
-        $latestHistory = $priceHistories->first();
-        $revisionDate = $latestHistory?->approved_at 
-            ? $latestHistory->approved_at->format('d M Y') 
-            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'));
 
@@ -1086,12 +1083,7 @@ class RfqController extends Controller
             ->orderByDesc('version')
             ->get();
 
-        $maxVersion = $priceHistories->max('version') ?? 0;
-        $revisionCount = $maxVersion > 1 ? ($maxVersion - 1) : 0;
-        $latestHistory = $priceHistories->first();
-        $revisionDate = $latestHistory?->approved_at 
-            ? $latestHistory->approved_at->format('d M Y') 
-            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
 
         return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate'));
     }
@@ -1404,6 +1396,35 @@ class RfqController extends Controller
         }
 
         return Storage::disk('public')->response($path);
+    }
+
+    /**
+     * Menghitung nomor revisi resmi penawaran untuk tampilan web dan dokumen PDF.
+     * Aturan: Revisi PDF hanya dihitung jika dokumen telah di-approve Leader lebih dari 1 kali.
+     * Draf sebelum approval pertama tetap menjadi penawaran Original (Rev 0).
+     */
+    private function calculateQuotationRevision(Rfq $rfq, $priceHistories, bool $isApproved): array
+    {
+        $hasApprovedCol = \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at');
+        
+        $approvedHistories = $hasApprovedCol
+            ? $priceHistories->filter(fn($h) => !empty($h->approved_at))->values()
+            : collect();
+
+        $approvedCount = $approvedHistories->count();
+
+        // Dokumen penawaran resmi hanya bertambah nomor revisinya jika pernah disetujui lebih dari 1 kali
+        $revisionCount = ($isApproved && $approvedCount > 1) ? ($approvedCount - 1) : 0;
+
+        $latestApproved = $approvedHistories->sortByDesc('approved_at')->first();
+        $latestHistory = $priceHistories->sortByDesc('version')->first();
+
+        // Tanggal revisi diambil dari tanggal approval resmi revisi tersebut
+        $revisionDate = $latestApproved?->approved_at
+            ? $latestApproved->approved_at->format('d M Y')
+            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
+
+        return [$revisionCount, $revisionDate, $latestHistory];
     }
 
     private function authUser(): User
