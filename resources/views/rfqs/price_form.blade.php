@@ -162,7 +162,7 @@
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-end">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-end">
                         <div>
                             <label class="text-[11px] font-bold text-slate-700 mb-1 block">
                                 Durasi Pengerjaan <span class="text-rose-500">*</span>
@@ -202,16 +202,34 @@
                                        oninput="updateMpCalcSummary()">
                             </div>
                         </div>
+
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-[11px] font-bold text-slate-700 block">Mobdemob (Mobilisasi Logistik)</label>
+                                <span class="text-[10px] text-slate-500 font-normal">(antar alat &amp; tim)</span>
+                            </div>
+                            <div class="relative rounded-xl shadow-2xs">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                                <input type="text" inputmode="numeric" id="calc-mobdemob-rate"
+                                       value="0"
+                                       class="w-full pl-9 pr-3 text-xs font-bold text-slate-800 border-slate-300 rounded-xl rupiah-input focus:border-amber-500 focus:ring-amber-500"
+                                       oninput="updateMpCalcSummary()" placeholder="0">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mt-4 pt-3 border-t border-amber-200/80 flex flex-wrap items-center justify-between gap-3">
-                        <div class="flex flex-wrap items-center gap-4 text-xs">
+                        <div class="flex flex-wrap items-center gap-3 text-xs">
                             <span class="text-slate-600">
-                                Est. MP Team Pedia: <strong class="text-amber-900 font-mono" id="summary-mp-total">Rp {{ number_format($mpPediaRate, 0, ',', '.') }}</strong>
+                                MP: <strong class="text-amber-900 font-mono" id="summary-mp-total">Rp {{ number_format($mpPediaRate, 0, ',', '.') }}</strong>
                             </span>
                             <span class="text-slate-300">|</span>
                             <span class="text-slate-600">
-                                Est. Akomodasi: <strong class="text-amber-900 font-mono" id="summary-transport-total">Rp 207.900</strong>
+                                Akomodasi: <strong class="text-amber-900 font-mono" id="summary-transport-total">Rp 207.900</strong>
+                            </span>
+                            <span class="text-slate-300">|</span>
+                            <span class="text-slate-600">
+                                Mobdemob: <strong class="text-amber-900 font-mono" id="summary-mobdemob-total">Rp 0</strong>
                             </span>
                         </div>
 
@@ -219,16 +237,21 @@
                             <button type="button" onclick="applyMpItemToTable('{{ $blockKey }}')"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                <span>+ Terapkan MP Pedia</span>
+                                <span>+ MP Pedia</span>
                             </button>
                             <button type="button" onclick="applyTransportItemToTable('{{ $blockKey }}')"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                <span>+ Terapkan Akomodasi</span>
+                                <span>+ Akomodasi</span>
                             </button>
-                            <button type="button" onclick="applyBothMpAndTransport('{{ $blockKey }}')"
+                            <button type="button" onclick="applyMobdemobItemToTable('{{ $blockKey }}')"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 border border-amber-300 rounded-xl transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ Mobdemob</span>
+                            </button>
+                            <button type="button" onclick="applyAllLaborAndMobdemob('{{ $blockKey }}')"
                                     class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition shadow-xs">
-                                <span>⚡ Terapkan Keduanya</span>
+                                <span>⚡ Terapkan Semua</span>
                             </button>
                         </div>
                     </div>
@@ -266,7 +289,7 @@
                                                 {{ $categoryName }}
                                             </span>
                                         @endif
-                                        @if($item->isInternalLaborOrAccommodation())
+                                        @if($item->isHiddenFromQuotation())
                                             <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                 Internal HPP (Dilebur di PDF)
                                             </span>
@@ -278,7 +301,7 @@
                                 <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 cursor-pointer shadow-2xs text-xs font-semibold text-indigo-800 transition select-none">
                                     <input type="checkbox" name="items[{{ $item->id }}][is_bundle]" value="1" id="bundle-toggle-{{ $item->id }}"
                                            class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
-                                           {{ ($item->is_bundle || $item->components->isNotEmpty()) ? 'checked' : '' }}
+                                           {{ ($item->is_bundle || $item->components->isNotEmpty() || str_contains(strtolower($item->product_name ?? ''), 'rakitan')) ? 'checked' : '' }}
                                            onchange="toggleBundlePanel('{{ $item->id }}')">
                                     <span>Paket Rakitan</span>
                                 </label>
@@ -559,7 +582,7 @@
                         </div>
 
                         {{-- Panel Komponen PC Rakitan (Hardware Bundling) --}}
-                        <div id="bundle-panel-{{ $item->id }}" class="{{ ($item->is_bundle || $item->components->isNotEmpty()) ? '' : 'hidden ' }}px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
+                        <div id="bundle-panel-{{ $item->id }}" class="{{ ($item->is_bundle || $item->components->isNotEmpty() || str_contains(strtolower($item->product_name ?? ''), 'rakitan')) ? '' : 'hidden ' }}px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
                             <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2.5 border-b border-slate-200">
                                 <div class="flex items-center gap-2">
                                     <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs">
@@ -1285,12 +1308,16 @@
             const days = parseInt(document.getElementById('calc-mp-days')?.value) || 1;
             const mpRate = parseRupiah(document.getElementById('calc-mp-rate')?.value) || 0;
             const trRate = parseRupiah(document.getElementById('calc-transport-rate')?.value) || 0;
+            const mobRate = parseRupiah(document.getElementById('calc-mobdemob-rate')?.value) || 0;
 
             const mpEl = document.getElementById('summary-mp-total');
             if (mpEl) mpEl.innerText = 'Rp ' + formatRupiah(days * mpRate);
 
             const trEl = document.getElementById('summary-transport-total');
             if (trEl) trEl.innerText = 'Rp ' + formatRupiah(days * trRate);
+
+            const mobEl = document.getElementById('summary-mobdemob-total');
+            if (mobEl) mobEl.innerText = 'Rp ' + formatRupiah(mobRate);
         }
 
         function applyMpItemToTable(blockKey) {
@@ -1419,9 +1446,85 @@
             }
         }
 
+        function applyMobdemobItemToTable(blockKey) {
+            const rate = parseRupiah(document.getElementById('calc-mobdemob-rate')?.value) || 0;
+            const block = document.getElementById('items-container-' + blockKey);
+            if (!block) return;
+
+            if (rate <= 0) {
+                alert('Silakan isi nominal biaya Mobdemob terlebih dahulu!');
+                return;
+            }
+
+            let existingItemCard = null;
+            block.querySelectorAll('.item-card-row').forEach(card => {
+                const nameInput = card.querySelector('input[name$="[product_name]"]');
+                if (nameInput && (nameInput.value.toLowerCase().includes('mobdemob') || nameInput.value.toLowerCase().includes('mobilisasi'))) {
+                    existingItemCard = card;
+                }
+            });
+
+            const itemName = 'Mobdemob (Mobilisasi & Demobilisasi)';
+            if (existingItemCard) {
+                const itemId = existingItemCard.id.replace('card-item-', '');
+                const nameInput = existingItemCard.querySelector('input[name$="[product_name]"]');
+                if (nameInput) {
+                    nameInput.value = itemName;
+                    const displayName = document.getElementById('display-name-' + itemId);
+                    if (displayName) displayName.innerText = itemName;
+                }
+                const qtyInput = document.getElementById('qty-' + itemId);
+                if (qtyInput) {
+                    qtyInput.value = 1;
+                    const badgeQty = document.getElementById('badge-qty-' + itemId);
+                    if (badgeQty) badgeQty.innerText = 1;
+                }
+                const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
+                if (unitInput) unitInput.value = 'Lot';
+                const hppInput = document.getElementById('hpp-' + itemId);
+                if (hppInput) hppInput.value = formatRupiah(rate);
+                const marginType = document.getElementById('margin-type-' + itemId);
+                if (marginType) marginType.value = 'nominal';
+                const marginVal = document.getElementById('margin-val-' + itemId);
+                if (marginVal) marginVal.value = '0';
+                const ceilingInput = document.getElementById('ceiling-' + itemId);
+                if (ceilingInput) ceilingInput.value = '1';
+                const vendorInput = document.getElementById('vendor-input-' + itemId);
+                if (vendorInput) vendorInput.value = 'Operasional Pedia';
+
+                calculateRow(itemId);
+                alert(`Item "${itemName}" berhasil diperbarui di tabel!`);
+            } else {
+                addNewPriceItem('Jasa Pemasangan', blockKey, {
+                    product_name: itemName,
+                    vendor_name: 'Operasional Pedia',
+                    qty: 1,
+                    unit: 'Lot',
+                    description: 'Biaya logistik, peralatan kerja, mobilisasi teknisi ke lokasi dan pemulangan kembali (demobilisasi)',
+                    hpp: rate,
+                    biaya_kirim: 0,
+                    ongkir_pedia: 0,
+                    fee_eu: 0,
+                    margin_type: 'nominal',
+                    margin_value: 0,
+                    custom_ceiling: 1
+                });
+                alert(`Item "${itemName}" berhasil ditambahkan ke tabel!`);
+            }
+        }
+
         function applyBothMpAndTransport(blockKey) {
             applyMpItemToTable(blockKey);
             applyTransportItemToTable(blockKey);
+        }
+
+        function applyAllLaborAndMobdemob(blockKey) {
+            applyMpItemToTable(blockKey);
+            applyTransportItemToTable(blockKey);
+            const mobRate = parseRupiah(document.getElementById('calc-mobdemob-rate')?.value) || 0;
+            if (mobRate > 0) {
+                applyMobdemobItemToTable(blockKey);
+            }
         }
 
         function calculateAndApplyMiscellaneousMaterial(blockKey) {

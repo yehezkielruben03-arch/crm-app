@@ -156,7 +156,19 @@ class RfqItem extends Model
 
     public function isBundle(): bool
     {
-        return (bool) $this->is_bundle || ($this->parent_id === null && $this->components()->exists());
+        if ((bool) $this->is_bundle) {
+            return true;
+        }
+        if (!empty($this->parent_id)) {
+            return false;
+        }
+        if ($this->relationLoaded('components')) {
+            return $this->components->isNotEmpty();
+        }
+        if (!$this->exists) {
+            return false;
+        }
+        return $this->components()->exists();
     }
 
     public function isComponent(): bool
@@ -192,7 +204,7 @@ class RfqItem extends Model
         });
     }
 
-    // Menentukan apakah item merupakan tenaga kerja teknisi atau akomodasi internal Pedia
+    // Menentukan apakah item merupakan tenaga kerja teknisi, akomodasi, atau mobdemob internal Pedia
     // yang tidak ditampilkan langsung di Quotation PDF klien
     public function isInternalLaborOrAccommodation(): bool
     {
@@ -212,11 +224,34 @@ class RfqItem extends Model
             return true;
         }
 
-        if (str_contains($vendor, 'mainpower pedia') || str_contains($vendor, 'operasional pedia')) {
+        if (str_contains($name, 'mobdemob') 
+            || str_contains($name, 'mob demob') 
+            || str_contains($name, 'mob-demob') 
+            || str_contains($name, 'mobilisasi') 
+            || str_contains($name, 'demobilisasi')) {
+            return true;
+        }
+
+        if (str_contains($vendor, 'mainpower pedia') 
+            || str_contains($vendor, 'operasional pedia') 
+            || str_contains($vendor, 'mobdemob')) {
             return true;
         }
 
         return false;
+    }
+
+    // Menentukan apakah item merupakan material bantu atau miscellaneous
+    public function isMiscellaneousMaterial(): bool
+    {
+        $name = strtolower(trim($this->product_name ?? ''));
+        return str_contains($name, 'miscelanious') || str_contains($name, 'miscellaneous');
+    }
+
+    // Menentukan apakah item disembunyikan dari tabel Quotation PDF klien
+    public function isHiddenFromQuotation(): bool
+    {
+        return $this->isInternalLaborOrAccommodation() || $this->isMiscellaneousMaterial();
     }
 
     /**

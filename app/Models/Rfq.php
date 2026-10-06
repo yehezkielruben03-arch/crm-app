@@ -358,7 +358,8 @@ class Rfq extends Model
         }
 
         $visibleItems = [];
-        $internalTotal = 0.0;
+        $internalLaborTotal = 0.0;
+        $internalMiscTotal = 0.0;
 
         foreach ($items as $item) {
             // Komponen anak di dalam paket rakitan tidak ditampilkan sebagai baris mandiri
@@ -369,7 +370,11 @@ class Rfq extends Model
             if ($item->isInternalLaborOrAccommodation()) {
                 $unitPrice = (float) $item->price_after_margin;
                 $rowTotal = $unitPrice * (float) $item->qty;
-                $internalTotal += $rowTotal;
+                $internalLaborTotal += $rowTotal;
+            } elseif ($item->isMiscellaneousMaterial()) {
+                $unitPrice = (float) $item->price_after_margin;
+                $rowTotal = $unitPrice * (float) $item->qty;
+                $internalMiscTotal += $rowTotal;
             } else {
                 $visibleItems[] = $item;
             }
@@ -381,7 +386,9 @@ class Rfq extends Model
 
             if ($isBundle && $comps->isNotEmpty()) {
                 $compSellingTotal = (float) $comps->sum(function ($c) {
-                    return ((float) $c->price_after_margin) * ((float) ($c->qty ?: 1));
+                    $cPrice = (float) $c->price_after_margin;
+                    $cQty = (float) ($c->qty ?: 1);
+                    return $cPrice * $cQty;
                 });
                 $unitPrice = $compSellingTotal;
                 $compList = $comps->map(function ($c) {
@@ -417,30 +424,65 @@ class Rfq extends Model
             ];
         };
 
-        if ($internalTotal <= 0) {
+        if ($internalLaborTotal <= 0 && $internalMiscTotal <= 0) {
             return collect($visibleItems)->map(fn ($it) => $mapItem($it, 0));
         }
 
-        $absorbedIdx = null;
-        foreach ($visibleItems as $idx => $it) {
-            $cat = RfqItem::normalizeCategory($it->category);
-            if ($cat === RfqItem::CATEGORY_JASA) {
-                $absorbedIdx = $idx;
-                break;
+        // Cari item penampung untuk material miscellaneous
+        $absorbedMaterialIdx = null;
+        if ($internalMiscTotal > 0) {
+            foreach ($visibleItems as $idx => $it) {
+                $cat = RfqItem::normalizeCategory($it->category);
+                $name = strtolower($it->product_name ?? '');
+                if ($cat === RfqItem::CATEGORY_MATERIAL || str_contains($name, 'material') || str_contains($name, 'kabel') || str_contains($name, 'cable') || str_contains($name, 'pipa')) {
+                    $absorbedMaterialIdx = $idx;
+                    break;
+                }
+            }
+            // Jika tidak ada item material support khusus, leburkan ke penampung jasa
+            if ($absorbedMaterialIdx === null) {
+                $internalLaborTotal += $internalMiscTotal;
+                $internalMiscTotal = 0.0;
+            }
+        }
+
+        // Cari item penampung untuk labor, akomodasi, dan mobdemob
+        $absorbedLaborIdx = null;
+        if ($internalLaborTotal > 0) {
+            foreach ($visibleItems as $idx => $it) {
+                $cat = RfqItem::normalizeCategory($it->category);
+                $name = strtolower($it->product_name ?? '');
+                if ($cat === RfqItem::CATEGORY_JASA || str_contains($name, 'jasa') || str_contains($name, 'instalasi') || str_contains($name, 'installation') || str_contains($name, 'setting')) {
+                    $absorbedLaborIdx = $idx;
+                    break;
+                }
+            }
+        }
+
+        $extraMap = array_fill(0, count($visibleItems), 0.0);
+        if ($absorbedMaterialIdx !== null && $internalMiscTotal > 0) {
+            $extraMap[$absorbedMaterialIdx] += $internalMiscTotal;
+        }
+
+        $hasSyntheticService = false;
+        if ($internalLaborTotal > 0) {
+            if ($absorbedLaborIdx !== null) {
+                $extraMap[$absorbedLaborIdx] += $internalLaborTotal;
+            } elseif (!empty($visibleItems) && $this->type === 'Non Projek') {
+                // Pada Non Projek tanpa baris jasa terpisah, leburkan ke item pertama
+                $extraMap[0] += $internalLaborTotal;
+            } else {
+                $hasSyntheticService = true;
             }
         }
 
         $result = [];
-        if ($absorbedIdx !== null) {
-            foreach ($visibleItems as $idx => $it) {
-                $extra = ($idx === $absorbedIdx) ? $internalTotal : 0;
-                $result[] = $mapItem($it, $extra);
-            }
-        } else {
-            foreach ($visibleItems as $it) {
-                $result[] = $mapItem($it, 0);
-            }
+        foreach ($visibleItems as $idx => $it) {
+            $extra = $extraMap[$idx] ?? 0.0;
+            $result[] = $mapItem($it, $extra);
+        }
 
+        if ($hasSyntheticService) {
             $result[] = (object) [
                 'id' => 'absorbed-service',
                 'qty' => 1,
@@ -448,8 +490,8 @@ class Rfq extends Model
                 'product_name' => 'Jasa Instalasi & Setting Operasional',
                 'description' => 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.',
                 'detail_item' => null,
-                'unit_price' => $internalTotal,
-                'row_total' => $internalTotal,
+                'unit_price' => $internalLaborTotal,
+                'row_total' => $internalLaborTotal,
                 'category' => RfqItem::CATEGORY_JASA,
                 'is_absorbed' => true,
                 'is_bundle' => false,

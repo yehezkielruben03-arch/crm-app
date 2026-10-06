@@ -340,6 +340,11 @@
                                                     Paket PC Rakitan ({{ $item->components->count() }} part)
                                                 </span>
                                             @endif
+                                            @if($item->isHiddenFromQuotation())
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                    Internal HPP (Dilebur di Penawaran)
+                                                </span>
+                                            @endif
                                         </div>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                         @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
@@ -453,6 +458,11 @@
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                                 <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                                                 Paket PC Rakitan ({{ $item->components->count() }} part)
+                                            </span>
+                                        @endif
+                                        @if($item->isHiddenFromQuotation())
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                Internal HPP (Dilebur di Penawaran)
                                             </span>
                                         @endif
                                     </div>
