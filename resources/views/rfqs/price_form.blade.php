@@ -596,17 +596,29 @@
                                 <div class="flex flex-wrap items-center gap-2">
                                     <button type="button" onclick="loadComponentsFromSalesSpec('{{ $item->id }}')"
                                         class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition shadow-2xs"
-                                        title="Ekstrak butir komponen langsung dari catatan atau deskripsi spesifikasi Sales">
+                                        title="Ekstrak komponen otomatis dari catatan atau deskripsi Sales (termasuk deteksi intent spek tinggi)">
                                         <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                         <span>Ekstrak dari Catatan Sales</span>
                                     </button>
-                                    <button type="button" onclick="loadStandardPcPreset('{{ $item->id }}')"
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg transition shadow-2xs">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                        <span>Muat Template 8 Part Standar</span>
-                                    </button>
+                                    <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
+                                        <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'standar')"
+                                            class="px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
+                                            title="Muat preset PC Standar / Office (Core i5)">
+                                            Spek Standar
+                                        </button>
+                                        <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'tinggi')"
+                                            class="px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat preset PC Spek Tinggi / Gaming / Desain (Core i7 + RTX)">
+                                            Spek Tinggi (i7 + RTX)
+                                        </button>
+                                        <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'workstation')"
+                                            class="px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat preset PC Workstation / Rendering / AI (Core i9)">
+                                            Workstation (i9)
+                                        </button>
+                                    </div>
                                     <button type="button" onclick="addBundleComponent('{{ $item->id }}')"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 rounded-lg transition shadow-2xs">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-2xs">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                         <span>Tambah Part</span>
                                     </button>
@@ -1861,6 +1873,76 @@
             }
         }
 
+        const PC_PRESETS = {
+            standar: [
+                { product_name: 'Processor Intel Core i5-12400 (6 Core, 12 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Motherboard MSI PRO B760M-A WIFI DDR4', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'RAM Team Elite Plus DDR4 16GB (2x8GB) 3200MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'SSD Storage Samsung 990 EVO PLUS NVMe 1TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Casing GameMax Spark Air M-ATX', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Power Supply Antec ATOM B750 750W 80+ Bronze', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'CPU Cooler Deepcool AK400 Fan 12CM', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Monitor MSI Pro MP2412 23.8 FHD 100Hz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Keyboard & Mouse Vention USB Wired Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+            ],
+            tinggi: [
+                { product_name: 'Processor Intel Core i7-14700 (20 Core, 28 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Motherboard MSI B760 GAMING PLUS WIFI DDR5', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'RAM Kingston Fury Beast DDR5 32GB (2x16GB) 6000MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'VGA ZOTAC Gaming GeForce RTX 4070 Twin Edge 12GB GDDR6X', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 1TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'AIO Liquid Cooler Deepcool LT520 240mm ARGB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Power Supply Corsair RM750e 750W 80+ Gold Fully Modular', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Casing NZXT H5 Flow Tempered Glass Mid Tower', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Monitor LG UltraGear 27GR75Q 27 Inch IPS QHD 165Hz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Keyboard Mechanical & Gaming Mouse Logitech Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+            ],
+            workstation: [
+                { product_name: 'Processor Intel Core i9-14900K (24 Core, 32 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Motherboard ASUS ROG STRIX Z790-F GAMING WIFI II DDR5', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'RAM Corsair Vengeance DDR5 64GB (2x32GB) 6000MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'VGA ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 2TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'AIO Liquid Cooler Deepcool LT720 360mm ARGB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Power Supply Seasonic Focus GX-850 850W 80+ Gold Fully Modular', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Casing Fractal Design Meshify 2 Black Solid ATX', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Monitor ASUS ProArt PA278CV 27 Inch IPS QHD 100% sRGB Calibrated', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
+                { product_name: 'Logitech MX Keys & MX Master 3S Wireless Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+            ]
+        };
+
+        function isHardwareLine(text) {
+            if (!text || text.length < 3) return false;
+            const lower = text.toLowerCase();
+
+            const generalPhrases = [
+                'minta pc rakitan', 'pc rakitan spek tinggi', 'butuh pc rakitan',
+                'pc spek tinggi', 'komputer spek tinggi', 'spek tinggi',
+                'spesifikasi pc', 'buatkan penawaran', 'tolong buatkan',
+                'rakit pc gaming', 'rakit pc', 'paket pc'
+            ];
+            for (let phrase of generalPhrases) {
+                if (lower === phrase || lower.startsWith(phrase + ' untuk') || lower.startsWith(phrase + ' dong') || lower.startsWith(phrase + ' ya')) {
+                    return false;
+                }
+            }
+
+            const hwKeywords = [
+                'processor', 'intel', 'core i', 'ryzen', 'amd', 'cpu',
+                'motherboard', 'mainboard', 'mobo', 'b760', 'z790', 'b650', 'x670', 'h610',
+                'ram', 'memory', 'ddr4', 'ddr5', 'sodimm',
+                'ssd', 'nvme', 'm.2', 'sata', 'hdd', 'harddisk', 'storage',
+                'vga', 'geforce', 'rtx', 'gtx', 'radeon', 'gpu', 'graphic',
+                'casing', 'case', 'chassis', 'tower',
+                'psu', 'power supply', 'bronze', 'gold', 'watt',
+                'cooler', 'cooling', 'fan', 'heatsink', 'liquid', 'aio',
+                'monitor', 'display', 'screen', 'ips',
+                'keyboard', 'mouse', 'headset', 'webcam', 'speaker', 'ups'
+            ];
+
+            return hwKeywords.some(kw => lower.includes(kw));
+        }
+
         function extractPartsFromText(rawText) {
             if (!rawText) return [];
             const lines = rawText.split(/\r?\n/);
@@ -1874,11 +1956,24 @@
                     && !lower.startsWith('catatan') 
                     && !lower.startsWith('spesifikasi') 
                     && !lower.startsWith('harga dapat') 
-                    && !lower.startsWith('mohon')) {
+                    && !lower.startsWith('mohon')
+                    && isHardwareLine(clean)) {
                     parts.push(clean);
                 }
             });
             return parts;
+        }
+
+        function detectSpecIntent(text) {
+            if (!text) return 'standar';
+            const lower = text.toLowerCase();
+            if (lower.includes('workstation') || lower.includes('ai') || lower.includes('deep learning') || lower.includes('i9') || lower.includes('ryzen 9')) {
+                return 'workstation';
+            }
+            if (lower.includes('tinggi') || lower.includes('high') || lower.includes('gaming') || lower.includes('desain') || lower.includes('render') || lower.includes('rtx') || lower.includes('i7') || lower.includes('ryzen 7')) {
+                return 'tinggi';
+            }
+            return 'standar';
         }
 
         function loadComponentsFromSalesSpec(itemId, auto = false) {
@@ -1889,15 +1984,15 @@
             const rfqNotes = document.getElementById('rfq-notes')?.value || '';
             const sourceText = descText.trim() || rfqNotes.trim();
 
+            const detectedTier = detectSpecIntent(sourceText);
             const extractedParts = extractPartsFromText(sourceText);
 
             if (extractedParts.length === 0) {
+                const tierLabel = detectedTier === 'tinggi' ? 'Spek Tinggi (Core i7 + RTX)' : (detectedTier === 'workstation' ? 'Workstation (Core i9)' : 'Standar (Core i5)');
                 if (!auto) {
-                    alert('Tidak ditemukan butir spesifikasi di deskripsi atau catatan item ini. Memuat template 8 part standar.');
-                    loadStandardPcPreset(itemId);
-                } else {
-                    loadStandardPcPreset(itemId, true);
+                    alert(`Tidak ditemukan butir rincian part spesifik di catatan Sales, namun terdeteksi kebutuhan PC ${tierLabel}. Otomatis memuat template ${tierLabel}.`);
                 }
+                loadPcPreset(itemId, detectedTier, auto);
                 return;
             }
 
@@ -1922,30 +2017,32 @@
             }
         }
 
-        function loadStandardPcPreset(itemId, auto = false) {
+        function loadPcPreset(itemId, tier = 'standar', auto = false) {
             const tbody = document.getElementById('bundle-components-list-' + itemId);
             if (!tbody) return;
 
+            const tierNames = {
+                standar: 'Standar (Core i5)',
+                tinggi: 'Spek Tinggi (Core i7 + RTX)',
+                workstation: 'Workstation / AI (Core i9)'
+            };
+
+            const label = tierNames[tier] || tier;
+
             if (!auto && tbody.children.length > 0) {
-                if (!confirm('Muat template standar akan menambahkan 8 part PC baru ke dalam tabel. Lanjutkan?')) {
+                if (!confirm(`Muat template ${label} akan menambahkan komponen part baru ke dalam tabel. Lanjutkan?`)) {
                     return;
                 }
             }
 
-            const standardParts = [
-                { product_name: 'Processor (CPU) Tray / Box', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Motherboard', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'RAM (Memory)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'SSD Storage (NVMe / SATA)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Casing & Power Supply (PSU)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'VGA / Graphics Card', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'CPU Cooler / Fan Case', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Keyboard, Mouse & Aksesoris', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
-            ];
-
-            standardParts.forEach(p => {
+            const parts = PC_PRESETS[tier] || PC_PRESETS['standar'];
+            parts.forEach(p => {
                 addBundleComponent(itemId, p);
             });
+        }
+
+        function loadStandardPcPreset(itemId, auto = false) {
+            loadPcPreset(itemId, 'standar', auto);
         }
 
         function calculateRow(itemId) {
