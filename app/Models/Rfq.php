@@ -348,36 +348,16 @@ class Rfq extends Model
     }
 
     // Koleksi item untuk dokumen resmi Quotation PDF dan Preview
-    // Baris internal (MP dan Akomodasi Pedia) disembunyikan dari tabel dan nilainya
-    // dilebur ke baris Jasa Pemasangan utama agar total penawaran tetap utuh dan akurat
+    // Mengikuti format resmi penawaran:
+    // Urutan 1: Seluruh item Hardware terurut di baris-baris teratas
+    // Urutan 2: Seluruh item Material Support dirangkum menjadi 1 baris di tengah bertajuk Material Support
+    // Urutan 3: Seluruh item Jasa Pemasangan, Mobdemob, MP, dan Akomodasi dirangkum 1 baris di paling bawah bertajuk Installation & Accommodation
+    // Baris Note otomatis berada di baris terakhir tepat di bawah rincian pekerjaan jasa
     public function getCustomerQuotationItemsAttribute(): \Illuminate\Support\Collection
     {
         $items = $this->items;
         if ($items->isEmpty()) {
             return collect();
-        }
-
-        $visibleItems = [];
-        $internalLaborTotal = 0.0;
-        $internalMiscTotal = 0.0;
-
-        foreach ($items as $item) {
-            // Komponen anak di dalam paket rakitan tidak ditampilkan sebagai baris mandiri
-            if ($item->isComponent()) {
-                continue;
-            }
-
-            if ($item->isInternalLaborOrAccommodation()) {
-                $unitPrice = (float) $item->price_after_margin;
-                $rowTotal = $unitPrice * (float) $item->qty;
-                $internalLaborTotal += $rowTotal;
-            } elseif ($item->isMiscellaneousMaterial()) {
-                $unitPrice = (float) $item->price_after_margin;
-                $rowTotal = $unitPrice * (float) $item->qty;
-                $internalMiscTotal += $rowTotal;
-            } else {
-                $visibleItems[] = $item;
-            }
         }
 
         $mapItem = function ($it, $extraTotal = 0) {
@@ -424,78 +404,218 @@ class Rfq extends Model
             ];
         };
 
-        if ($internalLaborTotal <= 0 && $internalMiscTotal <= 0) {
-            return collect($visibleItems)->map(fn ($it) => $mapItem($it, 0));
-        }
+        // Filter komponen anak dalam paket rakitan
+        $nonComponents = $items->filter(fn($item) => !$item->isComponent());
 
-        // Cari item penampung untuk material miscellaneous
-        $absorbedMaterialIdx = null;
-        if ($internalMiscTotal > 0) {
-            foreach ($visibleItems as $idx => $it) {
-                $cat = RfqItem::normalizeCategory($it->category);
-                $name = strtolower($it->product_name ?? '');
-                if ($cat === RfqItem::CATEGORY_MATERIAL || str_contains($name, 'material') || str_contains($name, 'kabel') || str_contains($name, 'cable') || str_contains($name, 'pipa')) {
-                    $absorbedMaterialIdx = $idx;
-                    break;
+        // Alur untuk RFQ tipe Projek:
+        if ($this->type === 'Projek') {
+            $hardwareItems = [];
+            $materialItems = [];
+            $jasaItems = [];
+
+            foreach ($nonComponents as $item) {
+                $normCat = RfqItem::normalizeCategory($item->category);
+                $name = strtolower(trim($item->product_name ?? ''));
+
+                if ($item->isInternalLaborOrAccommodation()
+                    || $normCat === RfqItem::CATEGORY_JASA
+                    || str_contains($name, 'installation')
+                    || str_contains($name, 'instalasi')
+                    || str_contains($name, 'jasa')
+                    || str_contains($name, 'akomodasi')
+                    || str_contains($name, 'mobdemob')
+                    || str_contains($name, 'setting operasional')
+                    || str_contains($name, 'testing & commissioning')) {
+                    $jasaItems[] = $item;
+                } elseif ($item->isMiscellaneousMaterial()
+                    || $normCat === RfqItem::CATEGORY_MATERIAL
+                    || str_contains($name, 'material')
+                    || str_contains($name, 'cable')
+                    || str_contains($name, 'kabel')
+                    || str_contains($name, 'consumable')
+                    || str_contains($name, 'roset')
+                    || str_contains($name, 'panel')
+                    || str_contains($name, 'pipa')
+                    || str_contains($name, 'patch cord')
+                    || str_contains($name, 'connector')) {
+                    $materialItems[] = $item;
+                } else {
+                    $hardwareItems[] = $item;
                 }
             }
-            // Jika tidak ada item material support khusus, leburkan ke penampung jasa
-            if ($absorbedMaterialIdx === null) {
-                $internalLaborTotal += $internalMiscTotal;
-                $internalMiscTotal = 0.0;
-            }
-        }
 
-        // Cari item penampung untuk labor, akomodasi, dan mobdemob
-        $absorbedLaborIdx = null;
-        if ($internalLaborTotal > 0) {
-            foreach ($visibleItems as $idx => $it) {
-                $cat = RfqItem::normalizeCategory($it->category);
-                $name = strtolower($it->product_name ?? '');
-                if ($cat === RfqItem::CATEGORY_JASA || str_contains($name, 'jasa') || str_contains($name, 'instalasi') || str_contains($name, 'installation') || str_contains($name, 'setting')) {
-                    $absorbedLaborIdx = $idx;
-                    break;
+            $output = [];
+
+            // 1. HARDWARE ROWS: Tampilkan setiap item hardware terurut di atas
+            foreach ($hardwareItems as $hw) {
+                $output[] = $mapItem($hw, 0);
+            }
+
+            // 2. MATERIAL SUPPORT ROW: Rangkum seluruh item material menjadi 1 baris
+            if (!empty($materialItems)) {
+                $materialTotal = 0.0;
+                $partNames = [];
+                $customMaterialDesc = null;
+
+                foreach ($materialItems as $mat) {
+                    $matRowTotal = (float) $mat->price_after_margin * (float) ($mat->qty ?: 1);
+                    $materialTotal += $matRowTotal;
+                    $pName = trim($mat->product_name ?? '');
+                    if (!empty($pName)) {
+                        $partNames[] = $pName;
+                    }
+                    $sDesc = trim($mat->description ?: $mat->detail_item ?: '');
+                    if (!empty($sDesc) && empty($customMaterialDesc) && !str_contains(strtolower($sDesc), 'material pendukung & habis')) {
+                        $customMaterialDesc = $sDesc;
+                    }
                 }
+
+                if (count($materialItems) > 1) {
+                    $materialDesc = implode(', ', $partNames);
+                } else {
+                    $singleMat = $materialItems[0];
+                    $singleName = trim($singleMat->product_name ?? '');
+                    if (strcasecmp($singleName, 'Material Support') === 0) {
+                        $materialDesc = $customMaterialDesc ?: '';
+                    } else {
+                        $materialDesc = $customMaterialDesc ?: $singleName;
+                    }
+                }
+
+                $output[] = (object) [
+                    'id' => 'bundled-material',
+                    'qty' => 1,
+                    'unit' => 'Unit',
+                    'product_name' => 'Material Support',
+                    'description' => $materialDesc,
+                    'detail_item' => null,
+                    'unit_price' => $materialTotal,
+                    'row_total' => $materialTotal,
+                    'category' => RfqItem::CATEGORY_MATERIAL,
+                    'is_absorbed' => count($materialItems) > 1,
+                    'is_bundle' => false,
+                ];
             }
+
+            // 3. JASA PEMASANGAN & AKOMODASI ROW: Rangkum seluruh jasa & mobdemob menjadi 1 baris di paling bawah
+            if (!empty($jasaItems)) {
+                $jasaTotal = 0.0;
+                $jasaTitle = 'Installation & Accommodation';
+                $collectedDescs = [];
+
+                foreach ($jasaItems as $js) {
+                    $jsRowTotal = (float) $js->price_after_margin * (float) ($js->qty ?: 1);
+                    $jasaTotal += $jsRowTotal;
+
+                    $pName = trim($js->product_name ?? '');
+                    if (!$js->isInternalLaborOrAccommodation() && !empty($pName)) {
+                        $jasaTitle = $pName;
+                    }
+
+                    $sDesc = trim($js->description ?: $js->detail_item ?: '');
+                    if (!empty($sDesc) && !in_array($sDesc, $collectedDescs)) {
+                        $collectedDescs[] = $sDesc;
+                    }
+                }
+
+                $desc = !empty($collectedDescs) 
+                    ? implode("\n", $collectedDescs) 
+                    : 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.';
+
+                $output[] = (object) [
+                    'id' => 'bundled-jasa',
+                    'qty' => 1,
+                    'unit' => 'Unit',
+                    'product_name' => $jasaTitle,
+                    'description' => $desc,
+                    'detail_item' => null,
+                    'unit_price' => $jasaTotal,
+                    'row_total' => $jasaTotal,
+                    'category' => RfqItem::CATEGORY_JASA,
+                    'is_absorbed' => count($jasaItems) > 1,
+                    'is_bundle' => false,
+                ];
+            }
+
+            return collect($output);
         }
 
-        $extraMap = array_fill(0, count($visibleItems), 0.0);
-        if ($absorbedMaterialIdx !== null && $internalMiscTotal > 0) {
-            $extraMap[$absorbedMaterialIdx] += $internalMiscTotal;
-        }
+        // Alur untuk RFQ tipe Non Projek:
+        // Urutkan kategori secara konsisten: Hardware -> Material Support -> Jasa Pemasangan.
+        // Item internal diserap ke item penampung agar penawaran rapi.
+        $visibleHardware = [];
+        $visibleMaterial = [];
+        $visibleJasa = [];
+        $internalLaborTotal = 0.0;
+        $internalMiscTotal = 0.0;
 
-        $hasSyntheticService = false;
-        if ($internalLaborTotal > 0) {
-            if ($absorbedLaborIdx !== null) {
-                $extraMap[$absorbedLaborIdx] += $internalLaborTotal;
-            } elseif (!empty($visibleItems) && $this->type === 'Non Projek') {
-                // Pada Non Projek tanpa baris jasa terpisah, leburkan ke item pertama
-                $extraMap[0] += $internalLaborTotal;
+        foreach ($nonComponents as $item) {
+            if ($item->isInternalLaborOrAccommodation()) {
+                $unitPrice = (float) $item->price_after_margin;
+                $rowTotal = $unitPrice * (float) $item->qty;
+                $internalLaborTotal += $rowTotal;
+            } elseif ($item->isMiscellaneousMaterial()) {
+                $unitPrice = (float) $item->price_after_margin;
+                $rowTotal = $unitPrice * (float) $item->qty;
+                $internalMiscTotal += $rowTotal;
             } else {
-                $hasSyntheticService = true;
+                $normCat = RfqItem::normalizeCategory($item->category);
+                $name = strtolower(trim($item->product_name ?? ''));
+
+                if ($normCat === RfqItem::CATEGORY_JASA || str_contains($name, 'jasa') || str_contains($name, 'instalasi')) {
+                    $visibleJasa[] = $item;
+                } elseif ($normCat === RfqItem::CATEGORY_MATERIAL || str_contains($name, 'material') || str_contains($name, 'kabel')) {
+                    $visibleMaterial[] = $item;
+                } else {
+                    $visibleHardware[] = $item;
+                }
+            }
+        }
+
+        $orderedVisible = array_merge($visibleHardware, $visibleMaterial, $visibleJasa);
+
+        if (empty($orderedVisible)) {
+            return collect();
+        }
+
+        $extraMap = array_fill(0, count($orderedVisible), 0.0);
+
+        if ($internalMiscTotal > 0) {
+            $matIdx = null;
+            foreach ($orderedVisible as $idx => $it) {
+                $normCat = RfqItem::normalizeCategory($it->category);
+                if ($normCat === RfqItem::CATEGORY_MATERIAL) {
+                    $matIdx = $idx;
+                    break;
+                }
+            }
+            if ($matIdx !== null) {
+                $extraMap[$matIdx] += $internalMiscTotal;
+            } else {
+                $extraMap[0] += $internalMiscTotal;
+            }
+        }
+
+        if ($internalLaborTotal > 0) {
+            $jasaIdx = null;
+            foreach ($orderedVisible as $idx => $it) {
+                $normCat = RfqItem::normalizeCategory($it->category);
+                if ($normCat === RfqItem::CATEGORY_JASA) {
+                    $jasaIdx = $idx;
+                    break;
+                }
+            }
+            if ($jasaIdx !== null) {
+                $extraMap[$jasaIdx] += $internalLaborTotal;
+            } else {
+                $extraMap[0] += $internalLaborTotal;
             }
         }
 
         $result = [];
-        foreach ($visibleItems as $idx => $it) {
+        foreach ($orderedVisible as $idx => $it) {
             $extra = $extraMap[$idx] ?? 0.0;
             $result[] = $mapItem($it, $extra);
-        }
-
-        if ($hasSyntheticService) {
-            $result[] = (object) [
-                'id' => 'absorbed-service',
-                'qty' => 1,
-                'unit' => 'Lot',
-                'product_name' => 'Jasa Instalasi & Setting Operasional',
-                'description' => 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.',
-                'detail_item' => null,
-                'unit_price' => $internalLaborTotal,
-                'row_total' => $internalLaborTotal,
-                'category' => RfqItem::CATEGORY_JASA,
-                'is_absorbed' => true,
-                'is_bundle' => false,
-            ];
         }
 
         return collect($result);

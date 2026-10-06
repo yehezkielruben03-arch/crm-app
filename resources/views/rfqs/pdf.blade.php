@@ -173,7 +173,7 @@
                         <div style="font-weight: bold; font-size: 9.5px; color: #000;">{{ $item->product_name }}</div>
                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                         @if(!empty($itemSpec))
-                        <div style="color: #333; margin-top: 2px;">{!! nl2br(e($itemSpec)) !!}</div>
+                        <div style="color: #333; margin-top: 2px; font-style: italic;">{!! nl2br(e($itemSpec)) !!}</div>
                         @endif
 
                         @if($loop->last)

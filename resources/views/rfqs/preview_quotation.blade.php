@@ -208,7 +208,7 @@
                                             <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                            <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
@@ -233,7 +233,7 @@
                                     <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                    <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
                                     @endif
                                 @endif
                             </td>
