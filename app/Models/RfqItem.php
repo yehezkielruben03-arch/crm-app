@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class RfqItem extends Model
 {
     protected $fillable = [
-        'rfq_id', 'category', 'product_name', 'qty', 'unit', 'detail_item', 'description',
+        'rfq_id', 'parent_id', 'is_bundle', 'category', 'product_name', 'qty', 'unit', 'detail_item', 'description',
         'hpp', 'ongkir_pedia', 'ongkir_pelanggan', 'margin', 'ceiling', 'validity_days', 'price_after_margin',
         'biaya_kirim', 'fee_eu', 'margin_type', 'margin_value', 'custom_ceiling', 'vendor_id'
     ];
@@ -88,6 +89,10 @@ class RfqItem extends Model
         $fallback = [];
 
         foreach ($items as $item) {
+            if (!empty($item->parent_id)) {
+                continue;
+            }
+
             $normalized = self::normalizeCategory($item->category ?? null);
 
             if ($normalized !== null && isset($buckets[$normalized])) {
@@ -126,6 +131,7 @@ class RfqItem extends Model
         'ongkir_pelanggan' => 'decimal:2',
         'margin' => 'decimal:2',
         'price_after_margin' => 'decimal:2',
+        'is_bundle' => 'boolean',
     ];
 
     public function rfq(): BelongsTo
@@ -136,6 +142,54 @@ class RfqItem extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    public function components(): HasMany
+    {
+        return $this->hasMany(RfqItem::class, 'parent_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(RfqItem::class, 'parent_id');
+    }
+
+    public function isBundle(): bool
+    {
+        return (bool) $this->is_bundle || ($this->parent_id === null && $this->components()->exists());
+    }
+
+    public function isComponent(): bool
+    {
+        return !empty($this->parent_id);
+    }
+
+    public function getBundleSellingPriceAttribute(): float
+    {
+        $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
+        if ($comps->isEmpty()) {
+            return (float) $this->price_after_margin;
+        }
+
+        return (float) $comps->sum(function ($c) {
+            $unitP = (float) $c->price_after_margin;
+            $qty = (float) ($c->qty ?: 1);
+            return $unitP * $qty;
+        });
+    }
+
+    public function getBundleTotalCostAttribute(): float
+    {
+        $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
+        if ($comps->isEmpty()) {
+            return (float) $this->hpp + (float) $this->ongkir_pedia + (float) $this->biaya_kirim + (float) $this->fee_eu;
+        }
+
+        return (float) $comps->sum(function ($c) {
+            $unitCost = (float) $c->hpp + (float) $c->ongkir_pedia + (float) $c->biaya_kirim + (float) $c->fee_eu;
+            $qty = (float) ($c->qty ?: 1);
+            return $unitCost * $qty;
+        });
     }
 
     // Menentukan apakah item merupakan tenaga kerja teknisi atau akomodasi internal Pedia
@@ -172,6 +226,13 @@ class RfqItem extends Model
      */
     public function calculatePriceAfterMargin(): float
     {
+        if ($this->isBundle()) {
+            $comps = $this->relationLoaded('components') ? $this->components : $this->components()->get();
+            if ($comps->isNotEmpty()) {
+                return $this->bundle_selling_price;
+            }
+        }
+
         $baseCost = $this->hpp + $this->ongkir_pedia + $this->biaya_kirim + $this->fee_eu;
         
         $withMargin = $baseCost;

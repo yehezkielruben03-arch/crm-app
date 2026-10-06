@@ -704,7 +704,7 @@ class RfqController extends Controller
         abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
         abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa diubah dari status saat ini.');
 
-        $rfq->load(['items', 'customer']);
+        $rfq->load(['items.components.vendor', 'items.vendor', 'customer']);
         
         $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
         // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
@@ -746,30 +746,67 @@ class RfqController extends Controller
                         $cleanedItems[$key]['margin_value'] = str_replace(',', '.', trim($item['margin_value']));
                     }
                 }
+
+                if (isset($item['components']) && is_array($item['components'])) {
+                    foreach ($item['components'] as $cKey => $comp) {
+                        if (!is_array($comp)) {
+                            continue;
+                        }
+                        foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $cField) {
+                            if (isset($comp[$cField]) && is_string($comp[$cField])) {
+                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp[$cField]);
+                                $cleanedItems[$key]['components'][$cKey][$cField] = $cCleanedVal !== '' ? $cCleanedVal : 0;
+                            }
+                        }
+                        if (isset($comp['margin_value']) && is_string($comp['margin_value'])) {
+                            $cMType = $comp['margin_type'] ?? 'percentage';
+                            if ($cMType === 'nominal') {
+                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp['margin_value']);
+                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = $cCleanedVal !== '' ? $cCleanedVal : 0;
+                            } else {
+                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = str_replace(',', '.', trim($comp['margin_value']));
+                            }
+                        }
+                    }
+                }
             }
             $request->merge(['items' => $cleanedItems]);
         }
 
         $validated = $request->validate([
-            'notes'                    => 'nullable|string|max:3000',
-            'tax_type'                 => 'nullable|string|in:auto,include,exclude',
-            'items'                    => 'required|array',
-            'items.*.category'         => 'nullable|string',
-            'items.*.vendor_id'        => 'nullable|exists:vendors,id',
-            'items.*.vendor_name'      => 'nullable|string|max:255',
-            'items.*.product_name'     => 'required|string',
-            'items.*.qty'              => 'required|numeric|min:1',
-            'items.*.unit'             => 'nullable|string',
-            'items.*.description'      => 'nullable|string',
-            'items.*.detail_item'      => 'nullable|string|max:5000',
-            'items.*.hpp'              => 'required|numeric|min:0',
-            'items.*.ongkir_pedia'     => 'nullable|numeric|min:0',
-            'items.*.biaya_kirim'      => 'nullable|numeric|min:0',
-            'items.*.fee_eu'           => 'nullable|numeric|min:0',
-            'items.*.margin_type'      => 'nullable|in:percentage,nominal',
-            'items.*.margin_value'     => 'nullable|numeric|min:0',
-            'items.*.custom_ceiling'   => 'nullable|numeric|min:0',
-            'items.*.validity_days'    => 'nullable|integer|min:1',
+            'notes'                              => 'nullable|string|max:3000',
+            'tax_type'                           => 'nullable|string|in:auto,include,exclude',
+            'items'                              => 'required|array',
+            'items.*.is_bundle'                  => 'nullable',
+            'items.*.category'                   => 'nullable|string',
+            'items.*.vendor_id'                  => 'nullable|exists:vendors,id',
+            'items.*.vendor_name'                => 'nullable|string|max:255',
+            'items.*.product_name'               => 'required|string',
+            'items.*.qty'                        => 'required|numeric|min:0.01',
+            'items.*.unit'                       => 'nullable|string',
+            'items.*.description'                => 'nullable|string',
+            'items.*.detail_item'                => 'nullable|string|max:5000',
+            'items.*.hpp'                        => 'required|numeric|min:0',
+            'items.*.ongkir_pedia'               => 'nullable|numeric|min:0',
+            'items.*.biaya_kirim'                => 'nullable|numeric|min:0',
+            'items.*.fee_eu'                     => 'nullable|numeric|min:0',
+            'items.*.margin_type'                => 'nullable|in:percentage,nominal',
+            'items.*.margin_value'               => 'nullable|numeric|min:0',
+            'items.*.custom_ceiling'             => 'nullable|numeric|min:0',
+            'items.*.validity_days'              => 'nullable|integer|min:1',
+            'items.*.components'                 => 'nullable|array',
+            'items.*.components.*.id'            => 'nullable',
+            'items.*.components.*.product_name'  => 'nullable|string',
+            'items.*.components.*.vendor_name'   => 'nullable|string|max:255',
+            'items.*.components.*.qty'           => 'nullable|numeric|min:0.01',
+            'items.*.components.*.unit'          => 'nullable|string|max:30',
+            'items.*.components.*.hpp'           => 'nullable|numeric|min:0',
+            'items.*.components.*.biaya_kirim'   => 'nullable|numeric|min:0',
+            'items.*.components.*.ongkir_pedia'  => 'nullable|numeric|min:0',
+            'items.*.components.*.margin_type'   => 'nullable|in:percentage,nominal',
+            'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
+            'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
+            'items.*.components.*.description'   => 'nullable|string',
         ]);
 
         $oldStatus = $rfq->status;
@@ -793,6 +830,9 @@ class RfqController extends Controller
                 if (!$item) {
                     $item = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
                 }
+
+                $isBundle = !empty($data['is_bundle']);
+                $item->is_bundle = $isBundle;
 
                 $item->category         = $data['category'] ?? $item->category;
                 // Support typed vendor name (nama vendor ketik saja)
@@ -832,6 +872,78 @@ class RfqController extends Controller
                 $item->price_after_margin = $item->calculatePriceAfterMargin();
                 $item->save();
                 $submittedItemIds[] = $item->id;
+
+                if ($isBundle && !empty($data['components']) && is_array($data['components'])) {
+                    $bundleCostTotal = 0;
+                    $bundleSellingTotal = 0;
+                    $activeCompIds = [];
+
+                    foreach ($data['components'] as $cData) {
+                        $cName = trim($cData['product_name'] ?? '');
+                        if ($cName === '') {
+                            continue;
+                        }
+
+                        $compId = !empty($cData['id']) && is_numeric($cData['id']) ? (int) $cData['id'] : null;
+                        $comp = $compId ? $rfq->items()->find($compId) : null;
+                        if (!$comp) {
+                            $comp = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
+                        }
+
+                        $comp->parent_id = $item->id;
+                        $comp->is_bundle = false;
+                        $comp->category = $item->category;
+                        $comp->product_name = $cName;
+                        $comp->qty = (float) ($cData['qty'] ?? 1);
+                        $comp->unit = $cData['unit'] ?? 'Unit';
+                        $comp->description = $cData['description'] ?? null;
+                        $comp->detail_item = $comp->description;
+                        $comp->hpp = (float) ($cData['hpp'] ?? 0);
+                        $comp->ongkir_pedia = (float) ($cData['ongkir_pedia'] ?? 0);
+                        $comp->biaya_kirim = (float) ($cData['biaya_kirim'] ?? 0);
+                        $comp->fee_eu = 0;
+                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
+                        $comp->margin_value = (float) ($cData['margin_value'] ?? 12.5);
+                        $comp->margin = $comp->margin_value;
+                        $comp->custom_ceiling = (float) ($cData['custom_ceiling'] ?? 50000);
+                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
+                        $comp->validity_days = $item->validity_days;
+
+                        $cTypedVendor = trim($cData['vendor_name'] ?? '');
+                        if ($cTypedVendor !== '') {
+                            $cVendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($cTypedVendor)])->first();
+                            if (!$cVendor) {
+                                $cVendor = \App\Models\Vendor::create([
+                                    'nama_vendor' => $cTypedVendor,
+                                    'kategori'    => 'Hardware & Komponen PC',
+                                    'status'      => \App\Models\Vendor::STATUS_ACTIVE,
+                                ]);
+                            }
+                            $comp->vendor_id = $cVendor->id;
+                        } else {
+                            $comp->vendor_id = null;
+                        }
+
+                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
+                        $comp->save();
+
+                        $submittedItemIds[] = $comp->id;
+                        $activeCompIds[] = $comp->id;
+
+                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
+                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
+                    }
+
+                    $rfq->items()->where('parent_id', $item->id)->whereNotIn('id', $activeCompIds)->delete();
+
+                    if (!empty($activeCompIds)) {
+                        $item->hpp = $bundleCostTotal;
+                        $item->price_after_margin = $bundleSellingTotal;
+                        $item->save();
+                    }
+                } else {
+                    $rfq->items()->where('parent_id', $item->id)->delete();
+                }
             }
 
             if (!empty($submittedItemIds)) {

@@ -229,7 +229,7 @@ class Rfq extends Model
 
     public function getGrandTotalAttribute()
     {
-        return $this->items->sum(function($item) {
+        return $this->items->filter(fn($item) => empty($item->parent_id))->sum(function($item) {
             return $item->qty * $item->price_after_margin;
         });
     }
@@ -361,6 +361,11 @@ class Rfq extends Model
         $internalTotal = 0.0;
 
         foreach ($items as $item) {
+            // Komponen anak di dalam paket rakitan tidak ditampilkan sebagai baris mandiri
+            if ($item->isComponent()) {
+                continue;
+            }
+
             if ($item->isInternalLaborOrAccommodation()) {
                 $unitPrice = (float) $item->price_after_margin;
                 $rowTotal = $unitPrice * (float) $item->qty;
@@ -370,23 +375,50 @@ class Rfq extends Model
             }
         }
 
-        if ($internalTotal <= 0) {
-            return collect($visibleItems)->map(function ($it) {
+        $mapItem = function ($it, $extraTotal = 0) {
+            $isBundle = $it->isBundle();
+            $comps = $isBundle ? ($it->relationLoaded('components') ? $it->components : $it->components()->get()) : collect();
+
+            if ($isBundle && $comps->isNotEmpty()) {
+                $compSellingTotal = (float) $comps->sum(function ($c) {
+                    return ((float) $c->price_after_margin) * ((float) ($c->qty ?: 1));
+                });
+                $unitPrice = $compSellingTotal;
+                $compList = $comps->map(function ($c) {
+                    $cQty = (int) $c->qty;
+                    $prefix = $cQty > 1 ? "({$cQty}x) " : "";
+                    return "- " . $prefix . $c->product_name;
+                })->implode("\n");
+
+                $desc = !empty($it->description) ? ($it->description . "\n" . $compList) : $compList;
+            } else {
                 $unitPrice = (float) $it->price_after_margin;
-                $qty = (float) $it->qty;
-                return (object) [
-                    'id' => $it->id,
-                    'qty' => $qty,
-                    'unit' => $it->unit ?: 'Unit',
-                    'product_name' => $it->product_name,
-                    'description' => $it->description ?: $it->detail_item,
-                    'detail_item' => $it->detail_item,
-                    'unit_price' => $unitPrice,
-                    'row_total' => $unitPrice * $qty,
-                    'category' => $it->category,
-                    'is_absorbed' => false,
-                ];
-            });
+                $desc = $it->description ?: $it->detail_item;
+            }
+
+            $qty = (float) $it->qty;
+            $rowTotal = ($unitPrice * $qty) + $extraTotal;
+            if ($extraTotal > 0 && $qty > 0) {
+                $unitPrice = $rowTotal / $qty;
+            }
+
+            return (object) [
+                'id' => $it->id,
+                'qty' => $qty,
+                'unit' => $it->unit ?: 'Unit',
+                'product_name' => $it->product_name,
+                'description' => $desc,
+                'detail_item' => $it->detail_item,
+                'unit_price' => $unitPrice,
+                'row_total' => $rowTotal,
+                'category' => $it->category,
+                'is_absorbed' => $extraTotal > 0,
+                'is_bundle' => $isBundle,
+            ];
+        };
+
+        if ($internalTotal <= 0) {
+            return collect($visibleItems)->map(fn ($it) => $mapItem($it, 0));
         }
 
         $absorbedIdx = null;
@@ -401,56 +433,12 @@ class Rfq extends Model
         $result = [];
         if ($absorbedIdx !== null) {
             foreach ($visibleItems as $idx => $it) {
-                $unitPrice = (float) $it->price_after_margin;
-                $qty = (float) $it->qty;
-                $rowTotal = $unitPrice * $qty;
-
-                if ($idx === $absorbedIdx) {
-                    $newRowTotal = $rowTotal + $internalTotal;
-                    $newUnitPrice = $qty > 0 ? ($newRowTotal / $qty) : $newRowTotal;
-                    $result[] = (object) [
-                        'id' => $it->id,
-                        'qty' => $qty,
-                        'unit' => $it->unit ?: 'Unit',
-                        'product_name' => $it->product_name,
-                        'description' => $it->description ?: $it->detail_item,
-                        'detail_item' => $it->detail_item,
-                        'unit_price' => $newUnitPrice,
-                        'row_total' => $newRowTotal,
-                        'category' => $it->category,
-                        'is_absorbed' => true,
-                    ];
-                } else {
-                    $result[] = (object) [
-                        'id' => $it->id,
-                        'qty' => $qty,
-                        'unit' => $it->unit ?: 'Unit',
-                        'product_name' => $it->product_name,
-                        'description' => $it->description ?: $it->detail_item,
-                        'detail_item' => $it->detail_item,
-                        'unit_price' => $unitPrice,
-                        'row_total' => $rowTotal,
-                        'category' => $it->category,
-                        'is_absorbed' => false,
-                    ];
-                }
+                $extra = ($idx === $absorbedIdx) ? $internalTotal : 0;
+                $result[] = $mapItem($it, $extra);
             }
         } else {
             foreach ($visibleItems as $it) {
-                $unitPrice = (float) $it->price_after_margin;
-                $qty = (float) $it->qty;
-                $result[] = (object) [
-                    'id' => $it->id,
-                    'qty' => $qty,
-                    'unit' => $it->unit ?: 'Unit',
-                    'product_name' => $it->product_name,
-                    'description' => $it->description ?: $it->detail_item,
-                    'detail_item' => $it->detail_item,
-                    'unit_price' => $unitPrice,
-                    'row_total' => $unitPrice * $qty,
-                    'category' => $it->category,
-                    'is_absorbed' => false,
-                ];
+                $result[] = $mapItem($it, 0);
             }
 
             $result[] = (object) [
@@ -464,6 +452,7 @@ class Rfq extends Model
                 'row_total' => $internalTotal,
                 'category' => RfqItem::CATEGORY_JASA,
                 'is_absorbed' => true,
+                'is_bundle' => false,
             ];
         }
 
