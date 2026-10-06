@@ -153,11 +153,11 @@
                             </div>
                             <div>
                                 <h3 class="text-xs font-bold text-amber-950 uppercase tracking-wider">Kalkulator Teknisi (MP) &amp; Akomodasi Pedia</h3>
-                                <p class="text-[11px] text-amber-800">Tentukan durasi pengerjaan dan tarif per hari, lalu terapkan otomatis sebagai baris item mandiri di bawah.</p>
+                                <p class="text-[11px] text-amber-800">Tentukan durasi pengerjaan dan tarif per hari, lalu terapkan otomatis untuk kalkulasi HPP internal (otomatis disembunyikan &amp; dilebur ke jasa utama di PDF penawaran klien).</p>
                             </div>
                         </div>
                         <span class="text-[11px] bg-amber-100 text-amber-800 font-semibold px-2.5 py-0.5 rounded-full border border-amber-300">
-                            At-Cost / Margin 0%
+                            Internal HPP • Dilebur di PDF
                         </span>
                     </div>
 
@@ -263,6 +263,11 @@
                                         @if($categoryName)
                                             <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
                                                 {{ $categoryName }}
+                                            </span>
+                                        @endif
+                                        @if($item->isInternalLaborOrAccommodation())
+                                            <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                                                Internal HPP (Dilebur di PDF)
                                             </span>
                                         @endif
                                     </h3>

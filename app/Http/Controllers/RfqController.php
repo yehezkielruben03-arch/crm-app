@@ -1061,7 +1061,7 @@ class RfqController extends Controller
             $rfqNum = $datePart . '-' . str_pad($rfq->id, 4, '0', STR_PAD_LEFT);
         }
 
-        $firstItem = $rfq->items->first();
+        $firstItem = $rfq->customer_quotation_items->first() ?: $rfq->items->first();
         $rawTitle = $firstItem?->product_name ?: ($rfq->customer?->company_name ?: ($rfq->type ?: 'Hardware'));
         $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
         $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');

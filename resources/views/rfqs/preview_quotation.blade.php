@@ -98,7 +98,8 @@
         $revRoman = $romanMap[$revisionCount ?? 0] ?? ($revisionCount ?? 1);
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
-        $itemCount = count($rfq->items);
+        $quotationItems = $rfq->customer_quotation_items;
+        $itemCount = count($quotationItems);
         $noteMinHeight = match(true) {
             $itemCount <= 1 => '210px',
             $itemCount <= 2 => '160px',
@@ -189,10 +190,10 @@
                         $totalQty = 0;
                     @endphp
 
-                    @forelse($rfq->items as $item)
+                    @forelse($quotationItems as $item)
                         @php
-                            $unitPrice = (float) $item->price_after_margin;
-                            $rowTotal = $unitPrice * $item->qty;
+                            $unitPrice = (float) $item->unit_price;
+                            $rowTotal = (float) $item->row_total;
                             $grandSubtotal += $rowTotal;
                             $totalQty += $item->qty;
                         @endphp
@@ -262,7 +263,7 @@
                         $isIncludeTax = $rfq->isIncludeTax();
                         $ppn = $grandSubtotal * 0.11;
                         $grandTotal = $isIncludeTax ? $grandSubtotal : ($grandSubtotal + $ppn);
-                        $firstUnit = $rfq->items->first()?->unit ?: 'Unit';
+                        $firstUnit = $quotationItems->first()?->unit ?: 'Unit';
                     @endphp
 
                     @if($isIncludeTax)

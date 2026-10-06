@@ -346,4 +346,127 @@ class Rfq extends Model
     {
         return $this->valid_until_date->format('d M Y');
     }
+
+    // Koleksi item untuk dokumen resmi Quotation PDF dan Preview
+    // Baris internal (MP dan Akomodasi Pedia) disembunyikan dari tabel dan nilainya
+    // dilebur ke baris Jasa Pemasangan utama agar total penawaran tetap utuh dan akurat
+    public function getCustomerQuotationItemsAttribute(): \Illuminate\Support\Collection
+    {
+        $items = $this->items;
+        if ($items->isEmpty()) {
+            return collect();
+        }
+
+        $visibleItems = [];
+        $internalTotal = 0.0;
+
+        foreach ($items as $item) {
+            if ($item->isInternalLaborOrAccommodation()) {
+                $unitPrice = (float) $item->price_after_margin;
+                $rowTotal = $unitPrice * (float) $item->qty;
+                $internalTotal += $rowTotal;
+            } else {
+                $visibleItems[] = $item;
+            }
+        }
+
+        if ($internalTotal <= 0) {
+            return collect($visibleItems)->map(function ($it) {
+                $unitPrice = (float) $it->price_after_margin;
+                $qty = (float) $it->qty;
+                return (object) [
+                    'id' => $it->id,
+                    'qty' => $qty,
+                    'unit' => $it->unit ?: 'Unit',
+                    'product_name' => $it->product_name,
+                    'description' => $it->description ?: $it->detail_item,
+                    'detail_item' => $it->detail_item,
+                    'unit_price' => $unitPrice,
+                    'row_total' => $unitPrice * $qty,
+                    'category' => $it->category,
+                    'is_absorbed' => false,
+                ];
+            });
+        }
+
+        $absorbedIdx = null;
+        foreach ($visibleItems as $idx => $it) {
+            $cat = RfqItem::normalizeCategory($it->category);
+            if ($cat === RfqItem::CATEGORY_JASA) {
+                $absorbedIdx = $idx;
+                break;
+            }
+        }
+
+        $result = [];
+        if ($absorbedIdx !== null) {
+            foreach ($visibleItems as $idx => $it) {
+                $unitPrice = (float) $it->price_after_margin;
+                $qty = (float) $it->qty;
+                $rowTotal = $unitPrice * $qty;
+
+                if ($idx === $absorbedIdx) {
+                    $newRowTotal = $rowTotal + $internalTotal;
+                    $newUnitPrice = $qty > 0 ? ($newRowTotal / $qty) : $newRowTotal;
+                    $result[] = (object) [
+                        'id' => $it->id,
+                        'qty' => $qty,
+                        'unit' => $it->unit ?: 'Unit',
+                        'product_name' => $it->product_name,
+                        'description' => $it->description ?: $it->detail_item,
+                        'detail_item' => $it->detail_item,
+                        'unit_price' => $newUnitPrice,
+                        'row_total' => $newRowTotal,
+                        'category' => $it->category,
+                        'is_absorbed' => true,
+                    ];
+                } else {
+                    $result[] = (object) [
+                        'id' => $it->id,
+                        'qty' => $qty,
+                        'unit' => $it->unit ?: 'Unit',
+                        'product_name' => $it->product_name,
+                        'description' => $it->description ?: $it->detail_item,
+                        'detail_item' => $it->detail_item,
+                        'unit_price' => $unitPrice,
+                        'row_total' => $rowTotal,
+                        'category' => $it->category,
+                        'is_absorbed' => false,
+                    ];
+                }
+            }
+        } else {
+            foreach ($visibleItems as $it) {
+                $unitPrice = (float) $it->price_after_margin;
+                $qty = (float) $it->qty;
+                $result[] = (object) [
+                    'id' => $it->id,
+                    'qty' => $qty,
+                    'unit' => $it->unit ?: 'Unit',
+                    'product_name' => $it->product_name,
+                    'description' => $it->description ?: $it->detail_item,
+                    'detail_item' => $it->detail_item,
+                    'unit_price' => $unitPrice,
+                    'row_total' => $unitPrice * $qty,
+                    'category' => $it->category,
+                    'is_absorbed' => false,
+                ];
+            }
+
+            $result[] = (object) [
+                'id' => 'absorbed-service',
+                'qty' => 1,
+                'unit' => 'Lot',
+                'product_name' => 'Jasa Instalasi & Setting Operasional',
+                'description' => 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.',
+                'detail_item' => null,
+                'unit_price' => $internalTotal,
+                'row_total' => $internalTotal,
+                'category' => RfqItem::CATEGORY_JASA,
+                'is_absorbed' => true,
+            ];
+        }
+
+        return collect($result);
+    }
 }

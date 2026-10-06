@@ -138,6 +138,33 @@ class RfqItem extends Model
         return $this->belongsTo(Vendor::class);
     }
 
+    // Menentukan apakah item merupakan tenaga kerja teknisi atau akomodasi internal Pedia
+    // yang tidak ditampilkan langsung di Quotation PDF klien
+    public function isInternalLaborOrAccommodation(): bool
+    {
+        $name = strtolower(trim($this->product_name ?? ''));
+        $vendor = strtolower(trim($this->vendor?->nama_vendor ?? ($this->attributes['vendor_name'] ?? '')));
+
+        if (str_contains($name, 'mp team pedia') 
+            || str_contains($name, 'mainpower pedia') 
+            || str_contains($name, 'mp pedia') 
+            || str_contains($name, 'tarif mp')) {
+            return true;
+        }
+
+        if (str_contains($name, 'akomodasi') 
+            || str_contains($name, 'transport pedia') 
+            || str_contains($name, 'operasional pedia')) {
+            return true;
+        }
+
+        if (str_contains($vendor, 'mainpower pedia') || str_contains($vendor, 'operasional pedia')) {
+            return true;
+        }
+
+        return false;
+    }
+
     /**
      * Calculate price after margin and ceiling.
      * Margin disimpan dalam format PERSEN (cth: 25 = 25%).
