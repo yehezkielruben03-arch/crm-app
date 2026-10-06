@@ -461,25 +461,21 @@ class Rfq extends Model
                     $matRowTotal = (float) $mat->price_after_margin * (float) ($mat->qty ?: 1);
                     $materialTotal += $matRowTotal;
                     $pName = trim($mat->product_name ?? '');
-                    if (!empty($pName)) {
+                    if (!empty($pName) && !$mat->isMiscellaneousMaterial() && strcasecmp($pName, 'Material Support') !== 0) {
                         $partNames[] = $pName;
                     }
                     $sDesc = trim($mat->description ?: $mat->detail_item ?: '');
-                    if (!empty($sDesc) && empty($customMaterialDesc) && !str_contains(strtolower($sDesc), 'material pendukung & habis')) {
+                    if (!empty($sDesc) && empty($customMaterialDesc) && !str_contains(strtolower($sDesc), 'material pendukung & habis') && !$mat->isMiscellaneousMaterial()) {
                         $customMaterialDesc = $sDesc;
                     }
                 }
 
-                if (count($materialItems) > 1) {
+                if (count($partNames) > 1) {
                     $materialDesc = implode(', ', $partNames);
+                } elseif (count($partNames) === 1) {
+                    $materialDesc = $customMaterialDesc ?: $partNames[0];
                 } else {
-                    $singleMat = $materialItems[0];
-                    $singleName = trim($singleMat->product_name ?? '');
-                    if (strcasecmp($singleName, 'Material Support') === 0) {
-                        $materialDesc = $customMaterialDesc ?: '';
-                    } else {
-                        $materialDesc = $customMaterialDesc ?: $singleName;
-                    }
+                    $materialDesc = $customMaterialDesc ?: 'Material pendukung instalasi dan aksesoris perkabelan.';
                 }
 
                 $output[] = (object) [
@@ -512,9 +508,11 @@ class Rfq extends Model
                         $jasaTitle = $pName;
                     }
 
-                    $sDesc = trim($js->description ?: $js->detail_item ?: '');
-                    if (!empty($sDesc) && !in_array($sDesc, $collectedDescs)) {
-                        $collectedDescs[] = $sDesc;
+                    if (!$js->isInternalLaborOrAccommodation()) {
+                        $sDesc = trim($js->description ?: $js->detail_item ?: '');
+                        if (!empty($sDesc) && !in_array($sDesc, $collectedDescs)) {
+                            $collectedDescs[] = $sDesc;
+                        }
                     }
                 }
 
