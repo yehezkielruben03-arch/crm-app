@@ -137,6 +137,21 @@
                         <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200" id="block-count-badge-{{ $blockKey }}">
                             {{ $categoryItems->count() }} Item
                         </span>
+                        @if(!$categoryName || $categoryName === 'Hardware')
+                        <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
+                            <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'standar')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
+                                title="Tambah item Paket PC Rakitan Standar">
+                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                <span>+ PC Rakitan</span>
+                            </button>
+                            <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'tinggi')"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
+                                title="Tambah item Paket PC Rakitan Spek Tinggi">
+                                <span>+ Spek Tinggi</span>
+                            </button>
+                        </div>
+                        @endif
                         <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
                             class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -265,11 +280,20 @@
                         </div>
                         <p class="text-xs font-semibold text-slate-600 mb-0.5">Belum ada item di {{ $block['title'] }}</p>
                         <p class="text-[11px] text-slate-400 mb-3">Klik tombol tambah untuk mulai mengisi rincian HPP barang pada blok ini.</p>
-                        <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            Tambah Item ke {{ $block['title'] }}
-                        </button>
+                        <div class="flex items-center justify-center gap-2">
+                            <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Tambah Item ke {{ $block['title'] }}
+                            </button>
+                            @if(!$categoryName || $categoryName === 'Hardware')
+                            <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'standar')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                + Paket PC Rakitan
+                            </button>
+                            @endif
+                        </div>
                     </div>
 
                     @foreach($categoryItems as $item)
@@ -594,33 +618,35 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <button type="button" onclick="loadComponentsFromSalesSpec('{{ $item->id }}')"
-                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition shadow-2xs"
-                                        title="Ekstrak komponen otomatis dari catatan atau deskripsi Sales (termasuk deteksi intent spek tinggi)">
-                                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                        <span>Ekstrak dari Catatan Sales</span>
-                                    </button>
                                     <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'standar')"
-                                            class="px-2 py-1 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
-                                            title="Muat preset PC Standar / Office (Core i5)">
-                                            Spek Standar
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
+                                            title="Muat template 8 part PC Standar (Core i5)">
+                                            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                            <span>PC Standar (i5)</span>
                                         </button>
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'tinggi')"
-                                            class="px-2 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
-                                            title="Muat preset PC Spek Tinggi / Gaming / Desain (Core i7 + RTX)">
-                                            Spek Tinggi (i7 + RTX)
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX)">
+                                            <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                            <span>Spek Tinggi (i7+RTX)</span>
                                         </button>
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'workstation')"
-                                            class="px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
-                                            title="Muat preset PC Workstation / Rendering / AI (Core i9)">
-                                            Workstation (i9)
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat template 10 part PC Workstation / Rendering (Core i9)">
+                                            <span>Workstation (i9)</span>
                                         </button>
                                     </div>
+                                    <button type="button" onclick="loadComponentsFromSalesSpec('{{ $item->id }}')"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-2xs"
+                                        title="Salin baris daftar part dari catatan Sales jika ada">
+                                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        <span>Salin Catatan Sales</span>
+                                    </button>
                                     <button type="button" onclick="addBundleComponent('{{ $item->id }}')"
-                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-2xs">
+                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition shadow-2xs">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                        <span>Tambah Part</span>
+                                        <span>+ Tambah Part</span>
                                     </button>
                                 </div>
                             </div>
@@ -1006,6 +1032,7 @@
             const initMarginType = initialData.margin_type || 'percentage';
             const initMarginValue = initialData.margin_value !== undefined ? initialData.margin_value : 12.5;
             const initCeiling = initialData.custom_ceiling !== undefined ? initialData.custom_ceiling : 50000;
+            const isBundle = initialData.is_bundle ? true : false;
 
             const catBadge = categoryName ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">${categoryName}</span>` : '';
 
@@ -1027,6 +1054,7 @@
                         <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 cursor-pointer shadow-2xs text-xs font-semibold text-indigo-800 transition select-none">
                             <input type="checkbox" name="items[${tempId}][is_bundle]" value="1" id="bundle-toggle-${tempId}"
                                    class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
+                                   ${isBundle ? 'checked' : ''}
                                    onchange="toggleBundlePanel('${tempId}')">
                             <span>Paket Rakitan</span>
                         </label>
@@ -1268,7 +1296,7 @@
                     </div>
                 </div>
 
-                <div id="bundle-panel-${tempId}" class="hidden px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
+                <div id="bundle-panel-${tempId}" class="${isBundle ? '' : 'hidden '}px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2.5 border-b border-slate-200">
                         <div class="flex items-center gap-2">
                             <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs">
@@ -1280,21 +1308,35 @@
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
+                            <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
+                                <button type="button" onclick="loadPcPreset('${tempId}', 'standar')"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
+                                    title="Muat template 8 part PC Standar (Core i5)">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                    <span>PC Standar (i5)</span>
+                                </button>
+                                <button type="button" onclick="loadPcPreset('${tempId}', 'tinggi')"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
+                                    title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX)">
+                                    <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <span>Spek Tinggi (i7+RTX)</span>
+                                </button>
+                                <button type="button" onclick="loadPcPreset('${tempId}', 'workstation')"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                    title="Muat template 10 part PC Workstation / Rendering (Core i9)">
+                                    <span>Workstation (i9)</span>
+                                </button>
+                            </div>
                             <button type="button" onclick="loadComponentsFromSalesSpec('${tempId}')"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition shadow-2xs"
-                                title="Ekstrak butir komponen langsung dari deskripsi atau catatan Sales">
-                                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                <span>Ekstrak dari Catatan Sales</span>
-                            </button>
-                            <button type="button" onclick="loadStandardPcPreset('${tempId}')"
-                                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg transition shadow-2xs">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                                <span>Muat Template 8 Part Standar</span>
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition shadow-2xs"
+                                title="Salin baris daftar part dari catatan Sales jika ada">
+                                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>Salin Catatan Sales</span>
                             </button>
                             <button type="button" onclick="addBundleComponent('${tempId}')"
-                                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-white hover:bg-blue-50 border border-blue-200 rounded-lg transition shadow-2xs">
+                                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                <span>Tambah Part</span>
+                                <span>+ Tambah Part</span>
                             </button>
                         </div>
                     </div>
@@ -1348,6 +1390,7 @@
             updateBlockCount(blockKey);
             updateAllCardNumbers();
             calculateRow(tempId);
+            return tempId;
         }
 
         function updateMpCalcSummary() {
@@ -1964,16 +2007,32 @@
             return parts;
         }
 
-        function detectSpecIntent(text) {
-            if (!text) return 'standar';
-            const lower = text.toLowerCase();
-            if (lower.includes('workstation') || lower.includes('ai') || lower.includes('deep learning') || lower.includes('i9') || lower.includes('ryzen 9')) {
-                return 'workstation';
+        function addNewPcRakitanItem(categoryName, blockKey, tier = 'standar') {
+            const titleMap = {
+                standar: 'PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS',
+                tinggi: 'PC RAKITAN SPEK TINGGI i7-14700 | 32GB DDR5 | RTX 4070 12GB | 1TB NVMe',
+                workstation: 'PC WORKSTATION RENDERING i9-14900K | 64GB DDR5 | RTX 4070 Ti SUPER 16GB | 2TB NVMe'
+            };
+
+            const title = titleMap[tier] || titleMap['standar'];
+
+            const newItemId = addNewPriceItem(categoryName, blockKey, {
+                product_name: title,
+                vendor_name: '',
+                qty: 1,
+                unit: 'Unit',
+                description: 'Paket Komputer PC Rakitan',
+                is_bundle: true
+            });
+
+            if (newItemId) {
+                const chk = document.getElementById('bundle-toggle-' + newItemId);
+                if (chk) chk.checked = true;
+                const panel = document.getElementById('bundle-panel-' + newItemId);
+                if (panel) panel.classList.remove('hidden');
+
+                loadPcPreset(newItemId, tier, true);
             }
-            if (lower.includes('tinggi') || lower.includes('high') || lower.includes('gaming') || lower.includes('desain') || lower.includes('render') || lower.includes('rtx') || lower.includes('i7') || lower.includes('ryzen 7')) {
-                return 'tinggi';
-            }
-            return 'standar';
         }
 
         function loadComponentsFromSalesSpec(itemId, auto = false) {
@@ -1984,20 +2043,17 @@
             const rfqNotes = document.getElementById('rfq-notes')?.value || '';
             const sourceText = descText.trim() || rfqNotes.trim();
 
-            const detectedTier = detectSpecIntent(sourceText);
             const extractedParts = extractPartsFromText(sourceText);
 
             if (extractedParts.length === 0) {
-                const tierLabel = detectedTier === 'tinggi' ? 'Spek Tinggi (Core i7 + RTX)' : (detectedTier === 'workstation' ? 'Workstation (Core i9)' : 'Standar (Core i5)');
                 if (!auto) {
-                    alert(`Tidak ditemukan butir rincian part spesifik di catatan Sales, namun terdeteksi kebutuhan PC ${tierLabel}. Otomatis memuat template ${tierLabel}.`);
+                    alert('Tidak ada butir rincian part di catatan Sales. Silakan gunakan tombol template PC Standar atau Spek Tinggi di atas.');
                 }
-                loadPcPreset(itemId, detectedTier, auto);
                 return;
             }
 
             if (!auto && tbody.children.length > 0) {
-                if (!confirm(`Ditemukan ${extractedParts.length} part dari spesifikasi Sales. Tambahkan ke dalam tabel komponen?`)) {
+                if (!confirm(`Ditemukan ${extractedParts.length} part dari catatan Sales. Tambahkan ke dalam tabel komponen?`)) {
                     return;
                 }
             }
@@ -2018,6 +2074,12 @@
         }
 
         function loadPcPreset(itemId, tier = 'standar', auto = false) {
+            const toggle = document.getElementById('bundle-toggle-' + itemId);
+            if (toggle && !toggle.checked) {
+                toggle.checked = true;
+                toggleBundlePanel(itemId);
+            }
+
             const tbody = document.getElementById('bundle-components-list-' + itemId);
             if (!tbody) return;
 
