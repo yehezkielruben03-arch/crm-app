@@ -354,19 +354,7 @@
                                     </div>
 
                                     <div>
-                                        <div class="flex items-center justify-between mb-1">
-                                            <label class="text-[11px] font-semibold text-slate-600 block">HPP Beli Include PPN</label>
-                                            <span class="text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Bagi 1,11 otomatis</span>
-                                        </div>
-                                        <div class="relative rounded-xl shadow-2xs mb-2.5">
-                                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-semibold text-slate-400">Rp</span>
-                                            <input type="text" inputmode="numeric" id="hpp-include-{{ $item->id }}" data-item-id="{{ $item->id }}"
-                                                   class="w-full pl-9 pr-3 text-xs font-semibold text-slate-700 border-slate-200 rounded-xl rupiah-input focus:border-amber-500 focus:ring-amber-500 bg-amber-50/30 placeholder:text-slate-400"
-                                                   placeholder="Ketik jika harga distributor include PPN..."
-                                                   oninput="convertHppIncludeToExclude('{{ $item->id }}')">
-                                        </div>
-
-                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan (Exclude PPN) <span class="text-rose-500">*</span></label>
+                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
                                         <div class="relative rounded-xl shadow-2xs">
                                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                             @php
@@ -917,19 +905,7 @@
                             </div>
 
                             <div>
-                                <div class="flex items-center justify-between mb-1">
-                                    <label class="text-[11px] font-semibold text-slate-600 block">HPP Beli Include PPN</label>
-                                    <span class="text-[10px] text-amber-600 font-semibold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Bagi 1,11 otomatis</span>
-                                </div>
-                                <div class="relative rounded-xl shadow-2xs mb-2.5">
-                                    <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-semibold text-slate-400">Rp</span>
-                                    <input type="text" inputmode="numeric" id="hpp-include-${tempId}" data-item-id="${tempId}"
-                                           class="w-full pl-9 pr-3 text-xs font-semibold text-slate-700 border-slate-200 rounded-xl rupiah-input focus:border-amber-500 focus:ring-amber-500 bg-amber-50/30 placeholder:text-slate-400"
-                                           placeholder="Ketik jika harga distributor include PPN..."
-                                           oninput="convertHppIncludeToExclude('${tempId}')">
-                                </div>
-
-                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan (Exclude PPN) <span class="text-rose-500">*</span></label>
+                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
@@ -1325,20 +1301,6 @@
                     custom_ceiling: 1
                 });
                 alert(`Miscelanious Material berhasil ditambahkan: Rp ${formatRupiah(miscAmount)} (15% dari total Rp ${formatRupiah(totalMaterialSales)})`);
-            }
-        }
-
-        function convertHppIncludeToExclude(itemId) {
-            const incInput = document.getElementById('hpp-include-' + itemId);
-            if (!incInput) return;
-            const incVal = parseRupiah(incInput.value);
-            const hppInput = document.getElementById('hpp-' + itemId);
-            if (!hppInput) return;
-
-            if (incVal > 0) {
-                const excVal = Math.round(incVal / 1.11);
-                hppInput.value = formatRupiah(excVal);
-                calculateRow(itemId);
             }
         }
         
