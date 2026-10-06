@@ -212,12 +212,7 @@
                             <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekPcRakitan()"
                                 class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">
                                 <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                + PC Standar
-                            </button>
-                            <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekPcRakitanTinggi()"
-                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100">
-                                <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                + PC Spek Tinggi
+                                + PC Rakitan
                             </button>
                             <div x-show="type === 'Projek'" class="flex items-center gap-1.5">
                                 <span class="text-xs text-slate-400 mr-1 hidden md:inline">Tambah Item:</span>
@@ -229,13 +224,19 @@
                                 <button type="button" @click="addProjekPcRakitan()"
                                     class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition active:scale-95">
                                     <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                    + PC Standar
+                                    + PC Rakitan
                                 </button>
-                                <button type="button" @click="addProjekPcRakitanTinggi()"
-                                    class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition active:scale-95">
-                                    <svg class="w-3 h-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                    + PC Spek Tinggi
+                                <button type="button" @click="addProjekItem('Jasa Pemasangan')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Jasa
                                 </button>
+                                <button type="button" @click="addProjekItem('Material Support')"
+                                    class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition active:scale-95">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                    + Material
+                                </button>
+                            </div>
                                 <button type="button" @click="addProjekItem('Jasa Pemasangan')"
                                     class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
@@ -324,12 +325,7 @@
                                             <button type="button" @click="addNonProjekPcRakitan()"
                                                 class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">
                                                 <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                                + PC Standar
-                                            </button>
-                                            <button type="button" @click="addNonProjekPcRakitanTinggi()"
-                                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100">
-                                                <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                                + PC Spek Tinggi
+                                                + PC Rakitan
                                             </button>
                                         </div>
                                     </td>
@@ -527,42 +523,20 @@
 
                 addNonProjekPcRakitan() {
                     this.globalId++;
-                    const defaultSpec = "- Intel Core i5-12400 2.5GHz Up To 4.4GHz Socket LGA1700\n- MSI PRO B760M-A WIFI DDR4\n- Team Elite Plus Black DDR4 16GB (2x8GB)\n- Samsung SSD 990 EVO PLUS M.2 PCIe Gen 5.0 1TB\n- Deepcool XFAN 12CM Black\n- Deepcool AK400 Fan 12CM\n- Antec ATOM B750 750W 80+ Bronze\n- GameMax Spark Air Black Tempered Glass M-ATX\n- MSI Pro MP2412 23.8 FHD 100Hz Monitor\n- Vention USB Wired Keyboard & Mouse Combo";
-                    const title = "PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS";
+                    const title = "PC Rakitan";
 
                     if (this.nonProjekItems.length === 1 && !this.nonProjekItems[0].product_name) {
                         this.nonProjekItems[0].product_name = title;
                         this.nonProjekItems[0].qty = 1;
                         this.nonProjekItems[0].unit = "Unit";
-                        this.nonProjekItems[0].description = defaultSpec;
+                        this.nonProjekItems[0].description = "";
                     } else {
                         this.nonProjekItems.push({
                             id: this.globalId,
                             product_name: title,
                             qty: 1,
                             unit: "Unit",
-                            description: defaultSpec
-                        });
-                    }
-                },
-
-                addNonProjekPcRakitanTinggi() {
-                    this.globalId++;
-                    const tinggiSpec = "- Intel Core i7-14700 2.1GHz Up To 5.4GHz LGA1700\n- MSI B760 GAMING PLUS WIFI DDR5\n- Kingston Fury Beast DDR5 32GB (2x16GB) 6000MHz\n- ZOTAC Gaming GeForce RTX 4070 Twin Edge 12GB GDDR6X\n- Samsung SSD 990 PRO M.2 NVMe PCIe 4.0 1TB\n- Deepcool LT520 Liquid Cooler 240mm ARGB\n- Corsair RM750e 750W 80+ Gold Fully Modular\n- NZXT H5 Flow Tempered Glass Mid Tower\n- LG UltraGear 27GR75Q 27 Inch IPS QHD 165Hz Monitor\n- Logitech G213 Gaming Keyboard & G102 Mouse Combo";
-                    const title = "PC RAKITAN SPEK TINGGI i7-14700 | 32GB DDR5 | RTX 4070 12GB | 1TB NVMe";
-
-                    if (this.nonProjekItems.length === 1 && !this.nonProjekItems[0].product_name) {
-                        this.nonProjekItems[0].product_name = title;
-                        this.nonProjekItems[0].qty = 1;
-                        this.nonProjekItems[0].unit = "Unit";
-                        this.nonProjekItems[0].description = tinggiSpec;
-                    } else {
-                        this.nonProjekItems.push({
-                            id: this.globalId,
-                            product_name: title,
-                            qty: 1,
-                            unit: "Unit",
-                            description: tinggiSpec
+                            description: ""
                         });
                     }
                 },
@@ -588,8 +562,7 @@
 
                 addProjekPcRakitan() {
                     this.globalId++;
-                    const defaultSpec = "- Intel Core i5-12400 2.5GHz Up To 4.4GHz Socket LGA1700\n- MSI PRO B760M-A WIFI DDR4\n- Team Elite Plus Black DDR4 16GB (2x8GB)\n- Samsung SSD 990 EVO PLUS M.2 PCIe Gen 5.0 1TB\n- Deepcool XFAN 12CM Black\n- Deepcool AK400 Fan 12CM\n- Antec ATOM B750 750W 80+ Bronze\n- GameMax Spark Air Black Tempered Glass M-ATX\n- MSI Pro MP2412 23.8 FHD 100Hz Monitor\n- Vention USB Wired Keyboard & Mouse Combo";
-                    const title = "PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS";
+                    const title = "PC Rakitan";
 
                     const cat = this.categories.find(c => c.name === 'Hardware');
                     if(cat) {
@@ -598,26 +571,8 @@
                             product_name: title,
                             qty: 1,
                             unit: 'Unit',
-                            detail_item: defaultSpec,
-                            description: defaultSpec
-                        });
-                    }
-                },
-
-                addProjekPcRakitanTinggi() {
-                    this.globalId++;
-                    const tinggiSpec = "- Intel Core i7-14700 2.1GHz Up To 5.4GHz LGA1700\n- MSI B760 GAMING PLUS WIFI DDR5\n- Kingston Fury Beast DDR5 32GB (2x16GB) 6000MHz\n- ZOTAC Gaming GeForce RTX 4070 Twin Edge 12GB GDDR6X\n- Samsung SSD 990 PRO M.2 NVMe PCIe 4.0 1TB\n- Deepcool LT520 Liquid Cooler 240mm ARGB\n- Corsair RM750e 750W 80+ Gold Fully Modular\n- NZXT H5 Flow Tempered Glass Mid Tower\n- LG UltraGear 27GR75Q 27 Inch IPS QHD 165Hz Monitor\n- Logitech G213 Gaming Keyboard & G102 Mouse Combo";
-                    const title = "PC RAKITAN SPEK TINGGI i7-14700 | 32GB DDR5 | RTX 4070 12GB | 1TB NVMe";
-
-                    const cat = this.categories.find(c => c.name === 'Hardware');
-                    if(cat) {
-                        cat.items.push({
-                            id: this.globalId,
-                            product_name: title,
-                            qty: 1,
-                            unit: 'Unit',
-                            detail_item: tinggiSpec,
-                            description: tinggiSpec
+                            detail_item: '',
+                            description: ''
                         });
                     }
                 },
