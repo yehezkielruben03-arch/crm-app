@@ -276,8 +276,8 @@ class RfqItem extends Model
         } else {
             $marginVal = (float) $this->margin_value;
             $profit = $baseCost * ($marginVal / 100);
-            // Aturan minimum estimasi untung: Rp 50.000 jika terdapat modal dasar
-            if ($baseCost > 0 && $profit < 50000) {
+            // Aturan minimum estimasi untung Rp 50.000 hanya untuk item utama mandiri (bukan child komponen part)
+            if (!$this->parent_id && $baseCost > 0 && $profit < 50000) {
                 $profit = 50000;
             }
             $withMargin = $baseCost + $profit;

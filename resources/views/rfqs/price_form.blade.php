@@ -141,13 +141,18 @@
                         <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
                             <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'standar')"
                                 class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
-                                title="Tambah item Paket PC Rakitan Standar">
+                                title="Tambah item Paket PC Rakitan Core i5 persis Excel sampling">
                                 <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                <span>+ PC Rakitan</span>
+                                <span>+ PC Rakitan i5 (Excel)</span>
+                            </button>
+                            <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'mini_pc_asus')"
+                                class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                title="Tambah item Paket Mini PC Asus Intel NUC persis Excel sampling">
+                                <span>+ Mini PC Asus (Excel)</span>
                             </button>
                             <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'tinggi')"
                                 class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
-                                title="Tambah item Paket PC Rakitan Spek Tinggi">
+                                title="Tambah item Paket PC Rakitan Spek Tinggi (i7+RTX)">
                                 <span>+ Spek Tinggi</span>
                             </button>
                         </div>
@@ -290,7 +295,11 @@
                             <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'standar')"
                                 class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition shadow-2xs">
                                 <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                + Paket PC Rakitan
+                                + PC Rakitan i5 (Excel)
+                            </button>
+                            <button type="button" onclick="addNewPcRakitanItem('{{ $categoryName }}', '{{ $blockKey }}', 'mini_pc_asus')"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
+                                + Mini PC Asus (Excel)
                             </button>
                             @endif
                         </div>
@@ -322,10 +331,16 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
+                                @php
+                                    $isBundleItem = ($item->is_bundle || $item->components->isNotEmpty() || str_contains(strtolower($item->product_name ?? ''), 'rakitan'));
+                                @endphp
+                                <span id="bundle-badge-{{ $item->id }}" class="{{ $isBundleItem ? '' : 'hidden ' }}px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600 text-white shadow-2xs tracking-wide">
+                                    Card Khusus PC Rakitan
+                                </span>
                                 <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 cursor-pointer shadow-2xs text-xs font-semibold text-indigo-800 transition select-none">
                                     <input type="checkbox" name="items[{{ $item->id }}][is_bundle]" value="1" id="bundle-toggle-{{ $item->id }}"
                                            class="rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5"
-                                           {{ ($item->is_bundle || $item->components->isNotEmpty() || str_contains(strtolower($item->product_name ?? ''), 'rakitan')) ? 'checked' : '' }}
+                                           {{ $isBundleItem ? 'checked' : '' }}
                                            onchange="toggleBundlePanel('{{ $item->id }}')">
                                     <span>Paket Rakitan</span>
                                 </label>
@@ -340,8 +355,8 @@
                             </div>
                         </div>
 
-                        {{-- Card Body: 3 Clean Balanced Columns Grid --}}
-                        <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {{-- Card Body Reguler: 3 Clean Balanced Columns Grid (Aktif untuk Item Reguler) --}}
+                        <div id="regular-body-{{ $item->id }}" class="{{ $isBundleItem ? 'hidden ' : '' }}p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                             
                             {{-- COL 1: Info Barang & Vendor --}}
                             <div class="space-y-3 flex flex-col justify-between">
@@ -605,35 +620,127 @@
 
                         </div>
 
-                        {{-- Panel Komponen PC Rakitan (Hardware Bundling) --}}
-                        <div id="bundle-panel-{{ $item->id }}" class="{{ ($item->is_bundle || $item->components->isNotEmpty() || str_contains(strtolower($item->product_name ?? ''), 'rakitan')) ? '' : 'hidden ' }}px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
-                            <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2.5 border-b border-slate-200">
+                        {{-- Card Body Khusus PC Rakitan (Hardware Bundling Excel) --}}
+                        <div id="bundle-card-body-{{ $item->id }}" class="{{ $isBundleItem ? '' : 'hidden ' }}p-5 lg:p-6 bg-slate-50/70 border-t border-slate-200/90 space-y-5">
+                            {{-- 1. Sub-Bar Info Paket Rakitan --}}
+                            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                                <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+                                    <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                        Konfigurasi Paket PC Rakitan
+                                    </span>
+                                    <span class="text-[11px] bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full">
+                                        Card Khusus Rakitan • Auto-Sync Lembar2 Excel
+                                    </span>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                                    <div class="md:col-span-6">
+                                        <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Nama Paket PC / Judul Penawaran <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                        <input type="text" id="bundle-title-input-{{ $item->id }}"
+                                               value="{{ old('items.'.$item->id.'.product_name', $item->product_name) }}"
+                                               class="w-full text-xs font-bold text-slate-900 border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                               placeholder="Contoh: PC RAKITAN i5-12400 | 16GB | 1TB NVMe | ENTERKOMPUTER"
+                                               oninput="syncBundleTitle('{{ $item->id }}', this.value)">
+                                    </div>
+                                    <div class="md:col-span-3">
+                                        <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Vendor Perakitan / Toko Utama</label>
+                                        <input type="text" id="bundle-vendor-input-{{ $item->id }}"
+                                               list="vendor-datalist"
+                                               value="{{ old('items.'.$item->id.'.vendor_name', $item->vendor->nama_vendor ?? '') }}"
+                                               class="w-full text-xs text-slate-800 border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                               placeholder="Contoh: enterkomputer / isb..."
+                                               oninput="syncBundleVendor('{{ $item->id }}', this.value)">
+                                    </div>
+                                    <div class="md:col-span-3 grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Qty Paket <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                            <input type="number" id="bundle-qty-input-{{ $item->id }}"
+                                                   value="{{ old('items.'.$item->id.'.qty', (int) $item->qty) }}" min="1"
+                                                   class="w-full text-xs font-bold text-center border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                                   oninput="syncBundleQty('{{ $item->id }}', this.value)">
+                                        </div>
+                                        <div>
+                                            <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Satuan</label>
+                                            <input type="text" id="bundle-unit-input-{{ $item->id }}"
+                                                   value="{{ old('items.'.$item->id.'.unit', $item->unit ?: 'Unit') }}"
+                                                   class="w-full text-xs text-center border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                                   oninput="syncBundleUnit('{{ $item->id }}', this.value)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 2. Executive Summary Bar Paket --}}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                                <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Modal Part (Exclude PPN)</span>
+                                    <div class="text-base font-extrabold font-mono text-slate-800 mt-1" id="bundle-total-modal-exclude-{{ $item->id }}">
+                                        Rp 0
+                                    </div>
+                                    <span class="text-[10px] text-slate-400">Total HPP Exclude Lembar2</span>
+                                </div>
+                                <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Ongkir &amp; Biaya Kurir</span>
+                                    <div class="text-base font-extrabold font-mono text-indigo-700 mt-1" id="bundle-total-logistik-{{ $item->id }}">
+                                        Rp 0
+                                    </div>
+                                    <span class="text-[10px] text-slate-400">Ongkir Toko + Biaya Kurir Armada</span>
+                                </div>
+                                <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Estimasi Keuntungan Paket</span>
+                                    <div class="text-base font-extrabold font-mono text-emerald-600 mt-1" id="bundle-total-profit-{{ $item->id }}">
+                                        +Rp 0
+                                    </div>
+                                    <span class="text-[10px] text-slate-400">Estimasi Laba Real Paket</span>
+                                </div>
+                                <div class="p-3.5 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-xl text-white shadow-md border border-slate-700">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Harga Jual Klien (Saler)</span>
+                                        <span class="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 font-mono">Per Unit</span>
+                                    </div>
+                                    <div class="text-lg font-black font-mono text-emerald-400 mt-1" id="bundle-saler-unit-{{ $item->id }}">
+                                        Rp 0
+                                    </div>
+                                    <div class="flex items-center justify-between pt-1 border-t border-slate-700 text-[10px] text-slate-400">
+                                        <span>Subtotal:</span>
+                                        <span class="font-bold text-white font-mono" id="bundle-subtotal-{{ $item->id }}">Rp 0</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 3. Toolbar Aksi Template Part --}}
+                            <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-200">
                                 <div class="flex items-center gap-2">
                                     <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                                     </div>
                                     <div>
-                                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Komponen Part PC Rakitan</h4>
-                                        <p class="text-[11px] text-slate-500">Hitung HPP &amp; margin masing-masing part. Total Saler otomatis menjadi harga jual paket di atas.</p>
+                                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Daftar Komponen Part PC Rakitan</h4>
+                                        <p class="text-[11px] text-slate-500">Hitung HPP Include/Exclude, Ongkir, Biaya Kurir, Margin &amp; Ceiling. Total Saler otomatis menjadi harga jual klien.</p>
                                     </div>
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
                                     <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'standar')"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
-                                            title="Muat template 8 part PC Standar (Core i5)">
+                                            title="Muat template 10 part PC Rakitan Core i5 persis Sheet Lembar2 Excel sampling (Saler 16.800.000)">
                                             <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                            <span>PC Standar (i5)</span>
+                                            <span>⚡ PC Rakitan i5 (Excel)</span>
+                                        </button>
+                                        <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'mini_pc_asus')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat template 5 part Mini PC Asus Intel NUC persis Sheet Lembar2 Excel sampling (Saler 16.050.000)">
+                                            <span>⚡ Mini PC Asus (Excel)</span>
                                         </button>
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'tinggi')"
                                             class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
-                                            title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX)">
+                                            title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX 4070)">
                                             <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                             <span>Spek Tinggi (i7+RTX)</span>
                                         </button>
                                         <button type="button" onclick="loadPcPreset('{{ $item->id }}', 'workstation')"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
-                                            title="Muat template 10 part PC Workstation / Rendering (Core i9)">
+                                            class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-md transition border-l border-indigo-100"
+                                            title="Muat template 10 part PC Workstation / Rendering (Core i9 + RTX 4070 Ti SUPER)">
                                             <span>Workstation (i9)</span>
                                         </button>
                                     </div>
@@ -657,7 +764,7 @@
                                 $salesNotePreview = $itemSpecText ?: $rfqNotesText;
                             @endphp
                             @if(!empty($salesNotePreview))
-                            <div class="mb-3.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/90 text-indigo-950 text-xs">
+                            <div class="p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/90 text-indigo-950 text-xs">
                                 <div class="flex items-center justify-between gap-2 mb-1">
                                     <span class="font-bold flex items-center gap-1.5 text-indigo-900">
                                         <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -673,28 +780,35 @@
                             </div>
                             @endif
 
-                            <div class="overflow-x-auto">
+                            {{-- 4. Tabel Komponen Part Lengkap Sesuai Lembar2 Excel --}}
+                            <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-2xs">
                                 <table class="w-full text-left text-xs">
-                                    <thead>
-                                        <tr class="text-[11px] font-bold text-slate-600 border-b border-slate-200">
-                                            <th class="py-2 px-1 w-8 text-center">#</th>
-                                            <th class="py-2 px-2 min-w-[200px]">Part / Komponen</th>
-                                            <th class="py-2 px-2 min-w-[130px]">Vendor / Toko</th>
-                                            <th class="py-2 px-2 w-16 text-center">Qty</th>
-                                            <th class="py-2 px-2 min-w-[110px]">HPP (Rp)</th>
-                                            <th class="py-2 px-2 min-w-[90px]">Ongkir (Rp)</th>
-                                            <th class="py-2 px-2 w-20 text-center">Margin %</th>
-                                            <th class="py-2 px-2 w-20 text-center">Ceiling</th>
-                                            <th class="py-2 px-2 min-w-[110px] text-right">Saler / Unit</th>
-                                            <th class="py-2 px-2 min-w-[110px] text-right">Subtotal</th>
-                                            <th class="py-2 px-1 w-8 text-center"></th>
+                                    <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                                        <tr class="text-[11px]">
+                                            <th class="py-2.5 px-2 w-8 text-center">#</th>
+                                            <th class="py-2.5 px-2 min-w-[200px]">Part / Komponen PC</th>
+                                            <th class="py-2.5 px-2 min-w-[120px]">Vendor / Toko</th>
+                                            <th class="py-2.5 px-1.5 w-14 text-center">Qty</th>
+                                            <th class="py-2.5 px-2 min-w-[105px]">HPP Include (Rp)</th>
+                                            <th class="py-2.5 px-2 min-w-[105px]">Exclude PPN (Rp)</th>
+                                            <th class="py-2.5 px-2 min-w-[90px]">Ongkir (Rp)</th>
+                                            <th class="py-2.5 px-2 min-w-[95px]">Biaya Kirim (Rp)</th>
+                                            <th class="py-2.5 px-1.5 w-16 text-center">Margin %</th>
+                                            <th class="py-2.5 px-1.5 w-16 text-center">Ceiling</th>
+                                            <th class="py-2.5 px-2 min-w-[110px] text-right">Saler / Unit</th>
+                                            <th class="py-2.5 px-2 min-w-[110px] text-right">Subtotal</th>
+                                            <th class="py-2.5 px-1 w-8 text-center"></th>
                                         </tr>
                                     </thead>
                                     <tbody id="bundle-components-list-{{ $item->id }}" class="divide-y divide-slate-100">
                                         @foreach($item->components as $cIdx => $comp)
-                                        @php $cId = $comp->id; @endphp
-                                        <tr class="bundle-comp-row hover:bg-white/60 transition-colors" id="comp-row-{{ $item->id }}-{{ $cId }}">
-                                            <td class="py-2 px-1 text-center font-mono text-slate-400 comp-row-num">{{ $loop->iteration }}</td>
+                                        @php 
+                                            $cId = $comp->id; 
+                                            $rawCompHpp = (float)$comp->hpp;
+                                            $rawCompInclude = $rawCompHpp > 0 ? round($rawCompHpp * 1.11) : 0;
+                                        @endphp
+                                        <tr class="bundle-comp-row hover:bg-slate-50/70 transition-colors" id="comp-row-{{ $item->id }}-{{ $cId }}">
+                                            <td class="py-2 px-2 text-center font-mono text-slate-400 comp-row-num">{{ $loop->iteration }}</td>
                                             <td class="py-2 px-2">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cId }}][id]" value="{{ $cId }}">
                                                 <input type="text" name="items[{{ $item->id }}][components][{{ $cId }}][product_name]"
@@ -707,21 +821,35 @@
                                                        list="vendor-datalist"
                                                        value="{{ $comp->vendor?->nama_vendor ?? '' }}"
                                                        class="w-full text-xs text-slate-700 border-slate-200 rounded-lg py-1 px-2 focus:border-indigo-500 focus:ring-indigo-500"
-                                                       placeholder="Vendor / Toko...">
+                                                       placeholder="Toko / Vendor...">
                                             </td>
-                                            <td class="py-2 px-2 text-center">
+                                            <td class="py-2 px-1.5 text-center">
                                                 <input type="number" name="items[{{ $item->id }}][components][{{ $cId }}][qty]"
                                                        id="comp-qty-{{ $item->id }}-{{ $cId }}"
                                                        value="{{ (int)($comp->qty ?: 1) }}" min="1" step="1"
-                                                       class="w-14 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
+                                                       class="w-12 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
                                                        data-parent-id="{{ $item->id }}">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cId }}][unit]" value="{{ $comp->unit ?: 'Unit' }}">
+                                            </td>
+                                            <td class="py-2 px-2">
+                                                <input type="text" inputmode="numeric"
+                                                       id="comp-include-{{ $item->id }}-{{ $cId }}"
+                                                       value="{{ $rawCompInclude > 0 ? number_format($rawCompInclude, 0, ',', '.') : '0' }}"
+                                                       class="w-full text-xs font-bold text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input comp-include-trigger"
+                                                       data-parent-id="{{ $item->id }}" data-comp-id="{{ $cId }}" placeholder="0">
                                             </td>
                                             <td class="py-2 px-2">
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cId }}][hpp]"
                                                        id="comp-hpp-{{ $item->id }}-{{ $cId }}"
                                                        value="{{ number_format((float)$comp->hpp, 0, ',', '.') }}"
-                                                       class="w-full text-xs font-bold text-slate-800 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
+                                                       class="w-full text-xs font-bold text-slate-800 bg-slate-50 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
+                                                       data-parent-id="{{ $item->id }}" placeholder="0" title="Exclude PPN = Include / 1.11">
+                                            </td>
+                                            <td class="py-2 px-2">
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cId }}][ongkir_pedia]"
+                                                       id="comp-ongkir-{{ $item->id }}-{{ $cId }}"
+                                                       value="{{ number_format((float)$comp->ongkir_pedia, 0, ',', '.') }}"
+                                                       class="w-full text-xs font-medium text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
                                                        data-parent-id="{{ $item->id }}" placeholder="0">
                                             </td>
                                             <td class="py-2 px-2">
@@ -731,15 +859,15 @@
                                                        class="w-full text-xs font-medium text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
                                                        data-parent-id="{{ $item->id }}" placeholder="0">
                                             </td>
-                                            <td class="py-2 px-2 text-center">
+                                            <td class="py-2 px-1.5 text-center">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cId }}][margin_type]" value="percentage">
                                                 <input type="text" name="items[{{ $item->id }}][components][{{ $cId }}][margin_value]"
                                                        id="comp-margin-{{ $item->id }}-{{ $cId }}"
                                                        value="{{ rtrim(rtrim(number_format((float)($comp->margin_value ?: 12.5), 2, '.', ''), '0'), '.') }}"
-                                                       class="w-16 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
+                                                       class="w-14 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
                                                        data-parent-id="{{ $item->id }}" placeholder="12.5">
                                             </td>
-                                            <td class="py-2 px-2 text-center">
+                                            <td class="py-2 px-1.5 text-center">
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cId }}][custom_ceiling]"
                                                        id="comp-ceiling-{{ $item->id }}-{{ $cId }}"
                                                        value="{{ number_format((float)($comp->custom_ceiling ?: 50000), 0, ',', '.') }}"
@@ -762,17 +890,19 @@
                                         @endforeach
                                     </tbody>
                                     <tfoot>
-                                        <tr class="font-bold text-xs border-t-2 border-slate-200 bg-white/70">
-                                            <td colspan="4" class="py-2 px-2 text-slate-700">Akumulasi Paket PC Rakitan:</td>
-                                            <td class="py-2 px-2 font-mono text-slate-800" id="bundle-total-modal-{{ $item->id }}">Rp 0</td>
-                                            <td colspan="3" class="py-2 px-2 text-right text-slate-500 text-[11px]">Total Saler (Harga Jual Paket):</td>
-                                            <td colspan="2" class="py-2 px-2 text-right font-mono text-emerald-700 text-sm" id="bundle-total-saler-{{ $item->id }}">Rp 0</td>
+                                        <tr class="font-bold text-xs border-t-2 border-slate-200 bg-slate-50/80">
+                                            <td colspan="5" class="py-2.5 px-2 text-slate-700">Akumulasi Seluruh Part PC Rakitan:</td>
+                                            <td class="py-2.5 px-2 font-mono text-slate-900" id="bundle-total-modal-{{ $item->id }}">Rp 0</td>
+                                            <td colspan="4" class="py-2.5 px-2 text-right text-slate-500 text-[11px]">Total Saler (Harga Jual Paket Satuan):</td>
+                                            <td colspan="2" class="py-2.5 px-2 text-right font-mono text-emerald-700 text-sm" id="bundle-total-saler-{{ $item->id }}">Rp 0</td>
                                             <td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
                             </div>
                         </div>
+                    </div>
+                    @endforeach
                 </div>
             </div>
             @endforeach
@@ -1047,6 +1177,10 @@
                             <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                                 <span id="display-name-${tempId}">${initName || 'Item Baru'}</span>
                                 ${catBadge}
+                                <span id="bundle-header-badge-${tempId}" class="${isBundle ? '' : 'hidden '}px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                    Card Khusus PC Rakitan
+                                </span>
                             </h3>
                         </div>
                     </div>
@@ -1069,7 +1203,7 @@
                     </div>
                 </div>
 
-                <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div id="regular-body-${tempId}" class="${isBundle ? 'hidden ' : ''}p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="space-y-3 flex flex-col justify-between">
                         <div class="space-y-3">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
@@ -1082,7 +1216,7 @@
                             <input type="hidden" name="items[${tempId}][category]" value="${categoryName || ''}">
 
                             <div>
-                                <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Nama Item / Produk <span class="text-rose-500">*</span></label>
+                                <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Nama Item / Produk <span class="text-rose-500 font-bold">(wajib)</span></label>
                                 <input type="text" name="items[${tempId}][product_name]" value="${initName}"
                                        class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
                                        placeholder="Nama barang atau jasa..."
@@ -1109,7 +1243,7 @@
 
                             <div class="grid grid-cols-2 gap-2.5">
                                 <div>
-                                    <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Qty <span class="text-rose-500">*</span></label>
+                                    <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Qty <span class="text-rose-500 font-bold">(wajib)</span></label>
                                     <input type="number" name="items[${tempId}][qty]" id="qty-${tempId}" value="${initQty}"
                                            class="w-full text-xs font-bold text-center border-slate-200 rounded-xl calc-trigger focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
                                            oninput="document.getElementById('badge-qty-${tempId}').innerText = this.value" required min="1">
@@ -1140,7 +1274,7 @@
                             </div>
 
                             <div>
-                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
+                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500 font-bold">(wajib)</span></label>
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
@@ -1296,34 +1430,123 @@
                     </div>
                 </div>
 
-                <div id="bundle-panel-${tempId}" class="${isBundle ? '' : 'hidden '}px-6 py-4 bg-slate-50/80 border-t border-slate-200/90">
-                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3 pb-2.5 border-b border-slate-200">
+                <div id="bundle-card-body-${tempId}" class="${isBundle ? '' : 'hidden '}p-5 lg:p-6 bg-slate-50/70 border-t border-slate-200/90 space-y-5">
+                    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                        <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
+                            <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+                                Konfigurasi Paket PC Rakitan
+                            </span>
+                            <span class="text-[11px] bg-indigo-100 text-indigo-800 font-bold px-2.5 py-0.5 rounded-full">
+                                Card Khusus Rakitan • Auto-Sync Lembar2 Excel
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+                            <div class="md:col-span-6">
+                                <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Nama Paket PC / Judul Penawaran <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                <input type="text" id="bundle-title-input-${tempId}"
+                                       value="${initName}"
+                                       class="w-full text-xs font-bold text-slate-900 border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                       placeholder="Contoh: PC RAKITAN i5-12400 | 16GB | 1TB NVMe | ENTERKOMPUTER"
+                                       oninput="syncBundleTitle('${tempId}', this.value)">
+                            </div>
+                            <div class="md:col-span-3">
+                                <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Vendor Perakitan / Toko Utama</label>
+                                <input type="text" id="bundle-vendor-input-${tempId}"
+                                       list="vendor-datalist"
+                                       value="${initVendor}"
+                                       class="w-full text-xs text-slate-800 border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                       placeholder="Contoh: enterkomputer / isb..."
+                                       oninput="syncBundleVendor('${tempId}', this.value)">
+                            </div>
+                            <div class="md:col-span-3 grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Qty Paket <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                    <input type="number" id="bundle-qty-input-${tempId}"
+                                           value="${initQty}" min="1"
+                                           class="w-full text-xs font-bold text-center border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                           oninput="syncBundleQty('${tempId}', this.value)">
+                                </div>
+                                <div>
+                                    <label class="text-[11px] font-semibold text-slate-700 mb-1 block">Satuan</label>
+                                    <input type="text" id="bundle-unit-input-${tempId}"
+                                           value="${initUnit}"
+                                           class="w-full text-xs text-center border-slate-300 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs"
+                                           oninput="syncBundleUnit('${tempId}', this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Modal Part (Exclude PPN)</span>
+                            <div class="text-base font-extrabold font-mono text-slate-800 mt-1" id="bundle-total-modal-exclude-${tempId}">
+                                Rp 0
+                            </div>
+                            <span class="text-[10px] text-slate-400">Total HPP Exclude Lembar2</span>
+                        </div>
+                        <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Total Ongkir &amp; Biaya Kurir</span>
+                            <div class="text-base font-extrabold font-mono text-indigo-700 mt-1" id="bundle-total-logistik-${tempId}">
+                                Rp 0
+                            </div>
+                            <span class="text-[10px] text-slate-400">Ongkir Toko + Biaya Kurir Armada</span>
+                        </div>
+                        <div class="p-3.5 bg-white rounded-xl border border-slate-200 shadow-2xs">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Estimasi Keuntungan Paket</span>
+                            <div class="text-base font-extrabold font-mono text-emerald-600 mt-1" id="bundle-total-profit-${tempId}">
+                                +Rp 0
+                            </div>
+                            <span class="text-[10px] text-slate-400">Estimasi Laba Real Paket</span>
+                        </div>
+                        <div class="p-3.5 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-xl text-white shadow-md border border-slate-700">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Harga Jual Klien (Saler)</span>
+                                <span class="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-300 font-mono">Per Unit</span>
+                            </div>
+                            <div class="text-lg font-black font-mono text-emerald-400 mt-1" id="bundle-saler-unit-${tempId}">
+                                Rp 0
+                            </div>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-700 text-[10px] text-slate-400">
+                                <span>Subtotal:</span>
+                                <span class="font-bold text-white font-mono" id="bundle-subtotal-${tempId}">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-slate-200">
                         <div class="flex items-center gap-2">
                             <div class="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold shadow-2xs">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
                             </div>
                             <div>
-                                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Komponen Part PC Rakitan</h4>
-                                <p class="text-[11px] text-slate-500">Hitung HPP &amp; margin masing-masing part. Total Saler otomatis menjadi harga jual paket di atas.</p>
+                                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Daftar Komponen Part PC Rakitan</h4>
+                                <p class="text-[11px] text-slate-500">Hitung HPP Include/Exclude, Ongkir, Biaya Kurir, Margin &amp; Ceiling. Total Saler otomatis menjadi harga jual klien.</p>
                             </div>
                         </div>
                         <div class="flex flex-wrap items-center gap-2">
                             <div class="inline-flex rounded-lg shadow-2xs border border-indigo-200 bg-white p-0.5">
                                 <button type="button" onclick="loadPcPreset('${tempId}', 'standar')"
                                     class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-indigo-700 hover:bg-indigo-50 rounded-md transition"
-                                    title="Muat template 8 part PC Standar (Core i5)">
+                                    title="Muat template 10 part PC Rakitan Core i5 persis Sheet Lembar2 Excel sampling (Saler 16.800.000)">
                                     <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                    <span>PC Standar (i5)</span>
+                                    <span>⚡ PC Rakitan i5 (Excel)</span>
+                                </button>
+                                <button type="button" onclick="loadPcPreset('${tempId}', 'mini_pc_asus')"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
+                                    title="Muat template 5 part Mini PC Asus Intel NUC persis Sheet Lembar2 Excel sampling (Saler 16.050.000)">
+                                    <span>⚡ Mini PC Asus (Excel)</span>
                                 </button>
                                 <button type="button" onclick="loadPcPreset('${tempId}', 'tinggi')"
                                     class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-purple-700 hover:bg-purple-50 rounded-md transition border-l border-indigo-100"
-                                    title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX)">
+                                    title="Muat template 10 part PC Spek Tinggi (Core i7 + RTX 4070)">
                                     <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                                     <span>Spek Tinggi (i7+RTX)</span>
                                 </button>
                                 <button type="button" onclick="loadPcPreset('${tempId}', 'workstation')"
-                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-md transition border-l border-indigo-100"
-                                    title="Muat template 10 part PC Workstation / Rendering (Core i9)">
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 rounded-md transition border-l border-indigo-100"
+                                    title="Muat template 10 part PC Workstation / Rendering (Core i9 + RTX 4070 Ti SUPER)">
                                     <span>Workstation (i9)</span>
                                 </button>
                             </div>
@@ -1341,30 +1564,32 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                         <table class="w-full text-left text-xs">
-                            <thead>
-                                <tr class="text-[11px] font-bold text-slate-600 border-b border-slate-200">
-                                    <th class="py-2 px-1 w-8 text-center">#</th>
-                                    <th class="py-2 px-2 min-w-[200px]">Part / Komponen</th>
-                                    <th class="py-2 px-2 min-w-[130px]">Vendor / Toko</th>
-                                    <th class="py-2 px-2 w-16 text-center">Qty</th>
-                                    <th class="py-2 px-2 min-w-[110px]">HPP (Rp)</th>
-                                    <th class="py-2 px-2 min-w-[90px]">Ongkir (Rp)</th>
-                                    <th class="py-2 px-2 w-20 text-center">Margin %</th>
-                                    <th class="py-2 px-2 w-20 text-center">Ceiling</th>
-                                    <th class="py-2 px-2 min-w-[110px] text-right">Saler / Unit</th>
-                                    <th class="py-2 px-2 min-w-[110px] text-right">Subtotal</th>
-                                    <th class="py-2 px-1 w-8 text-center"></th>
+                            <thead class="bg-slate-100/80 text-slate-700 font-semibold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2.5 px-2 text-center w-8">No</th>
+                                    <th class="py-2.5 px-2 min-w-[220px]">Part / Komponen</th>
+                                    <th class="py-2.5 px-2 min-w-[130px]">Toko / Vendor</th>
+                                    <th class="py-2.5 px-1.5 w-14 text-center">Qty</th>
+                                    <th class="py-2.5 px-2 min-w-[110px]" title="Harga Beli termasuk PPN (Kolom C Lembar2)">Include PPN</th>
+                                    <th class="py-2.5 px-2 min-w-[110px]" title="Harga Modal Exclude PPN (Kolom D Lembar2 = Include / 1.11)">Exclude PPN</th>
+                                    <th class="py-2.5 px-2 min-w-[90px]" title="Ongkir Toko Vendor (Kolom E Lembar2)">Ongkir</th>
+                                    <th class="py-2.5 px-2 min-w-[95px]" title="Biaya Kurir Diantar Armada (Kolom F Lembar2)">Biaya Kirim</th>
+                                    <th class="py-2.5 px-1.5 w-16 text-center" title="Margin Persen (Kolom G Lembar2)">Margin %</th>
+                                    <th class="py-2.5 px-1.5 w-16 text-center" title="Pembulatan Ceiling (50.000 di Lembar2)">Ceiling</th>
+                                    <th class="py-2.5 px-2 min-w-[105px] text-right" title="Harga Jual Unit (Kolom H Lembar2 Saler)">Saler Unit</th>
+                                    <th class="py-2.5 px-2 min-w-[110px] text-right" title="Subtotal = Saler x Qty Part">Subtotal</th>
+                                    <th class="py-2.5 px-1.5 w-8 text-center"></th>
                                 </tr>
                             </thead>
-                            <tbody id="bundle-components-list-${tempId}" class="divide-y divide-slate-100"></tbody>
+                            <tbody id="bundle-components-list-${tempId}" class="divide-y divide-slate-100 font-medium"></tbody>
                             <tfoot>
-                                <tr class="font-bold text-xs border-t-2 border-slate-200 bg-white/70">
-                                    <td colspan="4" class="py-2 px-2 text-slate-700">Akumulasi Paket PC Rakitan:</td>
-                                    <td class="py-2 px-2 font-mono text-slate-800" id="bundle-total-modal-${tempId}">Rp 0</td>
-                                    <td colspan="3" class="py-2 px-2 text-right text-slate-500 text-[11px]">Total Saler (Harga Jual Paket):</td>
-                                    <td colspan="2" class="py-2 px-2 text-right font-mono text-emerald-700 text-sm" id="bundle-total-saler-${tempId}">Rp 0</td>
+                                <tr class="font-bold text-xs border-t-2 border-slate-200 bg-slate-50/80">
+                                    <td colspan="5" class="py-2.5 px-2 text-slate-700">Akumulasi Seluruh Part PC Rakitan:</td>
+                                    <td class="py-2.5 px-2 font-mono text-slate-900" id="bundle-total-modal-${tempId}">Rp 0</td>
+                                    <td colspan="4" class="py-2.5 px-2 text-right text-slate-500 text-[11px]">Total Saler (Harga Jual Paket Satuan):</td>
+                                    <td colspan="2" class="py-2.5 px-2 text-right font-mono text-emerald-700 text-sm" id="bundle-total-saler-${tempId}">Rp 0</td>
                                     <td></td>
                                 </tr>
                             </tfoot>
@@ -1796,19 +2021,71 @@
 
         let tempCompSeq = 1;
 
+        function syncBundleTitle(itemId, val) {
+            const regularInput = document.querySelector(`#regular-body-${itemId} input[name$="[product_name]"]`);
+            if (regularInput) regularInput.value = val;
+            const disp = document.getElementById('display-name-' + itemId);
+            if (disp) disp.innerText = val || 'Paket PC Rakitan';
+        }
+
+        function syncBundleVendor(itemId, val) {
+            const regularInput = document.getElementById('vendor-input-' + itemId);
+            if (regularInput) regularInput.value = val;
+        }
+
+        function syncBundleQty(itemId, val) {
+            const regularInput = document.getElementById('qty-' + itemId);
+            if (regularInput) regularInput.value = val;
+            const badgeQty = document.getElementById('badge-qty-' + itemId);
+            if (badgeQty) badgeQty.innerText = val || 1;
+            calculateRow(itemId);
+        }
+
+        function syncBundleUnit(itemId, val) {
+            const regularInput = document.querySelector(`#regular-body-${itemId} input[name$="[unit]"]`);
+            if (regularInput) regularInput.value = val;
+            const badgeUnit = document.getElementById('badge-unit-' + itemId);
+            if (badgeUnit) badgeUnit.innerText = val || 'Unit';
+        }
+
         function toggleBundlePanel(itemId) {
             const toggle = document.getElementById('bundle-toggle-' + itemId);
-            const panel = document.getElementById('bundle-panel-' + itemId);
-            if (!toggle || !panel) return;
+            const regularBody = document.getElementById('regular-body-' + itemId);
+            const bundleBody = document.getElementById('bundle-card-body-' + itemId);
+            const badge = document.getElementById('bundle-header-badge-' + itemId);
+            if (!toggle) return;
 
             if (toggle.checked) {
-                panel.classList.remove('hidden');
+                if (regularBody) regularBody.classList.add('hidden');
+                if (bundleBody) bundleBody.classList.remove('hidden');
+                if (badge) badge.classList.remove('hidden');
+
+                const pName = document.querySelector(`#regular-body-${itemId} input[name$="[product_name]"]`)?.value || '';
+                const vName = document.getElementById('vendor-input-' + itemId)?.value || '';
+                const qtyVal = document.getElementById('qty-' + itemId)?.value || 1;
+                const unitVal = document.querySelector(`#regular-body-${itemId} input[name$="[unit]"]`)?.value || 'Unit';
+
+                const bTitle = document.getElementById('bundle-title-input-' + itemId);
+                if (bTitle && !bTitle.value) bTitle.value = pName;
+
+                const bVendor = document.getElementById('bundle-vendor-input-' + itemId);
+                if (bVendor && !bVendor.value) bVendor.value = vName;
+
+                const bQty = document.getElementById('bundle-qty-input-' + itemId);
+                if (bQty) bQty.value = qtyVal;
+
+                const bUnit = document.getElementById('bundle-unit-input-' + itemId);
+                if (bUnit) bUnit.value = unitVal;
+
                 const tbody = document.getElementById('bundle-components-list-' + itemId);
                 if (tbody && tbody.children.length === 0) {
                     loadComponentsFromSalesSpec(itemId, true);
                 }
             } else {
-                panel.classList.add('hidden');
+                if (regularBody) regularBody.classList.remove('hidden');
+                if (bundleBody) bundleBody.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
+
                 const hppInput = document.getElementById('hpp-' + itemId);
                 if (hppInput) {
                     hppInput.readOnly = false;
@@ -1826,9 +2103,11 @@
             const pName = initData.product_name || '';
             const vName = initData.vendor_name || '';
             const qty = initData.qty !== undefined ? initData.qty : 1;
-            const hpp = initData.hpp !== undefined ? initData.hpp : 0;
+            const incVal = initData.include !== undefined ? initData.include : 0;
+            const hpp = initData.hpp !== undefined ? initData.hpp : (incVal > 0 ? Math.round(incVal / 1.11) : 0);
+            const ongkir = initData.ongkir_pedia !== undefined ? initData.ongkir_pedia : 0;
             const biaya = initData.biaya_kirim !== undefined ? initData.biaya_kirim : 0;
-            const margin = initData.margin_value !== undefined ? initData.margin_value : 12.5;
+            const margin = initData.margin_value !== undefined ? initData.margin_value : 13;
             const ceiling = initData.custom_ceiling !== undefined ? initData.custom_ceiling : 50000;
 
             const rowHtml = `
@@ -1846,21 +2125,35 @@
                            list="vendor-datalist"
                            value="${vName}"
                            class="w-full text-xs text-slate-700 border-slate-200 rounded-lg py-1 px-2 focus:border-indigo-500 focus:ring-indigo-500"
-                           placeholder="Vendor / Toko...">
+                           placeholder="Toko / Vendor...">
                 </td>
-                <td class="py-2 px-2 text-center">
+                <td class="py-2 px-1.5 text-center">
                     <input type="number" name="items[${itemId}][components][${tempCompId}][qty]"
                            id="comp-qty-${itemId}-${tempCompId}"
                            value="${qty}" min="1" step="1"
-                           class="w-14 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
+                           class="w-12 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
                            data-parent-id="${itemId}">
                     <input type="hidden" name="items[${itemId}][components][${tempCompId}][unit]" value="Unit">
+                </td>
+                <td class="py-2 px-2">
+                    <input type="text" inputmode="numeric"
+                           id="comp-include-${itemId}-${tempCompId}"
+                           value="${incVal > 0 ? formatRupiah(incVal) : '0'}"
+                           class="w-full text-xs font-bold text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input comp-include-trigger"
+                           data-parent-id="${itemId}" data-comp-id="${tempCompId}" placeholder="0">
                 </td>
                 <td class="py-2 px-2">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${tempCompId}][hpp]"
                            id="comp-hpp-${itemId}-${tempCompId}"
                            value="${formatRupiah(hpp)}"
-                           class="w-full text-xs font-bold text-slate-800 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
+                           class="w-full text-xs font-bold text-slate-800 bg-slate-50 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
+                           data-parent-id="${itemId}" placeholder="0" title="Exclude PPN = Include / 1.11">
+                </td>
+                <td class="py-2 px-2">
+                    <input type="text" inputmode="numeric" name="items[${itemId}][components][${tempCompId}][ongkir_pedia]"
+                           id="comp-ongkir-${itemId}-${tempCompId}"
+                           value="${formatRupiah(ongkir)}"
+                           class="w-full text-xs font-medium text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
                            data-parent-id="${itemId}" placeholder="0">
                 </td>
                 <td class="py-2 px-2">
@@ -1870,15 +2163,15 @@
                            class="w-full text-xs font-medium text-slate-700 border-slate-200 rounded-lg py-1 px-2 rupiah-input calc-bundle-trigger"
                            data-parent-id="${itemId}" placeholder="0">
                 </td>
-                <td class="py-2 px-2 text-center">
+                <td class="py-2 px-1.5 text-center">
                     <input type="hidden" name="items[${itemId}][components][${tempCompId}][margin_type]" value="percentage">
                     <input type="text" name="items[${itemId}][components][${tempCompId}][margin_value]"
                            id="comp-margin-${itemId}-${tempCompId}"
                            value="${margin}"
-                           class="w-16 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
-                           data-parent-id="${itemId}" placeholder="12.5">
+                           class="w-14 text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 calc-bundle-trigger"
+                           data-parent-id="${itemId}" placeholder="13">
                 </td>
-                <td class="py-2 px-2 text-center">
+                <td class="py-2 px-1.5 text-center">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${tempCompId}][custom_ceiling]"
                            id="comp-ceiling-${itemId}-${tempCompId}"
                            value="${formatRupiah(ceiling)}"
@@ -1918,107 +2211,71 @@
 
         const PC_PRESETS = {
             standar: [
-                { product_name: 'Processor Intel Core i5-12400 (6 Core, 12 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Motherboard MSI PRO B760M-A WIFI DDR4', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'RAM Team Elite Plus DDR4 16GB (2x8GB) 3200MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'SSD Storage Samsung 990 EVO PLUS NVMe 1TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Casing GameMax Spark Air M-ATX', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Power Supply Antec ATOM B750 750W 80+ Bronze', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'CPU Cooler Deepcool AK400 Fan 12CM', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Monitor MSI Pro MP2412 23.8 FHD 100Hz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Keyboard & Mouse Vention USB Wired Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+                { product_name: 'Intel Core i5-12400 2.5GHz Up To 4.4GHz - Cache 18MB [Box] Socket LGA 1700 - Alder Lake Series', vendor_name: 'enterkomputer', qty: 1, include: 3529000, hpp: 3179279, ongkir_pedia: 150000, biaya_kirim: 107100, margin_value: 15, custom_ceiling: 50000 },
+                { product_name: 'MSI PRO B760M-A WIFI DDR4 (LGA1700, B760, DDR4, USB3.2 Type-C, SATA3)', vendor_name: 'enterkomputer', qty: 1, include: 2490000, hpp: 2243243, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Team Elite Plus Black DDR4 PC25600 3200MHz 16GB (2x8GB) 22-22-22-52 - TPD416G3200HC22DC01', vendor_name: 'enterkomputer', qty: 1, include: 2209000, hpp: 1990090, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Samsung SSD 990 EVO PLUS M.2 PCIe Gen5.0 1TB MZ-V9S1T0B', vendor_name: 'enterkomputer', qty: 1, include: 4379000, hpp: 3945045, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Deepcool XFAN 12CM Black (Hydro Bearing)', vendor_name: 'enterkomputer', qty: 1, include: 49000, hpp: 44144, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Deepcool AK400 - Fan 12CM - LGA1700 Support', vendor_name: 'enterkomputer', qty: 1, include: 395000, hpp: 355856, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Antec ATOM B750 - 750W 80+ Bronze Certified - Flat Cable', vendor_name: 'enterkomputer', qty: 1, include: 850000, hpp: 765766, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'GameMax Spark Air Black Tempered Glass M-ATX', vendor_name: 'enterkomputer', qty: 1, include: 615000, hpp: 554054, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', vendor_name: 'enterkomputer', qty: 1, include: 1195000, hpp: 1076577, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo Black', vendor_name: 'stekno', qty: 1, include: 148810, hpp: 134063, ongkir_pedia: 10000, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 }
+            ],
+            mini_pc_asus: [
+                { product_name: 'MINI PC ASUS INTEL NUC13ANHH5 INTEL i5-13420H', vendor_name: 'isb', qty: 1, include: 6650000, hpp: 5990991, ongkir_pedia: 100000, biaya_kirim: 107100, margin_value: 15, custom_ceiling: 50000 },
+                { product_name: 'V-GeN Platinum DDR4 16GB 3200Mhz', vendor_name: 'isb', qty: 1, include: 2488000, hpp: 2241441, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'V-GeN SSD NVMe 1TB', vendor_name: 'isb', qty: 1, include: 3288000, hpp: 2962162, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Windows 11 Pro - OEM', vendor_name: 'isb', qty: 1, include: 2715000, hpp: 2445946, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Logitech MK120 Corded Keyboard and Mouse Combo', vendor_name: 'cal', qty: 1, include: 162000, hpp: 145946, ongkir_pedia: 10000, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 }
             ],
             tinggi: [
-                { product_name: 'Processor Intel Core i7-14700 (20 Core, 28 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Motherboard MSI B760 GAMING PLUS WIFI DDR5', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'RAM Kingston Fury Beast DDR5 32GB (2x16GB) 6000MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'VGA ZOTAC Gaming GeForce RTX 4070 Twin Edge 12GB GDDR6X', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 1TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'AIO Liquid Cooler Deepcool LT520 240mm ARGB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Power Supply Corsair RM750e 750W 80+ Gold Fully Modular', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Casing NZXT H5 Flow Tempered Glass Mid Tower', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Monitor LG UltraGear 27GR75Q 27 Inch IPS QHD 165Hz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Keyboard Mechanical & Gaming Mouse Logitech Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+                { product_name: 'Processor Intel Core i7-14700 (20 Core, 28 Thread)', vendor_name: 'enterkomputer', qty: 1, include: 6300000, hpp: 5675676, ongkir_pedia: 150000, biaya_kirim: 107100, margin_value: 15, custom_ceiling: 50000 },
+                { product_name: 'Motherboard MSI B760 GAMING PLUS WIFI DDR5', vendor_name: 'enterkomputer', qty: 1, include: 3250000, hpp: 2927928, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'RAM Kingston Fury Beast DDR5 32GB (2x16GB) 6000MHz', vendor_name: 'enterkomputer', qty: 1, include: 2150000, hpp: 1936937, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'VGA ZOTAC Gaming GeForce RTX 4070 Twin Edge 12GB GDDR6X', vendor_name: 'enterkomputer', qty: 1, include: 9850000, hpp: 8873874, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 1TB', vendor_name: 'enterkomputer', qty: 1, include: 2150000, hpp: 1936937, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'AIO Liquid Cooler Deepcool LT520 240mm ARGB', vendor_name: 'enterkomputer', qty: 1, include: 1450000, hpp: 1306306, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Power Supply Corsair RM750e 750W 80+ Gold Fully Modular', vendor_name: 'enterkomputer', qty: 1, include: 1750000, hpp: 1576577, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Casing NZXT H5 Flow Tempered Glass Mid Tower', vendor_name: 'enterkomputer', qty: 1, include: 1350000, hpp: 1216216, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Monitor LG UltraGear 27GR75Q 27 Inch IPS QHD 165Hz', vendor_name: 'enterkomputer', qty: 1, include: 3650000, hpp: 3288288, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Keyboard Mechanical & Gaming Mouse Logitech Combo', vendor_name: 'stekno', qty: 1, include: 850000, hpp: 765766, ongkir_pedia: 10000, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 }
             ],
             workstation: [
-                { product_name: 'Processor Intel Core i9-14900K (24 Core, 32 Thread)', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Motherboard ASUS ROG STRIX Z790-F GAMING WIFI II DDR5', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'RAM Corsair Vengeance DDR5 64GB (2x32GB) 6000MHz', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'VGA ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 2TB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'AIO Liquid Cooler Deepcool LT720 360mm ARGB', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Power Supply Seasonic Focus GX-850 850W 80+ Gold Fully Modular', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Casing Fractal Design Meshify 2 Black Solid ATX', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Monitor ASUS ProArt PA278CV 27 Inch IPS QHD 100% sRGB Calibrated', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 },
-                { product_name: 'Logitech MX Keys & MX Master 3S Wireless Combo', vendor_name: '', margin_value: 12.5, custom_ceiling: 50000 }
+                { product_name: 'Processor Intel Core i9-14900K (24 Core, 32 Thread)', vendor_name: 'enterkomputer', qty: 1, include: 9750000, hpp: 8783784, ongkir_pedia: 150000, biaya_kirim: 107100, margin_value: 15, custom_ceiling: 50000 },
+                { product_name: 'Motherboard ASUS ROG STRIX Z790-F GAMING WIFI II DDR5', vendor_name: 'enterkomputer', qty: 1, include: 6850000, hpp: 6171171, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'RAM Corsair Vengeance DDR5 64GB (2x32GB) 6000MHz', vendor_name: 'enterkomputer', qty: 1, include: 3850000, hpp: 3468468, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'VGA ASUS TUF Gaming GeForce RTX 4070 Ti SUPER 16GB GDDR6X', vendor_name: 'enterkomputer', qty: 1, include: 16500000, hpp: 14864865, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'SSD Storage Samsung 990 PRO NVMe PCIe 4.0 2TB', vendor_name: 'enterkomputer', qty: 1, include: 3650000, hpp: 3288288, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'AIO Liquid Cooler Deepcool LT720 360mm ARGB', vendor_name: 'enterkomputer', qty: 1, include: 1850000, hpp: 1666667, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Power Supply Seasonic Focus GX-850 850W 80+ Gold Fully Modular', vendor_name: 'enterkomputer', qty: 1, include: 2250000, hpp: 2027027, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Casing Fractal Design Meshify 2 Black Solid ATX', vendor_name: 'enterkomputer', qty: 1, include: 2450000, hpp: 2207207, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Monitor ASUS ProArt PA278CV 27 Inch IPS QHD 100% sRGB Calibrated', vendor_name: 'enterkomputer', qty: 1, include: 6250000, hpp: 5630631, ongkir_pedia: 0, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 },
+                { product_name: 'Logitech MX Keys & MX Master 3S Wireless Combo', vendor_name: 'stekno', qty: 1, include: 2650000, hpp: 2387387, ongkir_pedia: 10000, biaya_kirim: 0, margin_value: 13, custom_ceiling: 50000 }
             ]
         };
 
-        function isHardwareLine(text) {
-            if (!text || text.length < 3) return false;
-            const lower = text.toLowerCase();
-
-            const generalPhrases = [
-                'minta pc rakitan', 'pc rakitan spek tinggi', 'butuh pc rakitan',
-                'pc spek tinggi', 'komputer spek tinggi', 'spek tinggi',
-                'spesifikasi pc', 'buatkan penawaran', 'tolong buatkan',
-                'rakit pc gaming', 'rakit pc', 'paket pc'
-            ];
-            for (let phrase of generalPhrases) {
-                if (lower === phrase || lower.startsWith(phrase + ' untuk') || lower.startsWith(phrase + ' dong') || lower.startsWith(phrase + ' ya')) {
-                    return false;
-                }
-            }
-
-            const hwKeywords = [
-                'processor', 'intel', 'core i', 'ryzen', 'amd', 'cpu',
-                'motherboard', 'mainboard', 'mobo', 'b760', 'z790', 'b650', 'x670', 'h610',
-                'ram', 'memory', 'ddr4', 'ddr5', 'sodimm',
-                'ssd', 'nvme', 'm.2', 'sata', 'hdd', 'harddisk', 'storage',
-                'vga', 'geforce', 'rtx', 'gtx', 'radeon', 'gpu', 'graphic',
-                'casing', 'case', 'chassis', 'tower',
-                'psu', 'power supply', 'bronze', 'gold', 'watt',
-                'cooler', 'cooling', 'fan', 'heatsink', 'liquid', 'aio',
-                'monitor', 'display', 'screen', 'ips',
-                'keyboard', 'mouse', 'headset', 'webcam', 'speaker', 'ups'
-            ];
-
-            return hwKeywords.some(kw => lower.includes(kw));
-        }
-
-        function extractPartsFromText(rawText) {
-            if (!rawText) return [];
-            const lines = rawText.split(/\r?\n/);
-            const parts = [];
-            lines.forEach(line => {
-                let clean = line.trim();
-                clean = clean.replace(/^[-+•\d\.\)]+\s{0,}/, '').trim();
-                const lower = clean.toLowerCase();
-                if (clean.length > 2 
-                    && !lower.startsWith('note') 
-                    && !lower.startsWith('catatan') 
-                    && !lower.startsWith('spesifikasi') 
-                    && !lower.startsWith('harga dapat') 
-                    && !lower.startsWith('mohon')
-                    && isHardwareLine(clean)) {
-                    parts.push(clean);
-                }
-            });
-            return parts;
-        }
-
         function addNewPcRakitanItem(categoryName, blockKey, tier = 'standar') {
             const titleMap = {
-                standar: 'PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS',
+                standar: 'PC RAKITAN i5-12400 | 16GB DDR4 | 1TB NVMe | ENTERKOMPUTER',
+                mini_pc_asus: 'MINI PC ASUS INTEL NUC13ANHH5 | Core i5-13420H | 16GB RAM | 1TB NVMe | Win 11 Pro',
                 tinggi: 'PC RAKITAN SPEK TINGGI i7-14700 | 32GB DDR5 | RTX 4070 12GB | 1TB NVMe',
                 workstation: 'PC WORKSTATION RENDERING i9-14900K | 64GB DDR5 | RTX 4070 Ti SUPER 16GB | 2TB NVMe'
             };
 
+            const defaultVendor = {
+                standar: 'enterkomputer',
+                mini_pc_asus: 'isb',
+                tinggi: 'enterkomputer',
+                workstation: 'enterkomputer'
+            };
+
             const title = titleMap[tier] || titleMap['standar'];
+            const vendor = defaultVendor[tier] || '';
 
             const newItemId = addNewPriceItem(categoryName, blockKey, {
                 product_name: title,
-                vendor_name: '',
+                vendor_name: vendor,
                 qty: 1,
                 unit: 'Unit',
                 description: 'Paket Komputer PC Rakitan',
@@ -2028,9 +2285,7 @@
             if (newItemId) {
                 const chk = document.getElementById('bundle-toggle-' + newItemId);
                 if (chk) chk.checked = true;
-                const panel = document.getElementById('bundle-panel-' + newItemId);
-                if (panel) panel.classList.remove('hidden');
-
+                toggleBundlePanel(newItemId);
                 loadPcPreset(newItemId, tier, true);
             }
         }
@@ -2063,7 +2318,7 @@
                     product_name: partName,
                     vendor_name: '',
                     qty: 1,
-                    margin_value: 12.5,
+                    margin_value: 13,
                     custom_ceiling: 50000
                 });
             });
@@ -2084,7 +2339,8 @@
             if (!tbody) return;
 
             const tierNames = {
-                standar: 'Standar (Core i5)',
+                standar: '⚡ PC Rakitan i5 (Excel)',
+                mini_pc_asus: '⚡ Mini PC Asus (Excel)',
                 tinggi: 'Spek Tinggi (Core i7 + RTX)',
                 workstation: 'Workstation / AI (Core i9)'
             };
@@ -2092,15 +2348,19 @@
             const label = tierNames[tier] || tier;
 
             if (!auto && tbody.children.length > 0) {
-                if (!confirm(`Muat template ${label} akan menambahkan komponen part baru ke dalam tabel. Lanjutkan?`)) {
+                if (!confirm(`Muat template ${label} akan mengganti komponen part ke dalam tabel. Lanjutkan?`)) {
                     return;
                 }
+                tbody.innerHTML = '';
+            } else if (auto && tbody.children.length > 0) {
+                tbody.innerHTML = '';
             }
 
             const parts = PC_PRESETS[tier] || PC_PRESETS['standar'];
             parts.forEach(p => {
                 addBundleComponent(itemId, p);
             });
+            calculateRow(itemId);
         }
 
         function loadStandardPcPreset(itemId, auto = false) {
@@ -2114,6 +2374,8 @@
             if (isBundle) {
                 let bundleTotalCost = 0;
                 let bundleTotalSelling = 0;
+                let bundleTotalExclude = 0;
+                let bundleTotalLogistik = 0;
                 const compRows = document.querySelectorAll(`#bundle-components-list-${itemId} .bundle-comp-row`);
 
                 compRows.forEach((row, idx) => {
@@ -2123,15 +2385,13 @@
                     const rowId = row.id.replace(`comp-row-${itemId}-`, '');
                     const qty = parseFloat(document.getElementById(`comp-qty-${itemId}-${rowId}`)?.value) || 1;
                     const hpp = parseRupiah(document.getElementById(`comp-hpp-${itemId}-${rowId}`)?.value);
+                    const ongkir = parseRupiah(document.getElementById(`comp-ongkir-${itemId}-${rowId}`)?.value);
                     const biaya = parseRupiah(document.getElementById(`comp-biaya-${itemId}-${rowId}`)?.value);
                     const marginVal = parseMarginVal(document.getElementById(`comp-margin-${itemId}-${rowId}`)?.value, 'percentage');
                     const ceiling = parseRupiah(document.getElementById(`comp-ceiling-${itemId}-${rowId}`)?.value) || 50000;
 
-                    const modalUnit = hpp + biaya;
-                    let profit = modalUnit * (marginVal / 100);
-                    if (modalUnit > 0 && profit < 50000) {
-                        profit = 50000;
-                    }
+                    const modalUnit = hpp + ongkir + biaya;
+                    const profit = modalUnit * (marginVal / 100);
                     const salerUnit = Math.ceil((modalUnit + profit) / ceiling) * ceiling;
                     const subtotal = salerUnit * qty;
 
@@ -2141,6 +2401,8 @@
                     const subtotalEl = document.getElementById(`comp-subtotal-${itemId}-${rowId}`);
                     if (subtotalEl) subtotalEl.innerText = 'Rp ' + formatRupiah(subtotal);
 
+                    bundleTotalExclude += hpp * qty;
+                    bundleTotalLogistik += (ongkir + biaya) * qty;
                     bundleTotalCost += modalUnit * qty;
                     bundleTotalSelling += subtotal;
                 });
@@ -2151,6 +2413,22 @@
                 const bSalerEl = document.getElementById(`bundle-total-saler-${itemId}`);
                 if (bSalerEl) bSalerEl.innerText = 'Rp ' + formatRupiah(bundleTotalSelling);
 
+                const bExcludeEl = document.getElementById(`bundle-total-modal-exclude-${itemId}`);
+                if (bExcludeEl) bExcludeEl.innerText = 'Rp ' + formatRupiah(bundleTotalExclude);
+
+                const bLogistikEl = document.getElementById(`bundle-total-logistik-${itemId}`);
+                if (bLogistikEl) bLogistikEl.innerText = 'Rp ' + formatRupiah(bundleTotalLogistik);
+
+                const bProfitEl = document.getElementById(`bundle-total-profit-${itemId}`);
+                if (bProfitEl) bProfitEl.innerText = '+Rp ' + formatRupiah(bundleTotalSelling - bundleTotalCost);
+
+                const bSalerUnitEl = document.getElementById(`bundle-saler-unit-${itemId}`);
+                if (bSalerUnitEl) bSalerUnitEl.innerText = 'Rp ' + formatRupiah(bundleTotalSelling);
+
+                const parentQty = parseFloat(document.getElementById(`qty-${itemId}`)?.value) || 1;
+                const bSubtotalEl = document.getElementById(`bundle-subtotal-${itemId}`);
+                if (bSubtotalEl) bSubtotalEl.innerText = 'Rp ' + formatRupiah(bundleTotalSelling * parentQty);
+
                 if (compRows.length > 0) {
                     if (hppInput) {
                         hppInput.value = formatRupiah(bundleTotalCost);
@@ -2158,7 +2436,6 @@
                         hppInput.classList.add('bg-slate-100');
                     }
 
-                    const parentQty = parseFloat(document.getElementById(`qty-${itemId}`)?.value) || 1;
                     const finalPriceUnit = bundleTotalSelling;
                     const finalTotal = finalPriceUnit * parentQty;
                     const rowProfit = (finalPriceUnit - bundleTotalCost) * parentQty;
@@ -2297,6 +2574,19 @@
             document.addEventListener('input', function(e) {
                 if (e.target.classList.contains('calc-bundle-trigger')) {
                     const parentId = e.target.dataset.parentId;
+                    if (parentId) {
+                        calculateRow(parentId);
+                    }
+                }
+                if (e.target.classList.contains('comp-include-trigger')) {
+                    const parentId = e.target.dataset.parentId;
+                    const compId = e.target.dataset.compId;
+                    const incVal = parseRupiah(e.target.value);
+                    const excVal = incVal > 0 ? Math.round(incVal / 1.11) : 0;
+                    const hppInput = document.getElementById('comp-hpp-' + parentId + '-' + compId);
+                    if (hppInput) {
+                        hppInput.value = formatRupiah(excVal);
+                    }
                     if (parentId) {
                         calculateRow(parentId);
                     }
