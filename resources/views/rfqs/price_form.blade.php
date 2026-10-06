@@ -593,7 +593,13 @@
                                         <p class="text-[11px] text-slate-500">Hitung HPP &amp; margin masing-masing part. Total Saler otomatis menjadi harga jual paket di atas.</p>
                                     </div>
                                 </div>
-                                <div class="flex items-center gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <button type="button" onclick="loadComponentsFromSalesSpec('{{ $item->id }}')"
+                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition shadow-2xs"
+                                        title="Ekstrak butir komponen langsung dari catatan atau deskripsi spesifikasi Sales">
+                                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                        <span>Ekstrak dari Catatan Sales</span>
+                                    </button>
                                     <button type="button" onclick="loadStandardPcPreset('{{ $item->id }}')"
                                         class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg transition shadow-2xs">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -606,6 +612,28 @@
                                     </button>
                                 </div>
                             </div>
+
+                            @php
+                                $itemSpecText = trim($item->description ?: $item->detail_item ?: '');
+                                $rfqNotesText = trim($rfq->notes ?? '');
+                                $salesNotePreview = $itemSpecText ?: $rfqNotesText;
+                            @endphp
+                            @if(!empty($salesNotePreview))
+                            <div class="mb-3.5 p-3 rounded-xl bg-indigo-50/70 border border-indigo-200/90 text-indigo-950 text-xs">
+                                <div class="flex items-center justify-between gap-2 mb-1">
+                                    <span class="font-bold flex items-center gap-1.5 text-indigo-900">
+                                        <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        Catatan / Spesifikasi Permintaan Sales:
+                                    </span>
+                                    <span class="text-[10px] text-indigo-600 font-semibold uppercase tracking-wider">
+                                        {{ !empty($itemSpecText) ? 'Dari Deskripsi Item' : 'Dari Catatan Global RFQ' }}
+                                    </span>
+                                </div>
+                                <div class="font-mono text-[11px] leading-relaxed text-slate-700 bg-white/80 p-2.5 rounded-lg border border-indigo-100 whitespace-pre-line max-h-32 overflow-y-auto">
+                                    {{ $salesNotePreview }}
+                                </div>
+                            </div>
+                            @endif
 
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-xs">
@@ -1239,7 +1267,13 @@
                                 <p class="text-[11px] text-slate-500">Hitung HPP &amp; margin masing-masing part. Total Saler otomatis menjadi harga jual paket di atas.</p>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="button" onclick="loadComponentsFromSalesSpec('${tempId}')"
+                                class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition shadow-2xs"
+                                title="Ekstrak butir komponen langsung dari deskripsi atau catatan Sales">
+                                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <span>Ekstrak dari Catatan Sales</span>
+                            </button>
                             <button type="button" onclick="loadStandardPcPreset('${tempId}')"
                                 class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-indigo-700 bg-white hover:bg-indigo-50 border border-indigo-200 rounded-lg transition shadow-2xs">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -1716,7 +1750,7 @@
                 panel.classList.remove('hidden');
                 const tbody = document.getElementById('bundle-components-list-' + itemId);
                 if (tbody && tbody.children.length === 0) {
-                    loadStandardPcPreset(itemId, true);
+                    loadComponentsFromSalesSpec(itemId, true);
                 }
             } else {
                 panel.classList.add('hidden');
@@ -1824,6 +1858,67 @@
             if (row) {
                 row.remove();
                 calculateRow(itemId);
+            }
+        }
+
+        function extractPartsFromText(rawText) {
+            if (!rawText) return [];
+            const lines = rawText.split(/\r?\n/);
+            const parts = [];
+            lines.forEach(line => {
+                let clean = line.trim();
+                clean = clean.replace(/^[-+•\d\.\)]+\s{0,}/, '').trim();
+                const lower = clean.toLowerCase();
+                if (clean.length > 2 
+                    && !lower.startsWith('note') 
+                    && !lower.startsWith('catatan') 
+                    && !lower.startsWith('spesifikasi') 
+                    && !lower.startsWith('harga dapat') 
+                    && !lower.startsWith('mohon')) {
+                    parts.push(clean);
+                }
+            });
+            return parts;
+        }
+
+        function loadComponentsFromSalesSpec(itemId, auto = false) {
+            const tbody = document.getElementById('bundle-components-list-' + itemId);
+            if (!tbody) return;
+
+            const descText = document.querySelector(`textarea[name="items[${itemId}][description]"]`)?.value || '';
+            const rfqNotes = document.getElementById('rfq-notes')?.value || '';
+            const sourceText = descText.trim() || rfqNotes.trim();
+
+            const extractedParts = extractPartsFromText(sourceText);
+
+            if (extractedParts.length === 0) {
+                if (!auto) {
+                    alert('Tidak ditemukan butir spesifikasi di deskripsi atau catatan item ini. Memuat template 8 part standar.');
+                    loadStandardPcPreset(itemId);
+                } else {
+                    loadStandardPcPreset(itemId, true);
+                }
+                return;
+            }
+
+            if (!auto && tbody.children.length > 0) {
+                if (!confirm(`Ditemukan ${extractedParts.length} part dari spesifikasi Sales. Tambahkan ke dalam tabel komponen?`)) {
+                    return;
+                }
+            }
+
+            extractedParts.forEach(partName => {
+                addBundleComponent(itemId, {
+                    product_name: partName,
+                    vendor_name: '',
+                    qty: 1,
+                    margin_value: 12.5,
+                    custom_ceiling: 50000
+                });
+            });
+
+            if (!auto) {
+                alert(`Berhasil memuat ${extractedParts.length} komponen part dari catatan spesifikasi Sales!`);
             }
         }
 
