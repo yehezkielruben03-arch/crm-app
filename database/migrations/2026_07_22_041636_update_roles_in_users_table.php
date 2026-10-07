@@ -11,30 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->renameColumn('role', 'old_role');
-        });
-
-        Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('Sales Marketing')->after('old_role');
-        });
+        \Illuminate\Support\Facades\DB::statement("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'Sales Marketing'");
 
         // Copy and map data
-        \Illuminate\Support\Facades\DB::table('users')->get()->each(function ($user) {
-            $newRole = $user->old_role;
-            if ($user->old_role === 'Admin') {
-                $newRole = 'Admin Purchase';
-            } elseif ($user->old_role === 'Sales') {
-                $newRole = 'Sales Marketing';
-            }
-            \Illuminate\Support\Facades\DB::table('users')
-                ->where('id', $user->id)
-                ->update(['role' => $newRole]);
-        });
-
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('old_role');
-        });
+        \Illuminate\Support\Facades\DB::table('users')->where('role', 'Admin')->update(['role' => 'Admin Purchase']);
+        \Illuminate\Support\Facades\DB::table('users')->where('role', 'Sales')->update(['role' => 'Sales Marketing']);
     }
 
     /**

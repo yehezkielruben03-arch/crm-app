@@ -12,33 +12,17 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Alter rfqs table
-        Schema::table('rfqs', function (Blueprint $table) {
-            $table->renameColumn('status', 'old_status');
-        });
+        \Illuminate\Support\Facades\DB::statement("ALTER TABLE rfqs MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending Admin'");
 
         Schema::table('rfqs', function (Blueprint $table) {
-            $table->string('status')->default('Pending Admin')->after('old_status');
             $table->date('need_date')->nullable()->after('rfq_date');
             $table->string('type', 50)->nullable()->after('need_date');
             $table->foreignId('customer_contact_id')->nullable()->after('customer_id')->constrained('customer_contacts')->nullOnDelete();
         });
 
         // Copy and map data for rfqs
-        \Illuminate\Support\Facades\DB::table('rfqs')->get()->each(function ($rfq) {
-            $newStatus = 'Pending Admin';
-            if ($rfq->old_status === 'Converted') {
-                $newStatus = 'Quotation Created';
-            } elseif ($rfq->old_status === 'Cancelled') {
-                $newStatus = 'Cancelled';
-            }
-            \Illuminate\Support\Facades\DB::table('rfqs')
-                ->where('id', $rfq->id)
-                ->update(['status' => $newStatus]);
-        });
-
-        Schema::table('rfqs', function (Blueprint $table) {
-            $table->dropColumn('old_status');
-        });
+        \Illuminate\Support\Facades\DB::table('rfqs')->where('status', 'Converted')->update(['status' => 'Quotation Created']);
+        \Illuminate\Support\Facades\DB::table('rfqs')->where('status', 'Draft')->update(['status' => 'Pending Admin']);
 
         // 2. Alter rfq_items table
         Schema::table('rfq_items', function (Blueprint $table) {

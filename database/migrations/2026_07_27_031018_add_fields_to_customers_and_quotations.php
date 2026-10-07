@@ -10,17 +10,31 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('customers', function (Blueprint $table) {
-            $table->string('division')->nullable()->after('area_category');
-            $table->string('office_phone')->nullable()->after('phone');
-            $table->string('whatsapp')->nullable()->after('office_phone');
-            $table->string('preferred_contact')->nullable()->after('whatsapp');
+            if (!Schema::hasColumn('customers', 'division')) {
+                $table->string('division')->nullable()->after('area_category');
+            }
+            if (!Schema::hasColumn('customers', 'office_phone')) {
+                $table->string('office_phone')->nullable()->after('phone');
+            }
+            if (!Schema::hasColumn('customers', 'whatsapp')) {
+                $table->string('whatsapp')->nullable()->after('office_phone');
+            }
+            if (!Schema::hasColumn('customers', 'preferred_contact')) {
+                $table->string('preferred_contact')->nullable()->after('whatsapp');
+            }
         });
 
         Schema::table('quotations', function (Blueprint $table) {
-            $table->date('valid_until')->nullable()->after('status');
+            if (!Schema::hasColumn('quotations', 'valid_until')) {
+                $table->date('valid_until')->nullable()->after('status');
+            }
         });
 
-        // Migrate existing status values: Pending/Lead → Prospect, Rejected → Blacklist
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE customers MODIFY COLUMN status ENUM('Prospect', 'Pending', 'Active', 'Inactive', 'Rejected', 'Lead', 'Blacklist') DEFAULT 'Pending'");
+        }
+
+        // Migrate existing status values: Pending/Lead -> Prospect, Rejected -> Blacklist
         DB::table('customers')->where('status', 'Pending')->update(['status' => 'Prospect']);
         DB::table('customers')->where('status', 'Lead')->update(['status' => 'Prospect']);
         DB::table('customers')->where('status', 'Rejected')->update(['status' => 'Blacklist']);
