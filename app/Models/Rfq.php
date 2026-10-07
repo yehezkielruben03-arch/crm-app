@@ -457,16 +457,36 @@ class Rfq extends Model
                 $partNames = [];
                 $customMaterialDesc = null;
 
+                $hasMisc = false;
                 foreach ($materialItems as $mat) {
                     $matRowTotal = (float) $mat->price_after_margin * (float) ($mat->qty ?: 1);
                     $materialTotal += $matRowTotal;
+                    if ($mat->isMiscellaneousMaterial()) {
+                        $hasMisc = true;
+                        continue;
+                    }
                     $pName = trim($mat->product_name ?? '');
-                    if (!empty($pName) && !$mat->isMiscellaneousMaterial() && strcasecmp($pName, 'Material Support') !== 0) {
+                    if (!empty($pName) && strcasecmp($pName, 'Material Support') !== 0) {
                         $partNames[] = $pName;
                     }
                     $sDesc = trim($mat->description ?: $mat->detail_item ?: '');
-                    if (!empty($sDesc) && empty($customMaterialDesc) && !str_contains(strtolower($sDesc), 'material pendukung & habis') && !$mat->isMiscellaneousMaterial()) {
+                    if (!empty($sDesc) && empty($customMaterialDesc) && !str_contains(strtolower($sDesc), 'material pendukung & habis')) {
                         $customMaterialDesc = $sDesc;
+                    }
+                }
+
+                if ($hasMisc) {
+                    $consumableIdx = null;
+                    foreach ($partNames as $idx => $p) {
+                        if (stripos($p, 'consumable') !== false) {
+                            $consumableIdx = $idx;
+                            break;
+                        }
+                    }
+                    if ($consumableIdx !== null) {
+                        $partNames[$consumableIdx] = 'Consumable and Miscelanious Material';
+                    } elseif (!in_array('Consumable and Miscelanious Material', $partNames)) {
+                        $partNames[] = 'Consumable and Miscelanious Material';
                     }
                 }
 
