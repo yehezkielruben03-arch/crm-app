@@ -334,12 +334,6 @@
                                     <span class="rfq-grid__cell rfq-grid__desc-block">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
-                                            @if($item->isBundle() || $item->components->isNotEmpty())
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                    <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                                    Paket PC Rakitan ({{ $item->components->count() }} part)
-                                                </span>
-                                            @endif
                                             @if($item->isHiddenFromQuotation())
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                     Internal HPP (Dilebur di Penawaran)
@@ -348,33 +342,6 @@
                                         </div>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                         @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
-                                        @if($item->components->isNotEmpty())
-                                            <div class="mt-2 pt-1.5 border-t border-slate-100">
-                                                <details class="group text-xs">
-                                                    <summary class="cursor-pointer font-medium text-indigo-600 hover:text-indigo-800 select-none flex items-center gap-1">
-                                                        <span>Rincian Part Rakitan ({{ $item->components->count() }} komponen)</span>
-                                                        <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                                    </summary>
-                                                    <div class="mt-1.5 space-y-1.5 pl-2 border-l-2 border-indigo-200 bg-slate-50/80 p-2 rounded-r-lg">
-                                                        @foreach($item->components as $c)
-                                                            <div class="flex items-center justify-between text-[11px] gap-2">
-                                                                <span class="text-slate-700 font-medium">
-                                                                    {{ (int)$c->qty }}x {{ $c->product_name }}
-                                                                    @if($c->vendor)
-                                                                        <span class="text-[10px] text-slate-400">({{ $c->vendor->nama_vendor }})</span>
-                                                                    @endif
-                                                                </span>
-                                                                @if(auth()->user()->isAdminOrAbove() && $c->price_after_margin > 0)
-                                                                    <span class="font-mono text-slate-600 font-semibold text-[10px]">
-                                                                        Rp {{ number_format($c->price_after_margin, 0, ',', '.') }}
-                                                                    </span>
-                                                                @endif
-                                                            </div>
-                                                        @endforeach
-                                                    </div>
-                                                </details>
-                                            </div>
-                                        @endif
                                     </span>
                                     <span class="rfq-grid__cell text-center">
                                         <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
@@ -454,12 +421,6 @@
                                 <span class="rfq-grid__cell rfq-grid__desc-block">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
-                                        @if($item->isBundle() || $item->components->isNotEmpty())
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                                <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                                Paket PC Rakitan ({{ $item->components->count() }} part)
-                                            </span>
-                                        @endif
                                         @if($item->isHiddenFromQuotation())
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                 Internal HPP (Dilebur di Penawaran)
@@ -468,33 +429,6 @@
                                     </div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
-                                    @if($item->components->isNotEmpty())
-                                        <div class="mt-2 pt-1.5 border-t border-slate-100">
-                                            <details class="group text-xs">
-                                                <summary class="cursor-pointer font-medium text-indigo-600 hover:text-indigo-800 select-none flex items-center gap-1">
-                                                    <span>Rincian Part Rakitan ({{ $item->components->count() }} komponen)</span>
-                                                    <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                                </summary>
-                                                <div class="mt-1.5 space-y-1.5 pl-2 border-l-2 border-indigo-200 bg-slate-50/80 p-2 rounded-r-lg">
-                                                    @foreach($item->components as $c)
-                                                        <div class="flex items-center justify-between text-[11px] gap-2">
-                                                            <span class="text-slate-700 font-medium">
-                                                                {{ (int)$c->qty }}x {{ $c->product_name }}
-                                                                @if($c->vendor)
-                                                                    <span class="text-[10px] text-slate-400">({{ $c->vendor->nama_vendor }})</span>
-                                                                @endif
-                                                            </span>
-                                                            @if(auth()->user()->isAdminOrAbove() && $c->price_after_margin > 0)
-                                                                <span class="font-mono text-slate-600 font-semibold text-[10px]">
-                                                                    Rp {{ number_format($c->price_after_margin, 0, ',', '.') }}
-                                                                </span>
-                                                            @endif
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </details>
-                                        </div>
-                                    @endif
                                 </span>
                                 <span class="rfq-grid__cell text-center">
                                     <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>

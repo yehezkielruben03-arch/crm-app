@@ -209,22 +209,12 @@
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 Tambah Item
                             </button>
-                            <button x-show="type === 'Non Projek'" type="button" @click="addNonProjekPcRakitan()"
-                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">
-                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                + PC Rakitan
-                            </button>
                             <div x-show="type === 'Projek'" class="flex items-center gap-1.5">
                                 <span class="text-xs text-slate-400 mr-1 hidden md:inline">Tambah Item:</span>
                                 <button type="button" @click="addProjekItem('Hardware')"
                                     class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition active:scale-95">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                     + Hardware
-                                </button>
-                                <button type="button" @click="addProjekPcRakitan()"
-                                    class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition active:scale-95">
-                                    <svg class="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                    + PC Rakitan
                                 </button>
                                 <button type="button" @click="addProjekItem('Jasa Pemasangan')"
                                     class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition active:scale-95">
@@ -320,12 +310,7 @@
                                                 class="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all active:scale-95"
                                                 style="background: rgba(37,99,235,0.08); border: 1px solid rgba(37,99,235,0.15); color: var(--accent-blue);">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                                Tambah Baris Item
-                                            </button>
-                                            <button type="button" @click="addNonProjekPcRakitan()"
-                                                class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-all active:scale-95 bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100">
-                                                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-                                                + PC Rakitan
+                                                 Tambah Baris Item
                                             </button>
                                         </div>
                                     </td>
@@ -520,26 +505,6 @@
                         id: this.globalId, product_name: '', qty: 1, unit: '', description: ''
                     });
                 },
-
-                addNonProjekPcRakitan() {
-                    this.globalId++;
-                    const title = "PC Rakitan";
-
-                    if (this.nonProjekItems.length === 1 && !this.nonProjekItems[0].product_name) {
-                        this.nonProjekItems[0].product_name = title;
-                        this.nonProjekItems[0].qty = 1;
-                        this.nonProjekItems[0].unit = "Unit";
-                        this.nonProjekItems[0].description = "";
-                    } else {
-                        this.nonProjekItems.push({
-                            id: this.globalId,
-                            product_name: title,
-                            qty: 1,
-                            unit: "Unit",
-                            description: ""
-                        });
-                    }
-                },
                 
                 removeNonProjekItem(id) {
                     this.nonProjekItems = this.nonProjekItems.filter(i => i.id !== id);
@@ -554,23 +519,6 @@
                             product_name: '',
                             qty: 1,
                             unit: '',
-                            detail_item: '',
-                            description: ''
-                        });
-                    }
-                },
-
-                addProjekPcRakitan() {
-                    this.globalId++;
-                    const title = "PC Rakitan";
-
-                    const cat = this.categories.find(c => c.name === 'Hardware');
-                    if(cat) {
-                        cat.items.push({
-                            id: this.globalId,
-                            product_name: title,
-                            qty: 1,
-                            unit: 'Unit',
                             detail_item: '',
                             description: ''
                         });
