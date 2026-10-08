@@ -813,14 +813,80 @@
             }
         }
 
+        function isItemFilled(card, itemId) {
+            if (!card) return false;
+
+            // Jika item dari database (bukan ID temporer new_)
+            if (!String(itemId).startsWith('new_')) {
+                return true;
+            }
+
+            // Periksa nama produk
+            const nameInput = card.querySelector('input[name$="[product_name]"]');
+            const name = nameInput ? nameInput.value.trim() : '';
+            if (name && name !== 'Item Baru') {
+                return true;
+            }
+
+            // Periksa modal HPP dasar
+            const hppInput = document.getElementById('hpp-' + itemId);
+            const hpp = hppInput ? parseRupiah(hppInput.value) : 0;
+            if (hpp > 0) {
+                return true;
+            }
+
+            // Periksa vendor
+            const vendorInput = card.querySelector('input[name$="[vendor_name]"]') || document.getElementById('vendor-input-' + itemId);
+            const vendor = vendorInput ? vendorInput.value.trim() : '';
+            if (vendor) {
+                return true;
+            }
+
+            // Periksa deskripsi atau keterangan
+            const descInput = card.querySelector('textarea[name$="[description]"]');
+            const desc = descInput ? descInput.value.trim() : '';
+            if (desc) {
+                return true;
+            }
+
+            // Periksa biaya kirim atau fee
+            const biayaKirimInput = document.getElementById('biaya-kirim-' + itemId);
+            const biayaKirim = biayaKirimInput ? parseRupiah(biayaKirimInput.value) : 0;
+            if (biayaKirim > 0) {
+                return true;
+            }
+
+            const feeEuInput = document.getElementById('fee-eu-' + itemId);
+            const feeEu = feeEuInput ? parseRupiah(feeEuInput.value) : 0;
+            if (feeEu > 0) {
+                return true;
+            }
+
+            return false;
+        }
+
         function deletePriceItem(itemId, blockKey) {
             const card = document.getElementById('card-item-' + itemId);
-            if (card) {
-                card.remove();
-                updateBlockCount(blockKey);
-                updateAllCardNumbers();
-                updateGrandTotals();
+            if (!card) return;
+
+            // Validasi apakah item sudah memiliki data isian
+            if (isItemFilled(card, itemId)) {
+                const nameInput = card.querySelector('input[name$="[product_name]"]');
+                const displayNameEl = document.getElementById('display-name-' + itemId);
+                const itemName = (nameInput && nameInput.value.trim()) 
+                    ? nameInput.value.trim() 
+                    : (displayNameEl && displayNameEl.innerText.trim() ? displayNameEl.innerText.trim() : 'item ini');
+
+                const msg = 'Apakah Anda yakin ingin menghapus item "' + itemName + '"?\n\nData modal HPP, margin, dan kalkulasi yang sudah diisi pada item ini akan terhapus.';
+                if (!confirm(msg)) {
+                    return;
+                }
             }
+
+            card.remove();
+            updateBlockCount(blockKey);
+            updateAllCardNumbers();
+            updateGrandTotals();
         }
 
         function addNewPriceItem(categoryName, blockKey, initialData = {}) {
