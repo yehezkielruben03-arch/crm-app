@@ -86,7 +86,7 @@
                         'categoryName' => null,
                     ];
                 } else {
-                    foreach (['Hardware', 'Jasa Pemasangan', 'Material Support'] as $cat) {
+                    foreach (['Hardware', 'Material Support', 'Jasa Pemasangan'] as $cat) {
                         $catItems = $topLevelItems->filter(function($it) use ($cat) {
                             return \App\Models\RfqItem::normalizeCategory($it->category) === $cat;
                         });
@@ -582,6 +582,36 @@
                     </div>
                     @endforeach
                 </div>
+
+                @if($rfq->type === 'Projek' && in_array($categoryName, ['Material Support', 'Jasa Pemasangan']))
+                {{-- Box Total Blok Kuning Sesuai Rumus Excel Projek: =CEILING(SUM; 500.000) --}}
+                <div class="mt-4 p-4 rounded-2xl bg-amber-50/90 border border-amber-300 shadow-2xs flex flex-wrap items-center justify-between gap-3" id="block-summary-box-{{ $blockKey }}">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
+                            ∑
+                        </div>
+                        <div>
+                            <div class="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                                <span>TOTAL BLOK {{ strtoupper($block['title']) }}</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300">=CEILING(SUM; 500.000)</span>
+                            </div>
+                            <div class="text-[11px] text-amber-800">
+                                Seluruh item di blok ini otomatis dilebur di Quotation PDF klien menjadi 1 baris seharga pembulatan ceiling 500.000.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-4 text-xs">
+                        <div class="text-slate-600">
+                            Subtotal Real Item: <strong class="font-mono text-slate-800 text-sm" id="block-raw-total-{{ $blockKey }}">Rp 0</strong>
+                        </div>
+                        <span class="text-amber-400 font-bold hidden sm:inline">→</span>
+                        <div class="px-3.5 py-1.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-950 font-bold flex items-center gap-2 shadow-2xs">
+                            <span class="text-[11px] text-amber-800 font-semibold uppercase">Total Penawaran Klien:</span>
+                            <span class="font-mono text-base font-extrabold text-amber-900" id="block-ceiling-total-{{ $blockKey }}">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+                @endif
             </div>
             @endforeach
 
@@ -1647,6 +1677,8 @@
             updateGrandTotals();
         }
 
+        const isProjectRfq = {{ $rfq->type === 'Projek' ? 'true' : 'false' }};
+
         function updateGrandTotals() {
             let grandModal = 0;
             let grandSales = 0;
@@ -1661,11 +1693,59 @@
                 const feeEu = parseRupiah(document.getElementById('fee-eu-' + itemId)?.value);
                 const baseModal = (hpp + ongkirPedia + biayaKirim + feeEu) * qty;
                 grandModal += baseModal;
-
-                const finalTotalText = document.getElementById('final-total-' + itemId)?.innerText || '0';
-                const finalTotal = parseRupiah(finalTotalText);
-                grandSales += finalTotal;
             });
+
+            if (isProjectRfq) {
+                let hwSales = 0;
+                let matRawSales = 0;
+                let jasaRawSales = 0;
+
+                const matContainer = document.getElementById('items-container-material_support');
+                if (matContainer) {
+                    matContainer.querySelectorAll('.item-card-row').forEach(card => {
+                        const itemId = card.id.replace('card-item-', '');
+                        matRawSales += parseRupiah(document.getElementById('final-total-' + itemId)?.innerText || '0');
+                    });
+                }
+
+                const jasaContainer = document.getElementById('items-container-jasa_pemasangan');
+                if (jasaContainer) {
+                    jasaContainer.querySelectorAll('.item-card-row').forEach(card => {
+                        const itemId = card.id.replace('card-item-', '');
+                        jasaRawSales += parseRupiah(document.getElementById('final-total-' + itemId)?.innerText || '0');
+                    });
+                }
+
+                const hwContainer = document.getElementById('items-container-hardware');
+                if (hwContainer) {
+                    hwContainer.querySelectorAll('.item-card-row').forEach(card => {
+                        const itemId = card.id.replace('card-item-', '');
+                        hwSales += parseRupiah(document.getElementById('final-total-' + itemId)?.innerText || '0');
+                    });
+                }
+
+                // Rumus Excel Projek: =CEILING(SUM; 500.000)
+                const matCeilSales = matRawSales > 0 ? (Math.ceil(matRawSales / 500000) * 500000) : 0;
+                const jasaCeilSales = jasaRawSales > 0 ? (Math.ceil(jasaRawSales / 500000) * 500000) : 0;
+
+                const rawMatEl = document.getElementById('block-raw-total-material_support');
+                if (rawMatEl) rawMatEl.innerText = 'Rp ' + formatRupiah(matRawSales);
+                const ceilMatEl = document.getElementById('block-ceiling-total-material_support');
+                if (ceilMatEl) ceilMatEl.innerText = 'Rp ' + formatRupiah(matCeilSales);
+
+                const rawJasaEl = document.getElementById('block-raw-total-jasa_pemasangan');
+                if (rawJasaEl) rawJasaEl.innerText = 'Rp ' + formatRupiah(jasaRawSales);
+                const ceilJasaEl = document.getElementById('block-ceiling-total-jasa_pemasangan');
+                if (ceilJasaEl) ceilJasaEl.innerText = 'Rp ' + formatRupiah(jasaCeilSales);
+
+                grandSales = hwSales + (matCeilSales > 0 ? matCeilSales : matRawSales) + (jasaCeilSales > 0 ? jasaCeilSales : jasaRawSales);
+            } else {
+                document.querySelectorAll('input[id^="hpp-"]').forEach(el => {
+                    const itemId = el.dataset.itemId || el.id.replace('hpp-', '');
+                    const finalTotalText = document.getElementById('final-total-' + itemId)?.innerText || '0';
+                    grandSales += parseRupiah(finalTotalText);
+                });
+            }
 
             const grandProfit = grandSales - grandModal;
 

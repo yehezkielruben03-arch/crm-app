@@ -502,6 +502,12 @@ class Rfq extends Model
                     $materialDesc = $customMaterialDesc ?: 'Material pendukung instalasi dan aksesoris perkabelan.';
                 }
 
+                // Di Excel Lembar2 J20: =CEILING(SUM(J14:J19), 500000)
+                // Bundling Material Support dibulatkan ke kelipatan 500.000
+                if ($materialTotal > 0) {
+                    $materialTotal = ceil($materialTotal / 500000) * 500000;
+                }
+
                 $output[] = (object) [
                     'id' => 'bundled-material',
                     'qty' => 1,
@@ -546,6 +552,12 @@ class Rfq extends Model
                 $desc = !empty($collectedDescs) 
                     ? implode("\n", $collectedDescs) 
                     : 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.';
+
+                // Di Excel Lembar2 J26: =CEILING(SUM(J22:J25), 500000)
+                // Bundling Jasa Pemasangan & Akomodasi dibulatkan ke kelipatan 500.000
+                if ($jasaTotal > 0) {
+                    $jasaTotal = ceil($jasaTotal / 500000) * 500000;
+                }
 
                 $output[] = (object) [
                     'id' => 'bundled-jasa',
