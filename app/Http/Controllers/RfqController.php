@@ -1061,12 +1061,24 @@ class RfqController extends Controller
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
-            // EVENT 3 — Leader Approve → notif + tanda merah di lonceng SALES terkait
+            // EVENT 3 — Leader Approve: notifikasi ke SALES terkait
             \App\Models\Notification::send(
                 $rfq->sales_id,
                 'success',
                 'RFQ Di-Approve',
                 'Quotation ' . $rfq->rfq_number . ' telah di-Approve dan siap di-download!',
+                route('rfq.show', $rfq)
+            );
+        }
+
+        // Notifikasi ke Admin Purchase bahwasanya sudah disetujui oleh Leader
+        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'success',
+                'RFQ Disetujui Leader',
+                'RFQ ' . $rfq->rfq_number . ' telah disetujui oleh Leader. Siap dilanjutkan ke proses berikutnya.',
                 route('rfq.show', $rfq)
             );
         }

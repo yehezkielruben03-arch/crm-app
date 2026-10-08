@@ -417,8 +417,13 @@ class Rfq extends Model
                 $normCat = RfqItem::normalizeCategory($item->category);
                 $name = strtolower(trim($item->product_name ?? ''));
 
-                if ($item->isInternalLaborOrAccommodation()
-                    || $normCat === RfqItem::CATEGORY_JASA
+                if ($normCat === RfqItem::CATEGORY_HARDWARE) {
+                    $hardwareItems[] = $item;
+                } elseif ($normCat === RfqItem::CATEGORY_MATERIAL) {
+                    $materialItems[] = $item;
+                } elseif ($normCat === RfqItem::CATEGORY_JASA) {
+                    $jasaItems[] = $item;
+                } elseif ($item->isInternalLaborOrAccommodation()
                     || str_contains($name, 'installation')
                     || str_contains($name, 'instalasi')
                     || str_contains($name, 'jasa')
@@ -428,7 +433,6 @@ class Rfq extends Model
                     || str_contains($name, 'testing & commissioning')) {
                     $jasaItems[] = $item;
                 } elseif ($item->isMiscellaneousMaterial()
-                    || $normCat === RfqItem::CATEGORY_MATERIAL
                     || str_contains($name, 'material')
                     || str_contains($name, 'cable')
                     || str_contains($name, 'kabel')
@@ -516,17 +520,11 @@ class Rfq extends Model
             // 3. JASA PEMASANGAN & AKOMODASI ROW: Rangkum seluruh jasa & mobdemob menjadi 1 baris di paling bawah
             if (!empty($jasaItems)) {
                 $jasaTotal = 0.0;
-                $jasaTitle = 'Installation & Accommodation';
                 $collectedDescs = [];
 
                 foreach ($jasaItems as $js) {
                     $jsRowTotal = (float) $js->price_after_margin * (float) ($js->qty ?: 1);
                     $jasaTotal += $jsRowTotal;
-
-                    $pName = trim($js->product_name ?? '');
-                    if (!$js->isInternalLaborOrAccommodation() && !empty($pName)) {
-                        $jasaTitle = $pName;
-                    }
 
                     if (!$js->isInternalLaborOrAccommodation()) {
                         $sDesc = trim($js->description ?: $js->detail_item ?: '');
@@ -534,6 +532,15 @@ class Rfq extends Model
                             $collectedDescs[] = $sDesc;
                         }
                     }
+                }
+
+                if (count($jasaItems) > 1) {
+                    $jasaTitle = 'Installation & Accommodation';
+                } else {
+                    $singleJs = $jasaItems[0] ?? null;
+                    $jasaTitle = (!$singleJs?->isInternalLaborOrAccommodation() && !empty($singleJs?->product_name))
+                        ? trim($singleJs->product_name)
+                        : 'Installation & Accommodation';
                 }
 
                 $desc = !empty($collectedDescs) 
