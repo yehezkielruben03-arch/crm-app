@@ -1918,12 +1918,18 @@
                 if (badgeEl) badgeEl.innerText = 'Cash Before Delivery (Pribadi + Mandiri)';
 
                 previewEl.innerHTML = `
-                    <div class="text-rose-700 italic font-medium space-y-0.5 leading-snug">
-                        <div class="font-bold">※ Sistem pembayaran Cash Before Delivery</div>
-                        <div>Nama Bank : BANK MANDIRI</div>
-                        <div>Cabang : KEMANG PRATAMA BEKASI</div>
-                        <div>Nama Akun : PEDIA TEKNOLOGI INDONESIA</div>
-                        <div>No. Akun : 1670024241514 (IDR)</div>
+                    <div class="space-y-1.5">
+                        <div class="text-rose-700 italic font-medium space-y-0.5 leading-snug">
+                            <div>✓ Sistem pembayaran Cash Before Delivery</div>
+                            <div class="text-[10px] pl-2 font-mono">Nama Bank   : BANK MANDIRI</div>
+                            <div class="text-[10px] pl-2 font-mono">Cabang      : KEMANG PRATAMA BEKASI</div>
+                            <div class="text-[10px] pl-2 font-mono">Nama Akun   : PEDIA TEKNOLOGI INDONESIA</div>
+                            <div class="text-[10px] pl-2 font-mono">No. Akun    : 1670024241514 (IDR)</div>
+                        </div>
+                        <div class="pt-1 border-t border-slate-100 text-slate-800 italic text-[11px]">
+                            <div>✓ Dengan menandatangani penawaran ini, pihak Pemesan menyetujui...</div>
+                            <div class="text-[10px] text-slate-600 not-italic">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                        </div>
                     </div>
                 `;
             }

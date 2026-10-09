@@ -310,13 +310,22 @@
             <div class="text-[11.5px] text-black leading-tight my-4 space-y-2">
                 @if($rfq->isPaymentTermCbdPersonal())
                     <div class="flex items-start text-rose-600 italic">
-                        <span class="mr-2 font-bold" style="font-family: Arial, sans-serif;">※</span>
+                        <span class="mr-2 font-bold not-italic text-black" style="font-family: Arial, sans-serif;">✓</span>
                         <div class="space-y-0.5 leading-snug">
-                            <div class="font-bold">Sistem pembayaran Cash Before Delivery</div>
-                            <div>Nama Bank : BANK MANDIRI</div>
-                            <div>Cabang : KEMANG PRATAMA BEKASI</div>
-                            <div>Nama Akun : PEDIA TEKNOLOGI INDONESIA</div>
-                            <div>No. Akun : 1670024241514 (IDR)</div>
+                            <div>Sistem pembayaran Cash Before Delivery</div>
+                            <table class="border-none text-[11.5px] text-rose-600 italic">
+                                <tr><td class="w-24 p-0">Nama Bank</td><td class="p-0">: BANK MANDIRI</td></tr>
+                                <tr><td class="p-0">Cabang</td><td class="p-0">: KEMANG PRATAMA BEKASI</td></tr>
+                                <tr><td class="p-0">Nama Akun</td><td class="p-0">: PEDIA TEKNOLOGI INDONESIA</td></tr>
+                                <tr><td class="p-0">No. Akun</td><td class="p-0">: 1670024241514 (IDR)</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="flex items-start text-black italic">
+                        <span class="mr-2 font-bold not-italic text-black" style="font-family: Arial, sans-serif;">✓</span>
+                        <div class="space-y-0.5">
+                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </div>
                     </div>
                 @elseif($rfq->isPaymentTermCbdB2b())

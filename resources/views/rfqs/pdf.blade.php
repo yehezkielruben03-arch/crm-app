@@ -266,13 +266,22 @@
         @if($rfq->isPaymentTermCbdPersonal())
             <table style="width: 100%; border: none;">
                 <tr>
-                    <td style="width: 16px; vertical-align: top; font-weight: normal; font-size: 8.5px; border: none; color: #e00000;" class="jp">※</td>
-                    <td style="border: none; color: #e00000; font-style: italic; line-height: 1.35;">
-                        <div style="font-weight: bold;">Sistem pembayaran Cash Before Delivery</div>
-                        <div>Nama Bank : BANK MANDIRI</div>
-                        <div>Cabang : KEMANG PRATAMA BEKASI</div>
-                        <div>Nama Akun : PEDIA TEKNOLOGI INDONESIA</div>
-                        <div>No. Akun : 1670024241514 (IDR)</div>
+                    <td style="width: 16px; vertical-align: top; font-weight: bold; border: none;">✓</td>
+                    <td style="border: none; color: #e00000; font-style: italic; line-height: 1.25;">
+                        <div>Sistem pembayaran Cash Before Delivery</div>
+                        <table style="border: none; border-collapse: collapse; margin: 0; padding: 0; color: #e00000; font-style: italic; font-size: 8px; line-height: 1.25;">
+                            <tr><td style="width: 70px; border: none; padding: 0;">Nama Bank</td><td style="border: none; padding: 0;">: BANK MANDIRI</td></tr>
+                            <tr><td style="border: none; padding: 0;">Cabang</td><td style="border: none; padding: 0;">: KEMANG PRATAMA BEKASI</td></tr>
+                            <tr><td style="border: none; padding: 0;">Nama Akun</td><td style="border: none; padding: 0;">: PEDIA TEKNOLOGI INDONESIA</td></tr>
+                            <tr><td style="border: none; padding: 0;">No. Akun</td><td style="border: none; padding: 0;">: 1670024241514 (IDR)</td></tr>
+                        </table>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: bold; padding-top: 3px; border: none;">✓</td>
+                    <td style="padding-top: 3px; border: none; color: #000; line-height: 1.25;">
+                        <div style="font-style: italic;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                        <div class="jp" style="color: #000; font-style: normal; margin-top: 1px;">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                     </td>
                 </tr>
             </table>
