@@ -429,8 +429,9 @@
                                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-medium text-blue-400">Rp</span>
                                                 @php
                                                     $oldOngkirPedia = old('items.'.$item->id.'.ongkir_pedia');
-                                                    $rawOngkirPedia = ($item->ongkir_pedia && (float)$item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0);
-                                                    $valOngkirPedia = $oldOngkirPedia !== null ? $oldOngkirPedia : ((float)$rawOngkirPedia > 0 ? number_format((float)$rawOngkirPedia, 0, ',', '.') : '0');
+                                                    $isAlreadyPriced = (isset($priceHistories) && $priceHistories->isNotEmpty()) || ((float)($item->price_after_margin ?? 0) > 0) || ((float)($item->hpp ?? 0) > 0);
+                                                    $rawOngkirPedia = $isAlreadyPriced ? ($item->ongkir_pedia ?? 0) : (($item->ongkir_pedia && (float)$item->ongkir_pedia > 0) ? $item->ongkir_pedia : ($rfq->customer->ongkir_pedia ?? 0));
+                                                    $valOngkirPedia = $oldOngkirPedia !== null ? $oldOngkirPedia : number_format((float)$rawOngkirPedia, 0, ',', '.');
                                                 @endphp
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][ongkir_pedia]" id="ongkir-pedia-{{ $item->id }}" data-item-id="{{ $item->id }}"
                                                        value="{{ $valOngkirPedia }}"
