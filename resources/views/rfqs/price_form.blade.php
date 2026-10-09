@@ -120,33 +120,38 @@
             @endphp
             
             <div class="mb-8" id="block-section-{{ $blockKey }}">
-                <div class="relative flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <div class="w-full md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center text-center my-1 md:my-0">
-                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2 px-4 py-1 rounded-full bg-slate-100/90 border border-slate-200 shadow-2xs">
-                            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                            <span>{{ $block['title'] }}</span>
+                {{-- Centered Block Divider Header --}}
+                <div class="relative flex items-center justify-center my-5">
+                    <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                        <div class="w-full border-t border-slate-200"></div>
+                    </div>
+                    <div class="relative inline-flex items-center gap-2 bg-slate-100 px-5 py-1.5 rounded-full border border-slate-200/90 shadow-2xs">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                        <h2 class="text-sm font-bold text-slate-800 tracking-wide uppercase">
+                            {{ $block['title'] }}
                         </h2>
                     </div>
-                    <div class="hidden md:block"></div>
-                    <div class="flex flex-wrap items-center gap-2 ml-auto z-10">
-                        @if($categoryName === 'Material Support')
-                        <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition shadow-2xs"
-                            title="Hitung otomatis 15% dari total harga jual barang material support">
-                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                            <span>⚡ Hitung Miscelanious Material (15%)</span>
-                        </button>
-                        @endif
-                        <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200" id="block-count-badge-{{ $blockKey }}">
-                            {{ $categoryItems->count() }} Item
-                        </span>
+                </div>
 
-                        <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
-                            class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            <span>+ Tambah Item</span>
-                        </button>
-                    </div>
+                {{-- Block Actions Toolbar --}}
+                <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
+                    @if($categoryName === 'Material Support')
+                    <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
+                        class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition shadow-2xs"
+                        title="Hitung otomatis 15% dari total harga jual barang material support">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        <span>⚡ Hitung Miscelanious Material (15%)</span>
+                    </button>
+                    @endif
+                    <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200" id="block-count-badge-{{ $blockKey }}">
+                        {{ $categoryItems->count() }} Item
+                    </span>
+
+                    <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
+                        class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>+ Tambah Item</span>
+                    </button>
                 </div>
 
                 @if($categoryName === 'Jasa Pemasangan')
