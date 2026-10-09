@@ -776,6 +776,8 @@ class RfqController extends Controller
         $validated = $request->validate([
             'notes'                              => 'nullable|string|max:3000',
             'tax_type'                           => 'nullable|string|in:auto,include,exclude',
+            'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
+            'payment_term_days'                  => 'nullable|integer|min:1|max:365',
             'items'                              => 'required|array',
             'items.*.is_bundle'                  => 'nullable',
             'items.*.category'                   => 'nullable|string',
@@ -819,6 +821,15 @@ class RfqController extends Controller
             }
             if ($request->has('tax_type')) {
                 $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
+            }
+            if ($request->has('payment_term_type')) {
+                $termType = $request->payment_term_type ?: 'tempo';
+                $rfqUpdate['payment_term_type'] = $termType;
+                if ($termType === 'tempo') {
+                    $rfqUpdate['payment_term_days'] = $request->filled('payment_term_days') ? (int) $request->payment_term_days : 14;
+                } else {
+                    $rfqUpdate['payment_term_days'] = null;
+                }
             }
             if (!empty($rfqUpdate)) {
                 $rfq->update($rfqUpdate);

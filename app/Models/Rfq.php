@@ -15,12 +15,13 @@ class Rfq extends Model
         'rfq_number', 'customer_id', 'customer_name', 'customer_code',
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
         'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
-        'po_file_path', 'tax_type'
+        'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days'
     ];
 
     protected $casts = [
         'rfq_date' => 'date',
         'need_date' => 'date',
+        'payment_term_days' => 'integer',
     ];
 
     public const STATUS_PENDING_ADMIN = 'Pending Admin';
@@ -44,6 +45,36 @@ class Rfq extends Model
     public const TAX_AUTO = 'auto';
     public const TAX_INCLUDE = 'include';
     public const TAX_EXCLUDE = 'exclude';
+
+    // Ketentuan Sistem Pembayaran (Payment Terms)
+    public const PAYMENT_TERM_TEMPO = 'tempo';
+    public const PAYMENT_TERM_CBD_B2B = 'cbd_b2b';
+    public const PAYMENT_TERM_CBD_PERSONAL = 'cbd_personal';
+
+    public function getPaymentTermType(): string
+    {
+        return $this->payment_term_type ?: self::PAYMENT_TERM_TEMPO;
+    }
+
+    public function getPaymentTermDays(): int
+    {
+        return (int) ($this->payment_term_days ?: 14);
+    }
+
+    public function isPaymentTermTempo(): bool
+    {
+        return $this->getPaymentTermType() === self::PAYMENT_TERM_TEMPO;
+    }
+
+    public function isPaymentTermCbdB2b(): bool
+    {
+        return $this->getPaymentTermType() === self::PAYMENT_TERM_CBD_B2B;
+    }
+
+    public function isPaymentTermCbdPersonal(): bool
+    {
+        return $this->getPaymentTermType() === self::PAYMENT_TERM_CBD_PERSONAL;
+    }
 
     public function isIncludeTax(): bool
     {

@@ -261,24 +261,57 @@
         </tbody>
     </table>
 
-    <!-- SYARAT & KETENTUAN (Persis Sampling) -->
+    <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
     <div style="font-size: 8px; line-height: 1.25; margin-top: 5px; margin-bottom: 4px;">
-        <table style="width: 100%; border: none;">
-            <tr>
-                <td style="width: 16px; vertical-align: top; font-weight: bold; border: none;">✓</td>
-                <td style="border: none;">
-                    <div>Sistem pembayaran 14 hari setelah invoice diterima</div>
-                    <div style="color: #555;" class="jp">お支払い条件は、請求書受領後14日以内となります。</div>
-                </td>
-            </tr>
-            <tr>
-                <td style="width: 16px; vertical-align: top; font-weight: bold; padding-top: 3px; border: none;">✓</td>
-                <td style="padding-top: 3px; border: none;">
-                    <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                    <div style="color: #555;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
-                </td>
-            </tr>
-        </table>
+        @if($rfq->isPaymentTermCbdPersonal())
+            <table style="width: 100%; border: none;">
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: normal; font-size: 8.5px; border: none; color: #e00000;" class="jp">※</td>
+                    <td style="border: none; color: #e00000; font-style: italic; line-height: 1.35;">
+                        <div style="font-weight: bold;">Sistem pembayaran Cash Before Delivery</div>
+                        <div>Nama Bank : BANK MANDIRI</div>
+                        <div>Cabang : KEMANG PRATAMA BEKASI</div>
+                        <div>Nama Akun : PEDIA TEKNOLOGI INDONESIA</div>
+                        <div>No. Akun : 1670024241514 (IDR)</div>
+                    </td>
+                </tr>
+            </table>
+        @elseif($rfq->isPaymentTermCbdB2b())
+            <table style="width: 100%; border: none;">
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: normal; font-size: 8.5px; border: none;" class="jp">※</td>
+                    <td style="border: none;">
+                        <div style="font-style: italic;">Sistem pembayaran Cash Before Delivery</div>
+                        <div style="color: #555;" class="jp">支払条件：前払い（納品前）</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: normal; font-size: 8.5px; padding-top: 3px; border: none;" class="jp">※</td>
+                    <td style="padding-top: 3px; border: none;">
+                        <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                        <div style="color: #555;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                    </td>
+                </tr>
+            </table>
+        @else
+            @php $termDays = $rfq->getPaymentTermDays(); @endphp
+            <table style="width: 100%; border: none;">
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: bold; border: none;">✓</td>
+                    <td style="border: none;">
+                        <div>Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
+                        <div style="color: #555;" class="jp">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 16px; vertical-align: top; font-weight: bold; padding-top: 3px; border: none;">✓</td>
+                    <td style="padding-top: 3px; border: none;">
+                        <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                        <div style="color: #555;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                    </td>
+                </tr>
+            </table>
+        @endif
     </div>
 
     <!-- PENUTUP -->

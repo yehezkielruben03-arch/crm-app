@@ -306,22 +306,51 @@
                 </tbody>
             </table>
 
-            <!-- SYARAT & KETENTUAN (Bilingual ID & JP persis Sampling) -->
+            <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
             <div class="text-[11.5px] text-black leading-tight my-4 space-y-2">
-                <div class="flex items-start">
-                    <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
-                    <div>
-                        <div>Sistem pembayaran 14 hari setelah invoice diterima</div>
-                        <div class="italic text-[#555]">お支払い条件は、請求書受領後14日以内となります。</div>
+                @if($rfq->isPaymentTermCbdPersonal())
+                    <div class="flex items-start text-rose-600 italic">
+                        <span class="mr-2 font-bold" style="font-family: Arial, sans-serif;">※</span>
+                        <div class="space-y-0.5 leading-snug">
+                            <div class="font-bold">Sistem pembayaran Cash Before Delivery</div>
+                            <div>Nama Bank : BANK MANDIRI</div>
+                            <div>Cabang : KEMANG PRATAMA BEKASI</div>
+                            <div>Nama Akun : PEDIA TEKNOLOGI INDONESIA</div>
+                            <div>No. Akun : 1670024241514 (IDR)</div>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-start">
-                    <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
-                    <div>
-                        <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                        <div class="italic text-[#555]">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                @elseif($rfq->isPaymentTermCbdB2b())
+                    <div class="flex items-start">
+                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">※</span>
+                        <div>
+                            <div class="italic">Sistem pembayaran Cash Before Delivery</div>
+                            <div class="italic text-[#555]">支払条件：前払い（納品前）</div>
+                        </div>
                     </div>
-                </div>
+                    <div class="flex items-start">
+                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">※</span>
+                        <div>
+                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="italic text-[#555]">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        </div>
+                    </div>
+                @else
+                    @php $termDays = $rfq->getPaymentTermDays(); @endphp
+                    <div class="flex items-start">
+                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
+                        <div>
+                            <div>Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
+                            <div class="italic text-[#555]">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
+                        <div>
+                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="italic text-[#555]">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Kalimat Penutup -->
