@@ -120,12 +120,15 @@
             @endphp
             
             <div class="mb-8" id="block-section-{{ $blockKey }}">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                        {{ $block['title'] }}
-                    </h2>
-                    <div class="flex items-center gap-2">
+                <div class="relative flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="w-full md:w-auto md:absolute md:left-1/2 md:-translate-x-1/2 flex justify-center text-center my-1 md:my-0">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2 px-4 py-1 rounded-full bg-slate-100/90 border border-slate-200 shadow-2xs">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                            <span>{{ $block['title'] }}</span>
+                        </h2>
+                    </div>
+                    <div class="hidden md:block"></div>
+                    <div class="flex flex-wrap items-center gap-2 ml-auto z-10">
                         @if($categoryName === 'Material Support')
                         <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
                             class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition shadow-2xs"
