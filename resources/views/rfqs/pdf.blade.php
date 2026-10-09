@@ -308,7 +308,7 @@
             <td style="width: 50%; vertical-align: top; padding-left: 20px; border: none;">
                 <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
                 <div style="font-size: 7.5px; color: #555; margin-bottom: 2px;" class="jp">上記の数量と価格に同意いたします。</div>
-                <div style="font-weight: bold; font-size: 9px; margin-bottom: 18px;">{{ $clientCompanyName }}</div>
+                <div style="font-weight: bold; font-size: 9px; margin-bottom: 22px;">{{ $clientCompanyName }}</div>
                 
                 <table style="width: 100%; border: none;">
                     <tr><td style="width: 50px; font-size: 8px; border: none; padding: 1.5px 0;">Nama</td><td style="font-size: 8px; border: none; padding: 1.5px 0;">: </td></tr>
@@ -319,7 +319,7 @@
     </table>
 
     <!-- FOOTER (Persis Sampling) -->
-    <div style="text-align: center; margin-top: 6px; font-size: 7.5px; color: #222;">
+    <div style="position: fixed; bottom: 0px; left: 0px; right: 0px; text-align: center; font-size: 7.5px; color: #222;">
         <div style="font-weight: bold; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
         <div style="font-size: 8px; margin-bottom: 3px;" class="jp">お買い上げくださってありがとうございます！</div>
         <div style="line-height: 1.25; color: #555; margin-bottom: 4px;">
