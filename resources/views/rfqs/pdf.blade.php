@@ -75,33 +75,33 @@
     @endphp
 
     <!-- HEADER TABLE -->
-    <table style="width: 100%; border: none;">
+    <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 0;">
         <tr>
-            <td style="width: 55%; vertical-align: top; border: none;">
+            <td style="width: 55%; vertical-align: top; border: none; padding: 0;">
                 @if(file_exists(public_path('images/pedia_logo_hd.png')))
-                    <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="height: 40px;">
+                    <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="height: 42px;">
                 @elseif(file_exists(public_path('images/logo.png')))
-                    <img src="{{ public_path('images/logo.png') }}" style="height: 40px;">
+                    <img src="{{ public_path('images/logo.png') }}" style="height: 42px;">
                 @else
                     <strong style="font-size: 14px; color: #000;">PEDIA TECHNOLOGY</strong>
                 @endif
                 <div style="font-weight: bold; font-size: 11px; text-transform: uppercase; margin-top: 3px; color: #000;">PT. PEDIA TEKNOLOGI INDONESIA</div>
                 <div style="font-style: italic; font-size: 8.5px; color: #555;">With Our Experience Everything Is Possible</div>
             </td>
-            <td style="width: 45%; vertical-align: top; text-align: right; border: none;">
-                <div style="font-size: 28px; color: #555; font-weight: 300; line-height: 1; margin-bottom: 3px;">Quotation</div>
-                <table style="width: auto; float: right; font-size: 8.5px; border-collapse: collapse;">
+            <td style="width: 45%; vertical-align: top; text-align: right; border: none; padding: 0;">
+                <div style="font-family: 'Helvetica', 'Arial', sans-serif; font-size: 38px; color: #666; line-height: 1; margin-bottom: 12px; font-weight: normal; text-align: right;">Quotation</div>
+                <table align="right" style="width: auto; border-collapse: collapse; font-size: 8.5px; text-align: right;">
                     <tr>
-                        <td style="font-weight: bold; padding-right: 10px; text-align: right; text-transform: uppercase;">TANGGAL</td>
-                        <td style="text-align: right;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
+                        <td style="font-weight: bold; padding: 1.5px 12px 1.5px 0; text-align: right; text-transform: uppercase; border: none;">TANGGAL</td>
+                        <td style="text-align: right; padding: 1.5px 0; border: none;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: bold; padding-right: 10px; text-align: right;">No. Penawaran</td>
-                        <td style="text-align: right;">{{ $rfq->quotation_number }}</td>
+                        <td style="font-weight: bold; padding: 1.5px 12px 1.5px 0; text-align: right; border: none;">No. Penawaran</td>
+                        <td style="text-align: right; padding: 1.5px 0; border: none;">{{ $rfq->quotation_number }}</td>
                     </tr>
                     @if(isset($revisionCount) && $revisionCount > 0)
                     <tr>
-                        <td colspan="2" style="color: #dc2626; font-weight: bold; text-align: right; padding-top: 1px;">
+                        <td colspan="2" style="color: #dc2626; font-weight: bold; text-align: right; padding: 2px 0 0 0; border: none;">
                             REVISI {{ $revRoman }} : {{ $formattedRevDate }}
                         </td>
                     </tr>
@@ -112,9 +112,9 @@
     </table>
 
     <!-- INFO KLIEN & BERLAKU S/D -->
-    <table style="width: 100%; margin-top: 5px; margin-bottom: 2px; border: none;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 4px; border: none;">
         <tr>
-            <td style="width: 60%; vertical-align: bottom; font-size: 8.5px; line-height: 1.3; border: none;">
+            <td style="width: 55%; vertical-align: bottom; font-size: 8.5px; line-height: 1.35; border: none; padding: 0;">
                 <div style="color: #111;">Kepada YTH</div>
                 <div style="font-weight: bold; font-size: 10.5px; color: #000; margin-top: 1px;">{{ $clientCompanyName }}</div>
                 @if(!empty($custAddress))
@@ -125,13 +125,11 @@
                 @endif
                 <div style="color: #222;">Up. {{ $custPic }}</div>
             </td>
-            <td style="width: 40%; vertical-align: bottom; text-align: right; border: none;">
-                <table style="width: auto; float: right; border-collapse: collapse;">
+            <td style="width: 45%; vertical-align: bottom; text-align: right; border: none; padding: 0;">
+                <table align="right" style="width: 220px; border-collapse: collapse; background-color: #f2f2f2;">
                     <tr>
-                        <td style="background-color: #f2f2f2; padding: 3px 8px; font-size: 8.5px; width: 185px;">
-                            <span style="font-style: italic; color: #333;">Berlaku s/d tgl :</span>
-                            <span style="float: right; font-weight: bold; color: #111;">{{ $rfq->formatted_valid_until }}</span>
-                        </td>
+                        <td style="padding: 3.5px 8px; font-size: 8.5px; font-style: italic; color: #333; text-align: left; border: none;">Berlaku s/d tgl :</td>
+                        <td style="padding: 3.5px 8px; font-size: 8.5px; font-weight: bold; color: #111; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
                     </tr>
                 </table>
             </td>
