@@ -460,7 +460,7 @@
 
                                             <div class="pt-0.5 border-t border-slate-100">
                                                 <div class="text-xs font-bold text-blue-600 font-mono">
-                                                    Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/unit</span>
+                                                    Rp {{ number_format($item->price_after_margin, 0, ',', '.') }} <span class="text-[10px] font-normal text-slate-400">/{{ $item->unit ?? 'unit' }}</span>
                                                 </div>
                                                 @if($item->qty > 1)
                                                     <div class="text-[11px] font-bold text-emerald-600 font-mono">

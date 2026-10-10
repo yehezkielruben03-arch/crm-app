@@ -244,6 +244,9 @@
                                 <template x-for="(item, index) in nonProjekItems" :key="item.id">
                                     <tr class="group" style="border-bottom: 1px solid #e2e8f0; vertical-align: middle;"
                                         :style="index % 2 === 1 ? 'background: #f8fafc;' : ''">
+                                        <template x-if="item.db_id">
+                                            <input type="hidden" :name="`items[${item.id}][id]`" :value="item.db_id">
+                                        </template>
                                         <td class="px-3 py-2.5 text-xs font-mono text-center" style="color: var(--text-muted); vertical-align: middle;" x-text="index + 1"></td>
                                         <td class="px-3 py-2" style="vertical-align: middle;">
                                             <input type="text" :name="`items[${item.id}][product_name]`"
@@ -356,6 +359,9 @@
 
                                         <template x-for="(item, index) in category.items" :key="item.id">
                                             <div class="pmx-row pmx-row--data">
+                                                <template x-if="item.db_id">
+                                                    <input type="hidden" :name="`items[${item.id}][id]`" :value="item.db_id">
+                                                </template>
                                                 <input type="hidden" :name="`items[${item.id}][category]`" :value="category.name">
 
                                             {{-- Baris Utama: No | Item Descriptions | Qty | Units | Hapus --}}
@@ -461,6 +467,7 @@
                     if (!catItems[cat]) catItems[cat] = [];
                     catItems[cat].push({
                         id: globId++,
+                        db_id: item.id,
                         product_name: item.product_name,
                         qty: parseFloat(item.qty),
                         unit: item.unit || '',
@@ -472,6 +479,7 @@
                 OLD_ITEMS.forEach(item => {
                     nonProj.push({
                         id: globId++,
+                        db_id: item.id,
                         product_name: item.product_name,
                         qty: parseFloat(item.qty),
                         unit: item.unit || '',

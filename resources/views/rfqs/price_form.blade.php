@@ -117,40 +117,79 @@
                 $categoryName = $block['categoryName'];
                 $categoryItems = $block['items'];
                 $blockKey = $block['key'];
+
+                // Visual styling tematik per blok agar kontras, tegas, dan mudah dibedakan
+                $theme = match($categoryName) {
+                    'Hardware' => [
+                        'dot' => 'bg-blue-600 ring-blue-100',
+                        'border' => 'border-blue-300/90',
+                        'badge' => 'bg-blue-50 text-blue-700 border-blue-200',
+                        'badge_text' => 'Kategori Utama',
+                        'btn_add' => 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-blue-500/20',
+                    ],
+                    'Material Support' => [
+                        'dot' => 'bg-amber-500 ring-amber-100',
+                        'border' => 'border-amber-300/90',
+                        'badge' => 'bg-amber-50 text-amber-800 border-amber-300',
+                        'badge_text' => 'Dilebur di Penawaran',
+                        'btn_add' => 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white shadow-amber-500/20',
+                    ],
+                    'Jasa Pemasangan' => [
+                        'dot' => 'bg-indigo-600 ring-indigo-100',
+                        'border' => 'border-indigo-300/90',
+                        'badge' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                        'badge_text' => 'Dilebur di Penawaran',
+                        'btn_add' => 'bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white shadow-indigo-500/20',
+                    ],
+                    default => [
+                        'dot' => 'bg-slate-700 ring-slate-200',
+                        'border' => 'border-slate-300',
+                        'badge' => 'bg-slate-100 text-slate-700 border-slate-300',
+                        'badge_text' => 'Daftar Item',
+                        'btn_add' => 'bg-slate-800 hover:bg-slate-900 active:bg-black text-white shadow-slate-500/20',
+                    ],
+                };
             @endphp
             
-            <div class="mb-8" id="block-section-{{ $blockKey }}">
+            <div class="mb-10" id="block-section-{{ $blockKey }}">
                 {{-- Centered Block Divider Header --}}
-                <div class="relative flex items-center justify-center my-5">
+                <div class="relative flex items-center justify-center my-7">
                     <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                        <div class="w-full border-t border-slate-200"></div>
+                        <div class="w-full border-t-2 border-slate-300/80"></div>
                     </div>
-                    <div class="relative inline-flex items-center gap-2 bg-slate-100 px-5 py-1.5 rounded-full border border-slate-200/90 shadow-2xs">
-                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
-                        <h2 class="text-sm font-bold text-slate-800 tracking-wide uppercase">
+                    <div class="relative inline-flex items-center gap-3 bg-white px-6 py-2.5 sm:px-8 sm:py-3 rounded-2xl border-2 {{ $theme['border'] }} shadow-md hover:shadow-lg transition-all duration-200">
+                        <span class="w-3.5 h-3.5 rounded-full {{ $theme['dot'] }} ring-4 flex-shrink-0 animate-pulse"></span>
+                        <h2 class="text-sm sm:text-base font-black text-slate-800 tracking-wider uppercase">
                             {{ $block['title'] }}
                         </h2>
+                        @if(!empty($theme['badge_text']))
+                        <span class="hidden sm:inline-flex px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase {{ $theme['badge'] }}">
+                            {{ $theme['badge_text'] }}
+                        </span>
+                        @endif
                     </div>
                 </div>
 
                 {{-- Block Actions Toolbar --}}
-                <div class="flex flex-wrap items-center justify-end gap-2 mb-4">
+                <div class="flex flex-wrap items-center justify-end gap-2.5 mb-4">
                     @if($categoryName === 'Material Support')
                     <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
-                        class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition shadow-2xs"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
                         title="Hitung otomatis 15% dari total harga jual barang material support">
-                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        <span>⚡ Hitung Miscelanious Material (15%)</span>
+                        <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span>Hitung Miscelanious (15%)</span>
                     </button>
                     @endif
-                    <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2.5 py-1 rounded-full border border-slate-200" id="block-count-badge-{{ $blockKey }}">
+
+                    <span class="inline-flex items-center gap-1.5 text-xs bg-white text-slate-800 font-bold px-3.5 py-2 rounded-xl border border-slate-300 shadow-2xs" id="block-count-badge-{{ $blockKey }}">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         {{ $categoryItems->count() }} Item
                     </span>
 
                     <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
-                        class="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        <span>+ Tambah Item</span>
+                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white {{ $theme['btn_add'] }} rounded-xl transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <span>Tambah Item</span>
                     </button>
                 </div>
 
@@ -276,11 +315,10 @@
                         <p class="text-[11px] text-slate-400 mb-3">Klik tombol tambah untuk mulai mengisi rincian HPP barang pada blok ini.</p>
                         <div class="flex items-center justify-center gap-2">
                             <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition shadow-2xs">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                Tambah Item ke {{ $block['title'] }}
+                                class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white {{ $theme['btn_add'] }} rounded-xl transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                <span>Tambah Item ke {{ $block['title'] }}</span>
                             </button>
-
                         </div>
                     </div>
 
@@ -311,7 +349,7 @@
                             </div>
                             <div class="flex items-center gap-2">
                                 <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-                                    Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-{{ $item->id }}">{{ (int)$item->qty }}</span> {{ $item->unit ?? 'Unit' }}
+                                    Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-{{ $item->id }}">{{ (int)$item->qty }}</span> <span id="badge-unit-{{ $item->id }}">{{ $item->unit ?? ($categoryName === 'Material Support' ? 'Lot' : 'Unit') }}</span>
                                 </div>
                                 <button type="button" onclick="deletePriceItem('{{ $item->id }}', '{{ $blockKey }}')"
                                     class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition"
@@ -370,8 +408,9 @@
                                         </div>
                                         <div>
                                             <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
-                                            <input type="text" name="items[{{ $item->id }}][unit]" value="{{ old('items.'.$item->id.'.unit', $item->unit) }}"
-                                                   class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Pcs">
+                                            <input type="text" name="items[{{ $item->id }}][unit]" value="{{ old('items.'.$item->id.'.unit', $item->unit ?? ($categoryName === 'Material Support' ? 'Lot' : 'Unit')) }}"
+                                                   class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="{{ $categoryName === 'Material Support' ? 'Lot' : 'Unit / Pcs' }}"
+                                                   oninput="const bu = document.getElementById('badge-unit-{{ $item->id }}'); if(bu) bu.innerText = this.value || '{{ $categoryName === 'Material Support' ? 'Lot' : 'Unit' }}'">
                                         </div>
                                     </div>
 
@@ -1033,7 +1072,7 @@
             const initName = initialData.product_name || '';
             const initVendor = initialData.vendor_name || '';
             const initQty = initialData.qty !== undefined ? initialData.qty : 1;
-            const initUnit = initialData.unit || 'Unit';
+            const initUnit = initialData.unit || (categoryName === 'Material Support' ? 'Lot' : (categoryName === 'Jasa Pemasangan' ? 'Lot' : 'Unit'));
             const initDesc = initialData.description || '';
             const initHpp = initialData.hpp !== undefined ? initialData.hpp : 0;
             const initBiayaKirim = initialData.biaya_kirim !== undefined ? initialData.biaya_kirim : 0;
@@ -1119,7 +1158,8 @@
                                 <div>
                                     <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
                                     <input type="text" name="items[${tempId}][unit]" value="${initUnit}"
-                                           class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Pcs">
+                                           class="w-full text-xs text-center border-slate-200 rounded-xl focus:border-blue-500 focus:ring-blue-500 shadow-2xs" placeholder="Unit / Lot / Pcs"
+                                           oninput="const bu = document.getElementById('badge-unit-${tempId}'); if(bu) bu.innerText = this.value || 'Unit'">
                                 </div>
                             </div>
 
@@ -1364,7 +1404,11 @@
                     if (badgeQty) badgeQty.innerText = days;
                 }
                 const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
-                if (unitInput) unitInput.value = 'Hari';
+                if (unitInput) {
+                    unitInput.value = 'Hari';
+                    const badgeUnit = document.getElementById('badge-unit-' + itemId);
+                    if (badgeUnit) badgeUnit.innerText = 'Hari';
+                }
                 const hppInput = document.getElementById('hpp-' + itemId);
                 if (hppInput) hppInput.value = formatRupiah(rate);
                 const marginType = document.getElementById('margin-type-' + itemId);
@@ -1427,7 +1471,11 @@
                     if (badgeQty) badgeQty.innerText = days;
                 }
                 const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
-                if (unitInput) unitInput.value = 'Hari';
+                if (unitInput) {
+                    unitInput.value = 'Hari';
+                    const badgeUnit = document.getElementById('badge-unit-' + itemId);
+                    if (badgeUnit) badgeUnit.innerText = 'Hari';
+                }
                 const hppInput = document.getElementById('hpp-' + itemId);
                 if (hppInput) hppInput.value = formatRupiah(rate);
                 const marginType = document.getElementById('margin-type-' + itemId);
@@ -1494,7 +1542,11 @@
                     if (badgeQty) badgeQty.innerText = 1;
                 }
                 const unitInput = existingItemCard.querySelector('input[name$="[unit]"]');
-                if (unitInput) unitInput.value = 'Lot';
+                if (unitInput) {
+                    unitInput.value = 'Lot';
+                    const badgeUnit = document.getElementById('badge-unit-' + itemId);
+                    if (badgeUnit) badgeUnit.innerText = 'Lot';
+                }
                 const hppInput = document.getElementById('hpp-' + itemId);
                 if (hppInput) hppInput.value = formatRupiah(rate);
                 const marginType = document.getElementById('margin-type-' + itemId);
@@ -1588,7 +1640,11 @@
                     if (badgeQty) badgeQty.innerText = 1;
                 }
                 const unitInput = existingMiscCard.querySelector('input[name$="[unit]"]');
-                if (unitInput) unitInput.value = 'Lot';
+                if (unitInput) {
+                    unitInput.value = 'Lot';
+                    const badgeUnit = document.getElementById('badge-unit-' + itemId);
+                    if (badgeUnit) badgeUnit.innerText = 'Lot';
+                }
                 const hppInput = document.getElementById('hpp-' + itemId);
                 if (hppInput) hppInput.value = formatRupiah(miscAmount);
                 const marginType = document.getElementById('margin-type-' + itemId);

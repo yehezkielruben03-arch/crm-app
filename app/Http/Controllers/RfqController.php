@@ -462,6 +462,7 @@ class RfqController extends Controller
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
             'items'                   => 'nullable|array',
+            'items.*.id'              => 'nullable',
             'items.*.category'        => 'nullable|string',
             'items.*.product_name'    => 'nullable|string',
             'items.*.qty'             => 'nullable|numeric|min:0.01',
@@ -556,39 +557,85 @@ class RfqController extends Controller
                 'status'              => $status,
             ]);
 
-            $rfq->items()->delete();
-            foreach ($validItems as $item) {
-                $hpp              = (float)($item['hpp'] ?? 0);
-                $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
-                $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
-                $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
-                $feeEu            = (float)($item['fee_eu'] ?? 0);
-                $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
-                $marginType       = $item['margin_type'] ?? 'percentage';
-                $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
-                $cat              = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
+            $existingItems = $rfq->items()->get()->keyBy('id');
+            $keptItemIds = [];
 
-                $rfqItem = new RfqItem([
-                    'category'           => $cat,
-                    'product_name'       => $item['product_name'],
-                    'qty'                => $item['qty'],
-                    'unit'               => $item['unit'] ?? null,
-                    'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
-                    'description'        => $item['description'] ?? $item['detail_item'] ?? null,
-                    'hpp'                => $hpp,
-                    'ongkir_pedia'       => $ongkirPedia,
-                    'ongkir_pelanggan'   => $ongkirPelanggan,
-                    'biaya_kirim'        => $biayaKirim,
-                    'fee_eu'             => $feeEu,
-                    'margin_type'        => $marginType,
-                    'margin_value'       => $marginVal,
-                    'margin'             => $marginVal,
-                    'ceiling'            => $ceiling,
-                    'custom_ceiling'     => $ceiling,
-                    'validity_days'      => (int)($item['validity_days'] ?? 3),
-                ]);
-                $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
-                $rfq->items()->save($rfqItem);
+            foreach ($validItems as $item) {
+                $cat = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
+                $itemId = !empty($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
+                $existing = $itemId ? $existingItems->get($itemId) : null;
+
+                if ($existing) {
+                    $existing->category     = $cat;
+                    $existing->product_name = $item['product_name'];
+                    $existing->qty          = $item['qty'];
+                    if (!empty($item['unit'])) {
+                        $existing->unit = $item['unit'];
+                    }
+                    $desc = $item['description'] ?? $item['detail_item'] ?? $existing->description;
+                    $existing->detail_item  = $desc;
+                    $existing->description  = $desc;
+
+                    // Pertahankan HPP, Ongkir, dan Margin yang sudah dihitung Admin sebelumnya kecuali form mengirim nilai baru
+                    if (isset($item['hpp']) && (float)$item['hpp'] > 0) {
+                        $existing->hpp = (float)$item['hpp'];
+                    }
+                    if (isset($item['ongkir_pedia']) && (float)$item['ongkir_pedia'] > 0) {
+                        $existing->ongkir_pedia = (float)$item['ongkir_pedia'];
+                    }
+                    if (isset($item['biaya_kirim']) && (float)$item['biaya_kirim'] > 0) {
+                        $existing->biaya_kirim = (float)$item['biaya_kirim'];
+                    }
+                    if (isset($item['margin_value']) || isset($item['margin'])) {
+                        $val = (float)($item['margin_value'] ?? $item['margin']);
+                        if ($val > 0) {
+                            $existing->margin_value = $val;
+                            $existing->margin = $val;
+                        }
+                    }
+
+                    $existing->price_after_margin = $existing->calculatePriceAfterMargin();
+                    $existing->save();
+                    $keptItemIds[] = $existing->id;
+                } else {
+                    $hpp              = (float)($item['hpp'] ?? 0);
+                    $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
+                    $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
+                    $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
+                    $feeEu            = (float)($item['fee_eu'] ?? 0);
+                    $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
+                    $marginType       = $item['margin_type'] ?? 'percentage';
+                    $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
+
+                    $rfqItem = new RfqItem([
+                        'category'           => $cat,
+                        'product_name'       => $item['product_name'],
+                        'qty'                => $item['qty'],
+                        'unit'               => $item['unit'] ?? null,
+                        'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
+                        'description'        => $item['description'] ?? $item['detail_item'] ?? null,
+                        'hpp'                => $hpp,
+                        'ongkir_pedia'       => $ongkirPedia,
+                        'ongkir_pelanggan'   => $ongkirPelanggan,
+                        'biaya_kirim'        => $biayaKirim,
+                        'fee_eu'             => $feeEu,
+                        'margin_type'        => $marginType,
+                        'margin_value'       => $marginVal,
+                        'margin'             => $marginVal,
+                        'ceiling'            => $ceiling,
+                        'custom_ceiling'     => $ceiling,
+                        'validity_days'      => (int)($item['validity_days'] ?? 3),
+                    ]);
+                    $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
+                    $rfq->items()->save($rfqItem);
+                    $keptItemIds[] = $rfqItem->id;
+                }
+            }
+
+            if (!empty($keptItemIds)) {
+                $rfq->items()->whereNotIn('id', $keptItemIds)->delete();
+            } else {
+                $rfq->items()->delete();
             }
 
             if ($wasApproved) {

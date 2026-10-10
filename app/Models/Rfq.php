@@ -539,10 +539,22 @@ class Rfq extends Model
                     $materialTotal = ceil($materialTotal / 500000) * 500000;
                 }
 
+                $materialUnit = 'Lot';
+                foreach ($materialItems as $mat) {
+                    $u = trim($mat->unit ?? '');
+                    if (!empty($u) && strcasecmp($u, 'unit') !== 0) {
+                        $materialUnit = $u;
+                        break;
+                    }
+                }
+                if (count($materialItems) === 1 && !empty(trim($materialItems[0]->unit ?? ''))) {
+                    $materialUnit = trim($materialItems[0]->unit);
+                }
+
                 $output[] = (object) [
                     'id' => 'bundled-material',
                     'qty' => 1,
-                    'unit' => 'Unit',
+                    'unit' => $materialUnit,
                     'product_name' => 'Material Support',
                     'description' => $materialDesc,
                     'detail_item' => null,
@@ -590,10 +602,22 @@ class Rfq extends Model
                     $jasaTotal = ceil($jasaTotal / 500000) * 500000;
                 }
 
+                $jasaUnit = 'Lot';
+                foreach ($jasaItems as $js) {
+                    $u = trim($js->unit ?? '');
+                    if (!empty($u) && strcasecmp($u, 'unit') !== 0) {
+                        $jasaUnit = $u;
+                        break;
+                    }
+                }
+                if (count($jasaItems) === 1 && !empty(trim($jasaItems[0]->unit ?? ''))) {
+                    $jasaUnit = trim($jasaItems[0]->unit);
+                }
+
                 $output[] = (object) [
                     'id' => 'bundled-jasa',
                     'qty' => 1,
-                    'unit' => 'Unit',
+                    'unit' => $jasaUnit,
                     'product_name' => $jasaTitle,
                     'description' => $desc,
                     'detail_item' => null,
