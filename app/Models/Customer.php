@@ -285,7 +285,7 @@ class Customer extends Model
 
         $type = !empty($this->customer_type) ? $this->customer_type : $detectedType;
 
-        if (!empty($type)) {
+        if ($type === 'PT' || $type === 'CV') {
             return $clean . ', ' . $type;
         }
 
@@ -307,7 +307,7 @@ class Customer extends Model
         return $this->morphMany(ApprovalHistory::class, 'approvable');
     }
 
-    // ─── Computed Attributes ──────────────────────────────────────────────────
+    // Computed Attributes
 
     public function getTotalRevenueAttribute(): float
     {
@@ -315,14 +315,10 @@ class Customer extends Model
     }
 
     // Generate company code format: PTIyyyymmddxxxxxxx
-    // Dibungkus DB::transaction + lockForUpdate untuk mencegah race condition
-    // saat 2 Admin melakukan approve bersamaan di milidetik yang sama.
     public static function generateCompanyCode(): string
     {
         return \Illuminate\Support\Facades\DB::transaction(function () {
             $prefix = 'PTI' . now()->format('Ymd');
-            // lockForUpdate() mengunci baris yang sedang dibaca agar query lain
-            // menunggu sampai transaksi ini selesai — mencegah kode kembar.
             $last = self::where('company_code', 'LIKE', $prefix . '%')
                 ->orderByDesc('id')
                 ->lockForUpdate()
@@ -332,10 +328,18 @@ class Customer extends Model
         });
     }
 
-    public static function resolveSalesOwner(?int $salesId = null): int
+    public static function resolveSalesOwner(?int $salesId = null, ?int $creatorId = null): int
     {
         if (!empty($salesId)) {
             return $salesId;
+        }
+
+        if (!empty($creatorId)) {
+            return $creatorId;
+        }
+
+        if (\Illuminate\Support\Facades\Auth::check()) {
+            return (int) \Illuminate\Support\Facades\Auth::id();
         }
 
         $existingOwner = User::whereIn('role', ['Sales', 'Sales Marketing'])

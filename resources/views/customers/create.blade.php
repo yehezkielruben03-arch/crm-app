@@ -17,7 +17,9 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('customers.store') }}" class="space-y-5">
+    <form method="POST" action="{{ route('customers.store') }}" class="space-y-5"
+        x-data="{ custType: '{{ old('customer_type', 'PT') }}' }"
+        @change="if ($event.target.name === 'customer_type') custType = $event.target.value">
         @csrf
 
         <div class="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -43,12 +45,14 @@
                             ]" />
                         </div>
 
-                        {{-- Nama Perusahaan (tanpa prefix PT/CV, karena sudah dipilih di Tipe) --}}
+                        {{-- Nama Perusahaan / Instansi / Toko Pribadi --}}
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                                Nama Perusahaan <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
+                                <span x-text="custType === 'Perorangan' ? 'Nama Lengkap Pelanggan / Toko' : (custType === 'Pemerintah' ? 'Nama Instansi / Dinas / Lembaga' : 'Nama Perusahaan')">Nama Perusahaan</span>
+                                <span class="text-[11px] font-normal" style="color: var(--text-muted);">(Opsional)</span>
                             </label>
                             <input type="text" name="company_name" value="{{ old('company_name') }}"
+                                :placeholder="custType === 'Perorangan' ? 'Contoh: Hendra Gunawan / Toko Berkah' : (custType === 'Pemerintah' ? 'Contoh: Dinas Komunikasi dan Informatika' : 'Contoh: Karya Bangsa (Opsional)')"
                                 placeholder="Contoh: Karya Bangsa (Opsional)"
                                 class="form-input {{ $errors->has('company_name') ? 'error' : '' }}"
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid {{ $errors->has('company_name') ? 'var(--accent-rose)' : 'var(--border-color)' }}; color: var(--text-primary); transition: border-color 0.15s;"
@@ -220,11 +224,13 @@
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
                                 NPWP
+                                <span class="text-[11px] font-normal" style="color: var(--text-muted);" x-text="custType === 'Perorangan' ? '(Pribadi / NIK)' : (custType === 'Pemerintah' ? '(Instansi / Bendahara)' : '')"></span>
                                 @if(!auth()->user()->isAdminOrAbove())
                                     <span class="ml-1 text-[10px] font-normal px-1.5 py-0.5 rounded-full" style="background: rgba(217,119,6,0.10); color: var(--accent-amber);">🔒 Admin Only</span>
                                 @endif
                             </label>
                             <input type="text" name="npwp" value="{{ old('npwp') }}"
+                                :placeholder="custType === 'Perorangan' ? '16 Digit NIK / NPWP Pribadi' : '00.000.000.0-000.000'"
                                 placeholder="00.000.000.0-000.000"
                                 {{ !auth()->user()->isAdminOrAbove() ? 'disabled' : '' }}
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: {{ !auth()->user()->isAdminOrAbove() ? 'var(--bg-tertiary, #f1f5f9)' : 'var(--bg-secondary)' }}; border: 1px solid var(--border-color); color: {{ !auth()->user()->isAdminOrAbove() ? 'var(--text-muted)' : 'var(--text-primary)' }}; {{ !auth()->user()->isAdminOrAbove() ? 'cursor: not-allowed;' : '' }}"
@@ -236,12 +242,20 @@
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
                                 NIB (Nomor Induk Berusaha)
+                                <template x-if="custType === 'Perorangan'">
+                                    <span class="ml-1 text-[10px] font-normal px-1.5 py-0.5 rounded-full" style="background: rgba(100,116,139,0.12); color: var(--text-muted);">Tidak Diperlukan</span>
+                                </template>
+                                <template x-if="custType === 'Pemerintah'">
+                                    <span class="ml-1 text-[10px] font-normal px-1.5 py-0.5 rounded-full" style="background: rgba(100,116,139,0.12); color: var(--text-muted);">Dinas Tidak Memiliki NIB</span>
+                                </template>
                                 @if(!auth()->user()->isAdminOrAbove())
-                                    <span class="ml-1 text-[10px] font-normal px-1.5 py-0.5 rounded-full" style="background: rgba(217,119,6,0.10); color: var(--accent-amber);">🔒 Admin Only</span>
+                                    <span x-show="custType !== 'Perorangan' && custType !== 'Pemerintah'" class="ml-1 text-[10px] font-normal px-1.5 py-0.5 rounded-full" style="background: rgba(217,119,6,0.10); color: var(--accent-amber);">🔒 Admin Only</span>
                                 @endif
                             </label>
                             <input type="text" name="nib" value="{{ old('nib') }}"
+                                :placeholder="custType === 'Perorangan' ? 'Tidak diperlukan' : (custType === 'Pemerintah' ? 'Dinas tidak memiliki NIB' : '9123456789012')"
                                 placeholder="9123456789012"
+                                :disabled="custType === 'Perorangan' || custType === 'Pemerintah' || !{{ auth()->user()->isAdminOrAbove() ? 'true' : 'false' }}"
                                 {{ !auth()->user()->isAdminOrAbove() ? 'disabled' : '' }}
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: {{ !auth()->user()->isAdminOrAbove() ? 'var(--bg-tertiary, #f1f5f9)' : 'var(--bg-secondary)' }}; border: 1px solid var(--border-color); color: {{ !auth()->user()->isAdminOrAbove() ? 'var(--text-muted)' : 'var(--text-primary)' }}; {{ !auth()->user()->isAdminOrAbove() ? 'cursor: not-allowed;' : '' }}"
                                 onfocus="{{ auth()->user()->isAdminOrAbove() ? "this.style.borderColor='var(--accent-blue)'" : '' }}"
@@ -290,6 +304,11 @@
                     </div>
 
                     <div id="contacts-container" class="space-y-4">
+                        <div x-show="custType === 'Perorangan'" class="p-3 rounded-xl text-xs flex items-center gap-2" style="background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.15); color: var(--accent-blue);">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Khusus tipe Perorangan, kontak person di bawah ini opsional. Jika dikosongkan, nama pelanggan di atas otomatis dijadikan Kontak Person utama.</span>
+                        </div>
+
                         {{-- Row Kontak Pertama (Default langsung siap diisi) --}}
                         <div class="contact-row p-4 rounded-xl relative" style="background: var(--bg-secondary); border: 1px solid var(--border-color);" id="contact-row-0">
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -301,7 +320,9 @@
                                 </div>
                                 <div>
                                     <label class="block text-xs font-semibold mb-1" style="color: var(--text-secondary);">Jabatan</label>
-                                    <input type="text" name="contacts[0][position]" value="{{ old('contacts.0.position') }}" placeholder="Purchasing Manager / Direktur"
+                                    <input type="text" name="contacts[0][position]" value="{{ old('contacts.0.position') }}"
+                                        :placeholder="custType === 'Pemerintah' ? 'PPK / PPTK / Bendahara Pengeluaran' : (custType === 'Perorangan' ? 'Owner / Pemilik' : 'Purchasing Manager / Direktur')"
+                                        placeholder="Purchasing Manager / Direktur"
                                         style="width:100%;padding:0.5rem 0.75rem;border-radius:0.6rem;font-size:0.8rem;outline:none;background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-primary);"
                                         onfocus="this.style.borderColor='var(--accent-blue)'" onblur="this.style.borderColor='var(--border-color)'">
                                 </div>

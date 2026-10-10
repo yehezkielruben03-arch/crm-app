@@ -170,7 +170,7 @@
                                     @if(!auth()->user()->isAdminOrAbove() && $customer->sales_id !== auth()->id())
                                     <p class="text-[11px] mt-0.5 font-medium" style="color: var(--accent-amber);">
                                         <svg class="w-3 h-3 inline-block -mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
-                                        {{ $customer->sales->name ?? 'Admin' }}
+                                        {{ ($customer->sales && $customer->sales->isAdminOrAbove()) ? 'Pedia' : ($customer->sales->name ?? 'Admin') }}
                                     </p>
                                     @endif
                                 </div>
@@ -180,12 +180,21 @@
                             <td style="color: var(--text-secondary);">{{ $customer->region ?? '-' }}</td>
                             {{--
                                 KOLOM SALES: Tampil untuk semua role
-                                - Admin      : melihat nama Sales pemilik
-                                - Sales Pemilik : tampil label "Saya" (hijau) agar langsung tahu ini miliknya
-                                - Sales Lain    : tampil nama Sales pemilik
+                                - Pedia / House Account: badge korporat Pedia
+                                - Admin : melihat nama Sales pemilik
+                                - Sales Pemilik : tampil label "Saya" (hijau)
+                                - Sales Lain : tampil nama Sales pemilik
                             --}}
                             <td>
-                                @if(auth()->user()->isAdminOrAbove())
+                                @php
+                                    $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
+                                @endphp
+                                @if($isHouseAccount)
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background: rgba(37,99,235,0.10); color: var(--accent-blue); border: 1px solid rgba(37,99,235,0.20);">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                        Pedia
+                                    </span>
+                                @elseif(auth()->user()->isAdminOrAbove())
                                     <span style="color: var(--text-secondary);">{{ $customer->sales->name ?? '-' }}</span>
                                 @elseif($customer->sales_id === auth()->id())
                                     {{-- Badge hijau "Saya" untuk customer milik sendiri --}}
@@ -243,8 +252,11 @@
                                     </form>
                                     @endif
 
-                                    {{-- Edit: hanya tampil untuk Admin ATAU Sales pemilik data ini --}}
-                                    @if(auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $customer->sales_id === auth()->id()))
+                                    {{-- Edit: hanya tampil untuk Admin ATAU Sales pemilik data ini (dan bukan house account Pedia) --}}
+                                    @php
+                                        $canEditCustomer = auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $customer->sales_id === auth()->id() && !$isHouseAccount);
+                                    @endphp
+                                    @if($canEditCustomer)
                                     <!-- Edit -->
                                     <a href="{{ route('customers.edit', $customer) }}" title="Edit"
                                         class="p-1.5 rounded-lg transition-colors inline-block"

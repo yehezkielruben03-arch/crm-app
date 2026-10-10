@@ -77,7 +77,8 @@ class RfqController extends Controller
 
         $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
         $salesId   = $customer->sales_id ?? Auth::id();
-        $salesName = $customer->sales ? $customer->sales->name : $this->authUser()->name;
+        $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
+        $salesName = $isHouseAccount ? 'Pedia' : ($customer->sales ? $customer->sales->name : $this->authUser()->name);
 
         try {
             DB::beginTransaction();
@@ -239,7 +240,7 @@ class RfqController extends Controller
         $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
 
         if (!$this->authUser()->isAdminOrAbove()) {
-            abort_if($customer->sales_id !== Auth::id(), 403);
+            abort_if($customer->sales_id !== Auth::id(), 403, 'Customer ini dipegang oleh Pedia dan hanya dapat dikelola oleh tim Leader/Admin.');
         }
 
         if (!$this->authUser()->isAdminOrAbove()) {
@@ -247,7 +248,8 @@ class RfqController extends Controller
             $salesName = $this->authUser()->name;
         } else {
             $salesId   = $customer->sales_id ?? Auth::id();
-            $salesName = $customer->sales ? $customer->sales->name : $this->authUser()->name;
+            $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
+            $salesName = $isHouseAccount ? 'Pedia' : ($customer->sales ? $customer->sales->name : $this->authUser()->name);
         }
 
         try {
@@ -511,8 +513,9 @@ class RfqController extends Controller
             $newCustomer = Customer::with('sales')->findOrFail($validated['customer_id']);
             $rfq->customer_name = $newCustomer->company_name;
             $rfq->customer_code = $newCustomer->company_code;
+            $isHouseAccount     = $newCustomer->sales && $newCustomer->sales->isAdminOrAbove();
             $rfq->sales_id      = $newCustomer->sales_id ?? Auth::id();
-            $rfq->sales_name    = $newCustomer->sales ? $newCustomer->sales->name : $this->authUser()->name;
+            $rfq->sales_name    = $isHouseAccount ? 'Pedia' : ($newCustomer->sales ? $newCustomer->sales->name : $this->authUser()->name);
 
             if (!$this->authUser()->isAdminOrAbove()) {
                 $rfq->sales_id   = Auth::id();

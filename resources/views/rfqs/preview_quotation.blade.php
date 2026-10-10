@@ -87,11 +87,17 @@
         $custAddress       = $rfq->resolved_customer_address;
         $custPhone         = $rfq->resolved_customer_phone;
         $custPic           = $rfq->resolved_pic_name;
+        $isHouseAccount    = $rfq->sales_name === 'Pedia' || ($rfq->sales && $rfq->sales->isAdminOrAbove());
         $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
         $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
-        $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
-        $salesRole         = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
-        $salesSignature    = $rfq->sales?->signature_url;
+        if ($isHouseAccount) {
+            $salesName     = 'PT Pedia Technology Indonesia';
+            $salesRole     = 'Management';
+        } else {
+            $salesName     = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
+            $salesRole     = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
+        }
+        $salesSignature    = !$isHouseAccount ? $rfq->sales?->signature_url : null;
         $validityDays      = $rfq->items->max('validity_days') ?: 7;
 
         $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
@@ -375,10 +381,10 @@
                     <div class="relative w-[220px] h-[72px] my-1 -ml-1">
                         <!-- Stempel Resmi Perusahaan -->
                         <img src="{{ asset('images/pedia_company_stamp.png') }}" alt="Stempel Pedia" 
-                             class="absolute left-8 top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
+                             class="absolute {{ $isHouseAccount ? 'left-2' : 'left-8' }} top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
                         
                         <!-- Tanda Tangan Sales -->
-                        @if($salesSignature)
+                        @if(!$isHouseAccount && $salesSignature)
                             <img src="{{ $salesSignature }}" alt="Tanda Tangan Sales" 
                                  class="absolute left-0 top-0 h-[72px] object-contain block" style="z-index: 2;">
                         @endif

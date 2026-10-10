@@ -66,7 +66,10 @@ class CustomerController extends Controller
         }
 
         $customers = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
-        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing'])->get();
+        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing', 'Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
+            ->where('status', 'Active')
+            ->orderBy('name')
+            ->get();
 
         return view('customers.index', compact('customers', 'salesList'));
     }
@@ -103,7 +106,10 @@ class CustomerController extends Controller
     {
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales() && !$this->authUser()->isLeader(), 403);
 
-        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing'])->get();
+        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing', 'Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
+            ->where('status', 'Active')
+            ->orderBy('name')
+            ->get();
 
         return view('customers.create', compact('salesList'));
     }
@@ -183,13 +189,15 @@ class CustomerController extends Controller
         $inputCleanMatch = strtolower(preg_replace('/[^a-z0-9]/i', '', $inputName));
 
         foreach ($existingCustomers as $existing) {
+            $isHouseAccount = $existing->sales && $existing->sales->isAdminOrAbove();
+            $ownerName = $isHouseAccount ? 'Pedia' : ($existing->sales ? $existing->sales->name : 'Admin');
+
             // Cek duplikasi email
             if (!empty($validated['email']) && strtolower($validated['email']) === strtolower($existing->email)) {
-                $ownerName = $existing->sales ? $existing->sales->name : 'Admin';
                 return back()
                     ->withInput()
                     ->withErrors([
-                        'email' => "Perusahaan dengan email \"{$existing->email}\" sudah terdaftar dan dipegang oleh Sales \"{$ownerName}\".",
+                        'email' => "Perusahaan dengan email \"{$existing->email}\" sudah terdaftar dan dipegang oleh \"{$ownerName}\".",
                     ]);
             }
 
@@ -198,12 +206,10 @@ class CustomerController extends Controller
             $existingCleanMatch = strtolower(preg_replace('/[^a-z0-9]/i', '', $existingClean));
 
             if ($inputCleanMatch === $existingCleanMatch) {
-                $ownerName = $existing->sales ? $existing->sales->name : 'Admin';
-                // Nama sudah ditemukan di database â€” tolak pendaftaran
                 return back()
                     ->withInput()
                     ->withErrors([
-                        'company_name' => "Perusahaan dengan nama yang sama (\"" . $existing->company_name . "\") sudah terdaftar dan dipegang oleh Sales \"{$ownerName}\". Anda tidak bisa mendaftarkan perusahaan yang sama.",
+                        'company_name' => "Perusahaan dengan nama yang sama (\"" . $existing->company_name . "\") sudah terdaftar dan dipegang oleh \"{$ownerName}\". Anda tidak bisa mendaftarkan perusahaan yang sama.",
                     ]);
             }
         }
@@ -240,8 +246,8 @@ class CustomerController extends Controller
                 ]);
             }
         } else {
-            // Admin/Leader/Super Admin input langsung: gunakan owner sales yang tersedia, atau fallback ke owner default
-            $validated['sales_id'] = Customer::resolveSalesOwner($validated['sales_id']);
+            // Admin/Leader/Super Admin input langsung: gunakan owner sales yang tersedia, atau fallback ke akun pembuat
+            $validated['sales_id'] = Customer::resolveSalesOwner($validated['sales_id'] ?? null, Auth::id());
             $validated['company_code'] = Customer::generateCompanyCode();
             // Default langsung Active untuk Admin, Leader, dan Super Admin jika tidak ditentukan lain
             if (empty($validated['status']) || $validated['status'] === Customer::STATUS_PROSPECT) {
@@ -295,6 +301,18 @@ class CustomerController extends Controller
                 }
             }
 
+            // Otomatis buat kontak person utama untuk Perorangan jika belum ada kontak yang diisi
+            if ($customer->customer_type === 'Perorangan' && $customer->contacts()->count() === 0 && !empty($inputName)) {
+                $customer->contacts()->create([
+                    'name'              => $inputName,
+                    'position'          => 'Owner / Pemilik',
+                    'phone'             => $validated['phone'] ?? null,
+                    'whatsapp'          => $validated['phone'] ?? null,
+                    'email'             => $validated['email'] ?? null,
+                    'is_primary'        => true,
+                ]);
+            }
+
             DB::commit();
 
             $msg = $this->authUser()->isAdminOrAbove()
@@ -318,7 +336,10 @@ class CustomerController extends Controller
             abort(403, 'Anda tidak berhak mengedit customer ini.');
         }
 
-        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing'])->get();
+        $salesList = User::whereIn('role', ['Sales', 'Sales Marketing', 'Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
+            ->where('status', 'Active')
+            ->orderBy('name')
+            ->get();
 
         // Load billing & shipping addresses AND contacts for the form
         $customer->load('billingAddresses', 'shippingAddresses', 'contacts');

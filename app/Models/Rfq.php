@@ -354,7 +354,7 @@ class Rfq extends Model
         $clean = preg_replace('/\s*,\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $clean);
         $clean = Customer::formatTitleCase($clean) ?? 'Pelanggan';
 
-        if (!empty($detectedType)) {
+        if ($detectedType === 'PT' || $detectedType === 'CV') {
             return $clean . ', ' . $detectedType;
         }
 

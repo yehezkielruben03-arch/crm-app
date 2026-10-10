@@ -43,12 +43,18 @@
         $custAddress       = $rfq->resolved_customer_address;
         $custPhone         = $rfq->resolved_customer_phone;
         $custPic           = $rfq->resolved_pic_name;
+        $isHouseAccount    = $rfq->sales_name === 'Pedia' || ($rfq->sales && $rfq->sales->isAdminOrAbove());
         $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
         $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
-        $salesName         = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
-        $salesRole         = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
+        if ($isHouseAccount) {
+            $salesName     = 'PT Pedia Technology Indonesia';
+            $salesRole     = 'Management';
+        } else {
+            $salesName     = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
+            $salesRole     = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
+        }
         $salesSigPath      = null;
-        if ($rfq->sales?->signature_path) {
+        if (!$isHouseAccount && $rfq->sales?->signature_path) {
             if (file_exists(storage_path('app/public/' . $rfq->sales->signature_path))) {
                 $salesSigPath = storage_path('app/public/' . $rfq->sales->signature_path);
             } elseif (file_exists(public_path('storage/' . $rfq->sales->signature_path))) {
@@ -336,9 +342,9 @@
                 <div style="position: relative; width: 220px; height: 44px; margin: 2px 0;">
                     @php $stampPath = public_path('images/pedia_company_stamp.png'); @endphp
                     @if(file_exists($stampPath))
-                        <img src="{{ $stampPath }}" style="position: absolute; left: 35px; top: 2px; height: 38px;">
+                        <img src="{{ $stampPath }}" style="position: absolute; left: {{ $isHouseAccount ? '10px' : '35px' }}; top: 2px; height: 38px;">
                     @endif
-                    @if($salesSigPath && file_exists($salesSigPath))
+                    @if(!$isHouseAccount && $salesSigPath && file_exists($salesSigPath))
                         <img src="{{ $salesSigPath }}" style="position: absolute; left: 0px; top: 0px; height: 44px;">
                     @endif
                 </div>

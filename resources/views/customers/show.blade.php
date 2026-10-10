@@ -9,7 +9,8 @@
          * viewOnly = Sales yang melihat customer milik orang lain
          *            → hanya bisa lihat, tidak ada tombol Edit
          */
-        $isOwner  = $customer->sales_id === auth()->id();
+        $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
+        $isOwner  = $customer->sales_id === auth()->id() && !$isHouseAccount;
         $canEdit  = auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $isOwner);
         $viewOnly = auth()->user()->isSales() && !$isOwner;
     @endphp
@@ -60,7 +61,7 @@
         <div>
             <p class="text-sm font-semibold" style="color: var(--accent-amber);">Mode Lihat Saja</p>
             <p class="text-xs mt-0.5" style="color: var(--text-secondary);">
-                Customer ini dipegang oleh <span class="font-semibold">{{ $customer->sales->name ?? 'Sales lain' }}</span>.
+                Customer ini dipegang oleh <span class="font-semibold">{{ $isHouseAccount ? 'Pedia' : ($customer->sales->name ?? 'Sales lain') }}</span>.
                 Anda dapat melihat profil ini sebagai referensi, namun tidak dapat melakukan perubahan atau membuat transaksi untuk customer ini.
             </p>
         </div>
