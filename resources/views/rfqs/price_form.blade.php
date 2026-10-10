@@ -172,6 +172,44 @@
 
                 {{-- Block Actions Toolbar --}}
                 <div class="flex flex-wrap items-center justify-end gap-2.5 mb-4">
+                    @if($rfq->type === 'Projek' && $categoryName === 'Material Support')
+                    <div class="inline-flex items-center gap-1.5 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-300 text-xs shadow-2xs">
+                        <label class="text-[11px] font-bold text-amber-900 flex items-center gap-1 cursor-pointer" for="material_package_unit" title="Satuan baris Material Support pada dokumen PDF Quotation klien">
+                            <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                            <span>Satuan Penawaran:</span>
+                        </label>
+                        <input type="text" name="material_package_unit" id="material_package_unit" list="package-units-material"
+                               value="{{ old('material_package_unit', $rfq->material_package_unit ?? 'Lot') }}"
+                               class="w-20 px-2 py-0.5 text-xs font-black text-center text-amber-950 bg-white border border-amber-300 rounded-lg focus:ring-1 focus:ring-amber-500 outline-none uppercase"
+                               placeholder="Lot">
+                        <datalist id="package-units-material">
+                            <option value="Lot"></option>
+                            <option value="Paket"></option>
+                            <option value="Set"></option>
+                            <option value="Unit"></option>
+                        </datalist>
+                    </div>
+                    @endif
+
+                    @if($rfq->type === 'Projek' && $categoryName === 'Jasa Pemasangan')
+                    <div class="inline-flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-xl border border-indigo-200 text-xs shadow-2xs">
+                        <label class="text-[11px] font-bold text-indigo-900 flex items-center gap-1 cursor-pointer" for="jasa_package_unit" title="Satuan baris Jasa Pemasangan pada dokumen PDF Quotation klien">
+                            <svg class="w-3.5 h-3.5 text-indigo-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                            <span>Satuan Penawaran:</span>
+                        </label>
+                        <input type="text" name="jasa_package_unit" id="jasa_package_unit" list="package-units-jasa"
+                               value="{{ old('jasa_package_unit', $rfq->jasa_package_unit ?? 'Lot') }}"
+                               class="w-20 px-2 py-0.5 text-xs font-black text-center text-indigo-950 bg-white border border-indigo-300 rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none uppercase"
+                               placeholder="Lot">
+                        <datalist id="package-units-jasa">
+                            <option value="Lot"></option>
+                            <option value="Paket"></option>
+                            <option value="Projek"></option>
+                            <option value="Unit"></option>
+                        </datalist>
+                    </div>
+                    @endif
+
                     @if($categoryName === 'Material Support')
                     <button type="button" onclick="calculateAndApplyMiscellaneousMaterial('{{ $blockKey }}')"
                         class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 active:bg-amber-300 border border-amber-300 rounded-xl transition-all shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"

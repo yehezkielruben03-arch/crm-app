@@ -15,7 +15,8 @@ class Rfq extends Model
         'rfq_number', 'customer_id', 'customer_name', 'customer_code',
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
         'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
-        'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days'
+        'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days',
+        'material_package_unit', 'jasa_package_unit'
     ];
 
     protected $casts = [
@@ -539,16 +540,21 @@ class Rfq extends Model
                     $materialTotal = ceil($materialTotal / 500000) * 500000;
                 }
 
-                $materialUnit = 'Lot';
-                foreach ($materialItems as $mat) {
-                    $u = trim($mat->unit ?? '');
-                    if (!empty($u) && strcasecmp($u, 'unit') !== 0) {
-                        $materialUnit = $u;
-                        break;
+                $customMaterialUnit = !empty($this->material_package_unit) ? trim($this->material_package_unit) : null;
+                if (!empty($customMaterialUnit)) {
+                    $materialUnit = $customMaterialUnit;
+                } else {
+                    $materialUnit = 'Lot';
+                    foreach ($materialItems as $mat) {
+                        $u = trim($mat->unit ?? '');
+                        if (!empty($u) && strcasecmp($u, 'unit') !== 0) {
+                            $materialUnit = $u;
+                            break;
+                        }
                     }
-                }
-                if (count($materialItems) === 1 && !empty(trim($materialItems[0]->unit ?? ''))) {
-                    $materialUnit = trim($materialItems[0]->unit);
+                    if (count($materialItems) === 1 && !empty(trim($materialItems[0]->unit ?? ''))) {
+                        $materialUnit = trim($materialItems[0]->unit);
+                    }
                 }
 
                 $output[] = (object) [
@@ -602,16 +608,24 @@ class Rfq extends Model
                     $jasaTotal = ceil($jasaTotal / 500000) * 500000;
                 }
 
-                $jasaUnit = 'Lot';
-                foreach ($jasaItems as $js) {
-                    $u = trim($js->unit ?? '');
-                    if (!empty($u) && strcasecmp($u, 'unit') !== 0) {
-                        $jasaUnit = $u;
-                        break;
+                $customJasaUnit = !empty($this->jasa_package_unit) ? trim($this->jasa_package_unit) : null;
+                if (!empty($customJasaUnit)) {
+                    $jasaUnit = $customJasaUnit;
+                } else {
+                    $jasaUnit = 'Lot';
+                    // Cari dari item non-internal teknisi (jangan pernah bocorkan 'Hari'/'Jam' dari teknisi internal)
+                    foreach ($jasaItems as $js) {
+                        if (!$js->isInternalLaborOrAccommodation() && !empty(trim($js->unit ?? ''))) {
+                            $u = trim($js->unit);
+                            if (!in_array(strtolower($u), ['hari', 'day', 'jam', 'hour', 'mandays', 'man-days', 'unit'])) {
+                                $jasaUnit = $u;
+                                break;
+                            }
+                        }
                     }
-                }
-                if (count($jasaItems) === 1 && !empty(trim($jasaItems[0]->unit ?? ''))) {
-                    $jasaUnit = trim($jasaItems[0]->unit);
+                    if (count($jasaItems) === 1 && !empty(trim($jasaItems[0]->unit ?? '')) && !in_array(strtolower(trim($jasaItems[0]->unit)), ['hari', 'day', 'jam', 'hour', 'mandays', 'man-days'])) {
+                        $jasaUnit = trim($jasaItems[0]->unit);
+                    }
                 }
 
                 $output[] = (object) [

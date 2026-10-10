@@ -828,6 +828,8 @@ class RfqController extends Controller
             'tax_type'                           => 'nullable|string|in:auto,include,exclude',
             'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
             'payment_term_days'                  => 'nullable|integer|min:1|max:365',
+            'material_package_unit'              => 'nullable|string|max:30',
+            'jasa_package_unit'                  => 'nullable|string|max:30',
             'items'                              => 'required|array',
             'items.*.is_bundle'                  => 'nullable',
             'items.*.category'                   => 'nullable|string',
@@ -871,6 +873,12 @@ class RfqController extends Controller
             }
             if ($request->has('tax_type')) {
                 $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
+            }
+            if ($request->has('material_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'material_package_unit')) {
+                $rfqUpdate['material_package_unit'] = trim($request->material_package_unit) ?: 'Lot';
+            }
+            if ($request->has('jasa_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'jasa_package_unit')) {
+                $rfqUpdate['jasa_package_unit'] = trim($request->jasa_package_unit) ?: 'Lot';
             }
             if ($request->has('payment_term_type')) {
                 $termType = $request->payment_term_type ?: 'tempo';
