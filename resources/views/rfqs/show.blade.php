@@ -808,7 +808,7 @@
             </div>
             @endif
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isSales() || auth()->user()->hasPermission('CRUD')))
+            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isSales() || auth()->user()->isAdminOrAbove() || auth()->user()->hasPermission('CRUD')))
             <a href="{{ route('rfq.edit_qty', $rfq) }}"
                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
                style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);">
