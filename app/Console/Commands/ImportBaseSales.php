@@ -88,7 +88,13 @@ class ImportBaseSales extends Command
             }
 
             $companyName = trim((string)$compNameRaw);
-            if (str_starts_with($companyName, '-') || stripos($companyName, 'contoh') === 0) {
+            if (
+                str_starts_with($companyName, '-') || 
+                stripos($companyName, 'contoh') === 0 ||
+                stripos($companyName, 'kolom') === 0 ||
+                stripos($companyName, 'tidak perlu') !== false ||
+                stripos($companyName, 'cara cek') !== false
+            ) {
                 $skippedEmpty++;
                 continue;
             }
