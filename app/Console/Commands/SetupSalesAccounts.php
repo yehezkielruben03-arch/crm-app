@@ -28,8 +28,8 @@ class SetupSalesAccounts extends Command
 
         if ($userAde) {
             $userAde->update([
-                'name'     => 'Ade Zulvida',
-                'username' => 'ade_zulvida',
+                'name'     => $userAde->name ?: 'Ade Zulvida',
+                'username' => $userAde->username ?: 'ade_zulvida',
                 'email'    => 'ade-zulvida@pedia-group.jp',
                 'password' => Hash::make('Pedia551%'),
                 'role'     => 'Sales',
@@ -51,13 +51,14 @@ class SetupSalesAccounts extends Command
         // 2. Akun Pak Yudi
         $userYudi = User::where('email', 'sales-pti1@pedia-group.jp')
             ->orWhere('email', 'yudi@crm.com')
+            ->orWhere('username', 'Yudi')
             ->orWhere('username', 'yudi')
             ->first();
 
         if ($userYudi) {
             $userYudi->update([
-                'name'     => 'Yudi',
-                'username' => 'yudi',
+                'name'     => $userYudi->name ?: 'Yudi Siswanto',
+                'username' => $userYudi->username ?: 'Yudi',
                 'email'    => 'sales-pti1@pedia-group.jp',
                 'password' => Hash::make('Pedia551%'),
                 'role'     => 'Sales',
@@ -66,8 +67,8 @@ class SetupSalesAccounts extends Command
             $this->info('✓ Akun Pak Yudi berhasil diperbarui (ID: ' . $userYudi->id . ')');
         } else {
             $userYudi = User::create([
-                'name'     => 'Yudi',
-                'username' => 'yudi',
+                'name'     => 'Yudi Siswanto',
+                'username' => 'Yudi',
                 'email'    => 'sales-pti1@pedia-group.jp',
                 'password' => Hash::make('Pedia551%'),
                 'role'     => 'Sales',
@@ -76,27 +77,27 @@ class SetupSalesAccounts extends Command
             $this->info('+ Akun Pak Yudi berhasil dibuat (ID: ' . $userYudi->id . ')');
         }
 
-        // 3. Akun Sales Baru
+        // 3. Akun Sales Baru (Konversi dari Akun Sales 2)
         $userSalesBaru = User::where('email', 'sales-pti2@pedia-group.jp')
             ->orWhere('email', 'sales2@crm.com')
-            ->orWhere('username', 'sales_baru')
             ->orWhere('username', 'sales_2')
+            ->orWhere('username', 'sales_baru')
             ->first();
 
         if ($userSalesBaru) {
             $userSalesBaru->update([
                 'name'     => 'Sales Baru',
-                'username' => 'sales_baru',
+                'username' => 'sales_2',
                 'email'    => 'sales-pti2@pedia-group.jp',
                 'password' => Hash::make('Pedia551%'),
                 'role'     => 'Sales',
                 'status'   => 'Active',
             ]);
-            $this->info('✓ Akun Sales Baru berhasil diperbarui (ID: ' . $userSalesBaru->id . ')');
+            $this->info('✓ Akun Sales Baru berhasil diperbarui dari akun ID ' . $userSalesBaru->id);
         } else {
             $userSalesBaru = User::create([
                 'name'     => 'Sales Baru',
-                'username' => 'sales_baru',
+                'username' => 'sales_2',
                 'email'    => 'sales-pti2@pedia-group.jp',
                 'password' => Hash::make('Pedia551%'),
                 'role'     => 'Sales',
