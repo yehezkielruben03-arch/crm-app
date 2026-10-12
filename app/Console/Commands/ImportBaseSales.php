@@ -5,13 +5,14 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Customer;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class ImportBaseSales extends Command
 {
-    protected $signature = 'crm:import-base-sales {file? : Path file Excel Salinan dari Base Sales.xlsx}';
+    protected $signature = 'crm:import-base-sales {file? : Path file Excel Salinan dari Base Sales.xlsx} {--prune : Hapus customer di database yang tidak ada di Excel}';
     protected $description = 'Import dan sinkronkan database customer serta kepemilikan sales dari Salinan dari Base Sales.xlsx';
 
     public function handle()
@@ -78,6 +79,7 @@ class ImportBaseSales extends Command
         $countYudi = 0;
         $countSalesBaru = 0;
         $countUnassigned = 0;
+        $validExcelCompanies = [];
 
         // Mulai looping dari baris ke-5 (baris 1-3 petunjuk, baris 4 header)
         for ($row = 5; $row <= $highestRow; $row++) {
@@ -105,6 +107,8 @@ class ImportBaseSales extends Command
                 $skippedDuplicates++;
                 continue;
             }
+
+            $validExcelCompanies[] = $companyName;
 
             $kawasan = trim((string)($sheet->getCell("C{$row}")->getValue() ?? ''));
             $kota    = trim((string)($sheet->getCell("D{$row}")->getValue() ?? ''));
@@ -214,6 +218,30 @@ class ImportBaseSales extends Command
             }
         }
 
+        $prunedCount = 0;
+        if ($this->option('prune')) {
+            $this->info("\nMemeriksa dan memangkas customer yang tidak ada di Excel...");
+            $unmatchedCustomers = Customer::whereNotIn('company_name', $validExcelCompanies)->get();
+            $prunedCount = $unmatchedCustomers->count();
+
+            if ($prunedCount > 0) {
+                $unmatchedIds = $unmatchedCustomers->pluck('id')->toArray();
+                DB::table('customer_contacts')->whereIn('customer_id', $unmatchedIds)->delete();
+                DB::table('customer_billing_addresses')->whereIn('customer_id', $unmatchedIds)->delete();
+                DB::table('customer_shipping_addresses')->whereIn('customer_id', $unmatchedIds)->delete();
+
+                Customer::whereIn('id', $unmatchedIds)->forceDelete();
+                $this->info('✓ Sebanyak ' . $prunedCount . ' customer dummy / sisa testing berhasil dihapus.');
+            } else {
+                $this->info('✓ Tidak ada customer asing di database.');
+            }
+        }
+
+        $totalFinalAde = Customer::where('sales_id', $salesAde ? $salesAde->id : 0)->count();
+        $totalFinalYudi = Customer::where('sales_id', $salesYudi ? $salesYudi->id : 0)->count();
+        $totalFinalSalesBaru = Customer::where('sales_id', $salesBaru ? $salesBaru->id : 0)->count();
+        $totalFinalDatabase = Customer::count();
+
         $this->info('');
         $this->info('========================================================');
         $this->info('SINKRONISASI DATABASE CUSTOMER BERHASIL SELESAI');
@@ -223,12 +251,12 @@ class ImportBaseSales extends Command
             [
                 ['Customer Baru Dibuat', $createdCount],
                 ['Customer Eksisting Diperbarui', $updatedCount],
+                ['Customer Asing Dihapus (Pruned)', $prunedCount],
                 ['Duplikat Dilewati (Kolom M)', $skippedDuplicates],
-                ['Baris Kosong Dilewati', $skippedEmpty],
-                ['Total Portofolio Ade Zulvida', $countAde],
-                ['Total Portofolio Yudi', $countYudi],
-                ['Total Portofolio Sales Baru', $countSalesBaru],
-                ['Total Portofolio Tanpa Centang', $countUnassigned],
+                ['Portofolio Ade Zulvida (ID ' . ($salesAde ? $salesAde->id : '-') . ')', $totalFinalAde],
+                ['Portofolio Yudi (ID ' . ($salesYudi ? $salesYudi->id : '-') . ')', $totalFinalYudi],
+                ['Portofolio Sales Baru (ID ' . ($salesBaru ? $salesBaru->id : '-') . ')', $totalFinalSalesBaru],
+                ['Total Akhir Customer di Database', $totalFinalDatabase],
             ]
         );
         $this->info('========================================================');
