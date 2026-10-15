@@ -224,11 +224,17 @@
                         {{ $categoryItems->count() }} Item
                     </span>
 
-                    <button type="button" onclick="addNewPriceItem('{{ $categoryName }}', '{{ $blockKey }}')"
-                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white {{ $theme['btn_add'] }} rounded-xl transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                        <span>Tambah Item</span>
-                    </button>
+                    <div class="inline-flex items-center bg-white p-1 rounded-xl border border-slate-300 shadow-2xs">
+                        <input type="number" id="bulk-qty-{{ $blockKey }}" value="1" min="1" max="50" step="1"
+                               class="w-14 px-2 py-1 text-xs font-black text-center text-slate-800 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition mr-1.5"
+                               title="Ketik jumlah item yang ingin ditambahkan (misal: 14)"
+                               onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addMultiplePriceItems('{{ $categoryName }}', '{{ $blockKey }}'); }">
+                        <button type="button" onclick="addMultiplePriceItems('{{ $categoryName }}', '{{ $blockKey }}')"
+                            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white {{ $theme['btn_add'] }} rounded-lg transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                            <span>Tambah Item</span>
+                        </button>
+                    </div>
                 </div>
 
                 @if($categoryName === 'Jasa Pemasangan')
@@ -1394,6 +1400,25 @@
             updateAllCardNumbers();
             calculateRow(tempId);
             return tempId;
+        }
+
+        function addMultiplePriceItems(categoryName, blockKey) {
+            const qtyInput = document.getElementById('bulk-qty-' + blockKey);
+            let count = parseInt(qtyInput ? qtyInput.value : 1, 10);
+            if (isNaN(count) || count < 1) {
+                count = 1;
+            }
+            if (count > 50) {
+                count = 50;
+            }
+
+            for (let i = 0; i < count; i++) {
+                addNewPriceItem(categoryName, blockKey);
+            }
+
+            if (qtyInput) {
+                qtyInput.value = 1;
+            }
         }
 
         function updateMpCalcSummary() {
