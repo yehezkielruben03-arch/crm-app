@@ -373,7 +373,7 @@
                         <div class="px-6 py-3.5 bg-gradient-to-r from-slate-50 via-slate-50/50 to-white border-b border-slate-200/80 flex flex-wrap items-center justify-between gap-3">
                             <div class="flex items-center gap-3">
                                 <span class="w-7 h-7 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs item-badge-num">
-                                    #{{ $globalItemIndex++ }}
+                                    #{{ $loop->iteration }}
                                 </span>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -1004,9 +1004,11 @@
         }
 
         function updateAllCardNumbers() {
-            let idx = 1;
-            document.querySelectorAll('.item-badge-num').forEach(el => {
-                el.innerText = '#' + (idx++);
+            document.querySelectorAll('[id^="items-container-"]').forEach(container => {
+                let idx = 1;
+                container.querySelectorAll('.item-badge-num').forEach(el => {
+                    el.innerText = '#' + (idx++);
+                });
             });
             const headerTotalEl = document.getElementById('header-total-items');
             if (headerTotalEl) {
