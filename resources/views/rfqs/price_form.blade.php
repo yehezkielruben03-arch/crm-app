@@ -401,8 +401,8 @@
                         <div id="regular-body-{{ $item->id }}" class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                             
                             {{-- COL 1: Info Barang & Vendor --}}
-                            <div class="space-y-3 flex flex-col justify-between">
-                                <div class="space-y-3">
+                            <div class="space-y-3 flex flex-col justify-between h-full">
+                                <div class="space-y-3 flex-1 flex flex-col">
                                     <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
                                         <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                             <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -452,10 +452,10 @@
                                         </div>
                                     </div>
 
-                                    <div>
+                                    <div class="flex-1 flex flex-col">
                                         <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi / Keterangan Item</label>
-                                        <textarea name="items[{{ $item->id }}][description]" rows="2"
-                                                  class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                        <textarea name="items[{{ $item->id }}][description]" rows="5"
+                                                  class="w-full flex-1 min-h-[130px] text-xs border-slate-200 rounded-xl resize-y focus:border-blue-500 focus:ring-blue-500 shadow-2xs leading-relaxed"
                                                   placeholder="Part number, spesifikasi teknis, atau keterangan barang...">{{ old('items.'.$item->id.'.description', $item->description ?: $item->detail_item) }}</textarea>
                                     </div>
                                 </div>
@@ -1149,8 +1149,8 @@
                 </div>
 
                 <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="space-y-3 flex flex-col justify-between">
-                        <div class="space-y-3">
+                    <div class="space-y-3 flex flex-col justify-between h-full">
+                        <div class="space-y-3 flex-1 flex flex-col">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
                                 <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -1201,10 +1201,10 @@
                                 </div>
                             </div>
 
-                            <div>
+                            <div class="flex-1 flex flex-col">
                                 <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Spesifikasi / Keterangan Item</label>
-                                <textarea name="items[${tempId}][description]" rows="2"
-                                          class="w-full text-xs border-slate-200 rounded-xl resize-none focus:border-blue-500 focus:ring-blue-500 shadow-2xs"
+                                <textarea name="items[${tempId}][description]" rows="5"
+                                          class="w-full flex-1 min-h-[130px] text-xs border-slate-200 rounded-xl resize-y focus:border-blue-500 focus:ring-blue-500 shadow-2xs leading-relaxed"
                                           placeholder="Part number, spesifikasi teknis, atau keterangan barang...">${initDesc}</textarea>
                             </div>
                         </div>
