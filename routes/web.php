@@ -123,6 +123,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/rfqs/{rfq}/reject', [RfqController::class, 'reject'])->name('rfq.reject');
         Route::get('/rfqs/{rfq}/download-quotation', [RfqController::class, 'downloadQuotation'])->name('rfq.download_quotation');
         Route::get('/rfqs/{rfq}/preview-quotation', [RfqController::class, 'previewQuotation'])->name('rfq.preview_quotation');
+        Route::post('/rfqs/{rfq}/preview-draft', [RfqController::class, 'previewDraft'])->name('rfq.preview_draft');
         Route::post('/rfqs/{rfq}/mark-quotation-sent', [RfqController::class, 'markQuotationSent'])->name('rfq.mark_quotation_sent');
         Route::get('/rfqs/{rfq}/revisi-qty', [RfqController::class, 'editQty'])->name('rfq.edit_qty');
         Route::put('/rfqs/{rfq}/revisi-qty', [RfqController::class, 'updateQty'])->name('rfq.update_qty');

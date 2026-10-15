@@ -57,6 +57,23 @@
 
     <!-- Tombol Action (Tidak ikut tercetak saat print/PDF) -->
     <div class="no-print mb-6 flex gap-4 w-[210mm] justify-between items-center">
+        @if(!empty($isDraftPreview))
+        <div class="flex items-center gap-3">
+            <button type="button" onclick="window.parent && window.parent.closeQuotationPreview ? window.parent.closeQuotationPreview() : window.close()" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 cursor-pointer">
+                <span>&larr;</span> Tutup Pratinjau
+            </button>
+            <span class="bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Pratinjau Draf Sebelum Approval Leader
+            </span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button type="button" onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2 cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+                Print / Simpan PDF
+            </button>
+        </div>
+        @else
         <a href="{{ route('rfq.show', $rfq->id) }}" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
             <span>&larr;</span> Kembali ke Detail RFQ
         </a>
@@ -80,6 +97,7 @@
                 Download PDF
             </a>
         </div>
+        @endif
     </div>
 
     @php

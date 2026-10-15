@@ -1289,6 +1289,142 @@ class RfqController extends Controller
         return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate'));
     }
 
+    public function previewDraft(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke pratinjau penawaran ini.');
+
+        $rfq->load(['customer.contacts', 'customerContact', 'sales']);
+
+        if ($request->has('notes')) {
+            $rfq->notes = $request->input('notes');
+        }
+        if ($request->has('tax_type')) {
+            $rfq->tax_type = $request->input('tax_type') ?: 'auto';
+        }
+        if ($request->has('material_package_unit')) {
+            $rfq->material_package_unit = trim($request->input('material_package_unit')) ?: 'Lot';
+        }
+        if ($request->has('jasa_package_unit')) {
+            $rfq->jasa_package_unit = trim($request->input('jasa_package_unit')) ?: 'Lot';
+        }
+        if ($request->has('payment_term_type')) {
+            $termType = $request->input('payment_term_type') ?: 'tempo';
+            $rfq->payment_term_type = $termType;
+            if ($termType === 'tempo') {
+                $rfq->payment_term_days = $request->filled('payment_term_days') ? (int) $request->input('payment_term_days') : 14;
+            } else {
+                $rfq->payment_term_days = null;
+            }
+        }
+
+        $tempItems = collect();
+        $rawItems = $request->input('items', []);
+        if (is_array($rawItems)) {
+            $cleanNum = function ($val) {
+                if ($val === null || $val === '') return 0.0;
+                if (is_numeric($val)) return (float) $val;
+                $cleaned = preg_replace('/[^\d]/', '', (string) $val);
+                return $cleaned !== '' ? (float) $cleaned : 0.0;
+            };
+
+            foreach ($rawItems as $itemId => $data) {
+                if (!is_array($data)) {
+                    continue;
+                }
+                $pName = trim($data['product_name'] ?? '');
+                if ($pName === '') {
+                    continue;
+                }
+
+                $item = new \App\Models\RfqItem();
+                $item->id = is_numeric($itemId) ? (int) $itemId : rand(900000, 999999);
+                $item->rfq_id = $rfq->id;
+                $item->is_bundle = !empty($data['is_bundle']);
+                $item->category = $data['category'] ?? null;
+                $item->product_name = $pName;
+                $item->qty = (float) ($data['qty'] ?? 1);
+                $item->unit = $data['unit'] ?? 'Unit';
+                $desc = $data['description'] ?? $data['detail_item'] ?? null;
+                $item->description = $desc;
+                $item->detail_item = $desc;
+
+                $item->hpp = $cleanNum($data['hpp'] ?? 0);
+                $item->ongkir_pedia = $cleanNum($data['ongkir_pedia'] ?? 0);
+                $item->biaya_kirim = $cleanNum($data['biaya_kirim'] ?? 0);
+                $item->fee_eu = $cleanNum($data['fee_eu'] ?? 0);
+
+                $item->margin_type = $data['margin_type'] ?? 'percentage';
+                if ($item->margin_type === 'nominal') {
+                    $item->margin_value = $cleanNum($data['margin_value'] ?? 0);
+                } else {
+                    $item->margin_value = (float) str_replace(',', '.', (string) ($data['margin_value'] ?? 0));
+                }
+                $item->margin = $item->margin_value;
+
+                $item->custom_ceiling = $cleanNum($data['custom_ceiling'] ?? 0);
+                $item->ceiling = (int) ($item->custom_ceiling > 0 ? $item->custom_ceiling : 10000);
+                $item->validity_days = (int) ($data['validity_days'] ?? 7);
+
+                $item->price_after_margin = $item->calculatePriceAfterMargin();
+
+                if ($item->is_bundle && !empty($data['components']) && is_array($data['components'])) {
+                    $comps = collect();
+                    $bundleCostTotal = 0;
+                    $bundleSellingTotal = 0;
+
+                    foreach ($data['components'] as $cData) {
+                        if (!is_array($cData)) continue;
+                        $comp = new \App\Models\RfqItem();
+                        $comp->id = rand(800000, 899999);
+                        $comp->rfq_id = $rfq->id;
+                        $comp->parent_id = $item->id;
+                        $comp->product_name = $cData['product_name'] ?? 'Komponen';
+                        $comp->qty = (float) ($cData['qty'] ?? 1);
+                        $comp->unit = $cData['unit'] ?? 'Unit';
+                        $comp->hpp = $cleanNum($cData['hpp'] ?? 0);
+                        $comp->ongkir_pedia = $cleanNum($cData['ongkir_pedia'] ?? 0);
+                        $comp->biaya_kirim = $cleanNum($cData['biaya_kirim'] ?? 0);
+                        $comp->fee_eu = 0;
+                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
+                        if ($comp->margin_type === 'nominal') {
+                            $comp->margin_value = $cleanNum($cData['margin_value'] ?? 0);
+                        } else {
+                            $comp->margin_value = (float) str_replace(',', '.', (string) ($cData['margin_value'] ?? 0));
+                        }
+                        $comp->margin = $comp->margin_value;
+                        $comp->custom_ceiling = $cleanNum($cData['custom_ceiling'] ?? 50000);
+                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
+                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
+                        $comps->push($comp);
+
+                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
+                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
+                    }
+
+                    $item->setRelation('components', $comps);
+                    if ($comps->isNotEmpty()) {
+                        $item->hpp = $bundleCostTotal;
+                        $item->price_after_margin = $bundleSellingTotal;
+                    }
+                }
+
+                $tempItems->push($item);
+            }
+        }
+
+        $rfq->setRelation('items', $tempItems);
+
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
+
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, false);
+
+        $isDraftPreview = true;
+
+        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate', 'isDraftPreview'));
+    }
+
     public function markQuotationSent(Rfq $rfq)
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403, 'Anda tidak memiliki izin menandai penawaran terkirim.');
