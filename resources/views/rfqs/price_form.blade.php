@@ -46,6 +46,32 @@
         <form action="{{ route('rfq.submit_price', $rfq) }}" method="POST" id="price-calculation-form" onsubmit="return validatePriceFormSubmit(event)">
             @csrf
             
+            {{-- Autosave Restore Banner --}}
+            <div id="draft-restore-banner" class="hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white border-2 border-blue-200 text-slate-800 shadow-sm animate-in">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-blue-950 uppercase tracking-wider">Draf Belum Disubmit Terdeteksi</span>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Autosave</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mt-0.5" id="draft-time-text">Sistem menemukan draf tersimpan dari sesi sebelumnya di browser ini.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                        <button type="button" onclick="discardDraft()" class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-rose-600 bg-white hover:bg-rose-50 rounded-xl border border-slate-200 hover:border-rose-200 transition shadow-2xs cursor-pointer">
+                            Abaikan &amp; Hapus Draf
+                        </button>
+                        <button type="button" onclick="restoreDraft()" class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 active:scale-95 rounded-xl shadow-xs transition cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <span>Pulihkan Draf Sekarang</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
             {{-- Alert Catatan dari Sales (jika ada) --}}
             @if($rfq->notes)
             <div class="mb-6 p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 shadow-xs animate-in">
@@ -966,6 +992,10 @@
                 </div>
 
                 <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <span id="autosave-status-badge" class="hidden items-center gap-1.5 text-[11px] font-semibold text-slate-500 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+                        <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <span>Draf tersimpan di browser</span>
+                    </span>
                     <a href="{{ route('rfq.show', $rfq) }}" class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
                         Batal
                     </a>
@@ -992,6 +1022,10 @@
         const mpPediaRate = Number('{{ $mpPediaRate ?? 336179 }}');
         const defaultCustomerOngkir = Number('{{ (float)($rfq->customer->ongkir_pedia ?? 0) }}');
         let tempItemSeq = 1;
+        const DRAFT_KEY = 'crm_rfq_draft_{{ $rfq->id }}';
+        let draftSaveTimer = null;
+        let isFormDirty = false;
+        let isFormSubmitting = false;
 
         function validatePriceFormSubmit(event) {
             const itemCards = document.querySelectorAll('.item-card-row');
@@ -1000,6 +1034,10 @@
                 if (event) event.preventDefault();
                 return false;
             }
+            isFormSubmitting = true;
+            try {
+                localStorage.removeItem(DRAFT_KEY);
+            } catch (e) {}
             return true;
         }
 
@@ -1108,6 +1146,7 @@
             updateBlockCount(blockKey);
             updateAllCardNumbers();
             updateGrandTotals();
+            triggerAutoSave();
         }
 
         function addNewPriceItem(categoryName, blockKey, initialData = {}) {
@@ -1401,6 +1440,7 @@
             updateBlockCount(blockKey);
             updateAllCardNumbers();
             calculateRow(tempId);
+            triggerAutoSave();
             return tempId;
         }
 
@@ -2098,7 +2138,252 @@
                     calculateRow(itemId);
                 });
             });
+
+            // Autosave Event Binding & Draft Detection
+            const formEl = document.getElementById('price-calculation-form');
+            if (formEl) {
+                formEl.addEventListener('input', triggerAutoSave);
+                formEl.addEventListener('change', triggerAutoSave);
+            }
+
+            window.addEventListener('beforeunload', function(e) {
+                if (isFormDirty && !isFormSubmitting) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                    return '';
+                }
+            });
+
+            checkExistingDraft();
         });
+
+        // ─── Autosave LocalStorage & Tab Protection Functions ────────────────
+        function saveDraftToStorage() {
+            try {
+                const form = document.getElementById('price-calculation-form');
+                if (!form) return;
+
+                const cards = document.querySelectorAll('.item-card-row');
+                if (cards.length === 0) return;
+
+                const itemsData = [];
+                cards.forEach(card => {
+                    const cardId = card.id ? card.id.replace('card-item-', '') : '';
+                    if (!cardId) return;
+
+                    const isNew = cardId.startsWith('new_');
+                    const container = card.closest('[id^="items-container-"]');
+                    const blockKey = container ? container.id.replace('items-container-', '') : '';
+
+                    const categoryInput = card.querySelector('[name="items[' + cardId + '][category]"]');
+                    const categoryName = categoryInput ? categoryInput.value : '';
+
+                    const getVal = function(name) {
+                        const el = card.querySelector('[name="items[' + cardId + '][' + name + ']"]');
+                        return el ? el.value : '';
+                    };
+
+                    itemsData.push({
+                        id: cardId,
+                        isNew: isNew,
+                        blockKey: blockKey,
+                        categoryName: categoryName,
+                        product_name: getVal('product_name'),
+                        vendor_name: getVal('vendor_name'),
+                        qty: getVal('qty'),
+                        unit: getVal('unit'),
+                        description: getVal('description'),
+                        hpp: getVal('hpp'),
+                        biaya_kirim: getVal('biaya_kirim'),
+                        ongkir_pedia: getVal('ongkir_pedia'),
+                        fee_eu: getVal('fee_eu'),
+                        margin_type: getVal('margin_type'),
+                        margin_value: getVal('margin_value'),
+                        custom_ceiling: getVal('custom_ceiling')
+                    });
+                });
+
+                const notesEl = document.getElementById('rfq-notes');
+                const taxTypeChecked = document.querySelector('input[name="tax_type"]:checked');
+                const jasaUnitEl = document.getElementById('jasa_package_unit');
+                const matUnitEl = document.getElementById('material_package_unit');
+
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                const draftPayload = {
+                    rfqId: '{{ $rfq->id }}',
+                    timestamp: Date.now(),
+                    timeStr: timeStr,
+                    itemCount: itemsData.length,
+                    notes: notesEl ? notesEl.value : '',
+                    tax_type: taxTypeChecked ? taxTypeChecked.value : '',
+                    jasa_package_unit: jasaUnitEl ? jasaUnitEl.value : '',
+                    material_package_unit: matUnitEl ? matUnitEl.value : '',
+                    items: itemsData
+                };
+
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(draftPayload));
+                isFormDirty = true;
+
+                const badge = document.getElementById('autosave-status-badge');
+                if (badge) {
+                    badge.classList.remove('hidden');
+                    badge.classList.add('inline-flex');
+                    badge.innerHTML = '<svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span class="truncate">Draf tersimpan (' + timeStr + ')</span>';
+                }
+            } catch (e) {
+                console.warn('Gagal menyimpan draf autosave:', e);
+            }
+        }
+
+        function triggerAutoSave() {
+            isFormDirty = true;
+            if (draftSaveTimer) clearTimeout(draftSaveTimer);
+            draftSaveTimer = setTimeout(saveDraftToStorage, 800);
+        }
+
+        function checkExistingDraft() {
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                if (!draft || !draft.timestamp || !draft.items || draft.items.length === 0) return;
+
+                // Batas kadaluarsa draf 7 hari (604800000 milidetik)
+                if (Date.now() - draft.timestamp > 604800000) {
+                    localStorage.removeItem(DRAFT_KEY);
+                    return;
+                }
+
+                const banner = document.getElementById('draft-restore-banner');
+                const textEl = document.getElementById('draft-time-text');
+                if (banner && textEl) {
+                    const count = draft.itemCount || draft.items.length;
+                    textEl.innerText = 'Tersimpan pada ' + (draft.timeStr || 'sesi sebelumnya') + ' (' + count + ' item ditemukan)';
+                    banner.classList.remove('hidden');
+                }
+            } catch (e) {
+                console.warn('Error membaca draf:', e);
+            }
+        }
+
+        function restoreDraft() {
+            try {
+                const raw = localStorage.getItem(DRAFT_KEY);
+                if (!raw) return;
+                const draft = JSON.parse(raw);
+                if (!draft || !draft.items) return;
+
+                if (draft.notes !== undefined) {
+                    const notesEl = document.getElementById('rfq-notes');
+                    if (notesEl) notesEl.value = draft.notes;
+                }
+                if (draft.tax_type) {
+                    const radio = document.querySelector('input[name="tax_type"][value="' + draft.tax_type + '"]');
+                    if (radio) radio.checked = true;
+                }
+                if (draft.jasa_package_unit) {
+                    const jUnit = document.getElementById('jasa_package_unit');
+                    if (jUnit) jUnit.value = draft.jasa_package_unit;
+                }
+                if (draft.material_package_unit) {
+                    const mUnit = document.getElementById('material_package_unit');
+                    if (mUnit) mUnit.value = draft.material_package_unit;
+                }
+
+                const activeDraftIds = new Set(draft.items.map(function(it) { return String(it.id); }));
+                document.querySelectorAll('.item-card-row').forEach(function(card) {
+                    const cardId = card.id ? card.id.replace('card-item-', '') : '';
+                    if (cardId && !cardId.startsWith('new_') && !activeDraftIds.has(cardId)) {
+                        const container = card.closest('[id^="items-container-"]');
+                        const blockKey = container ? container.id.replace('items-container-', '') : '';
+                        deletePriceItem(cardId, blockKey);
+                    }
+                });
+
+                draft.items.forEach(function(itemData) {
+                    if (!itemData) return;
+
+                    let card = document.getElementById('card-item-' + itemData.id);
+
+                    if (!card && itemData.isNew) {
+                        const newTempId = addNewPriceItem(itemData.categoryName, itemData.blockKey, {
+                            product_name: itemData.product_name,
+                            vendor_name: itemData.vendor_name,
+                            qty: itemData.qty,
+                            unit: itemData.unit,
+                            description: itemData.description,
+                            hpp: itemData.hpp,
+                            biaya_kirim: itemData.biaya_kirim,
+                            ongkir_pedia: itemData.ongkir_pedia,
+                            fee_eu: itemData.fee_eu,
+                            margin_type: itemData.margin_type,
+                            margin_value: itemData.margin_value,
+                            custom_ceiling: itemData.custom_ceiling
+                        });
+                        card = document.getElementById('card-item-' + newTempId);
+                    } else if (card) {
+                        const setVal = function(name, val) {
+                            const el = card.querySelector('[name="items[' + itemData.id + '][' + name + ']"]');
+                            if (el && val !== undefined) el.value = val;
+                        };
+
+                        setVal('product_name', itemData.product_name);
+                        setVal('vendor_name', itemData.vendor_name);
+                        setVal('qty', itemData.qty);
+                        setVal('unit', itemData.unit);
+                        setVal('description', itemData.description);
+                        setVal('hpp', itemData.hpp);
+                        setVal('biaya_kirim', itemData.biaya_kirim);
+                        setVal('ongkir_pedia', itemData.ongkir_pedia);
+                        setVal('fee_eu', itemData.fee_eu);
+                        setVal('margin_type', itemData.margin_type);
+                        setVal('margin_value', itemData.margin_value);
+                        setVal('custom_ceiling', itemData.custom_ceiling);
+
+                        const displayNameEl = document.getElementById('display-name-' + itemData.id);
+                        if (displayNameEl && itemData.product_name) displayNameEl.innerText = itemData.product_name;
+
+                        const badgeQtyEl = document.getElementById('badge-qty-' + itemData.id);
+                        if (badgeQtyEl && itemData.qty) badgeQtyEl.innerText = itemData.qty;
+
+                        const badgeUnitEl = document.getElementById('badge-unit-' + itemData.id);
+                        if (badgeUnitEl && itemData.unit) badgeUnitEl.innerText = itemData.unit;
+
+                        calculateRow(itemData.id);
+                    }
+                });
+
+                updateAllCardNumbers();
+                document.querySelectorAll('[id^="items-container-"]').forEach(function(container) {
+                    const blockKey = container.id.replace('items-container-', '');
+                    updateBlockCount(blockKey);
+                });
+                updateGrandTotals();
+
+                const banner = document.getElementById('draft-restore-banner');
+                if (banner) banner.remove();
+
+                const badge = document.getElementById('autosave-status-badge');
+                if (badge) {
+                    badge.classList.remove('hidden');
+                    badge.classList.add('inline-flex');
+                    badge.innerHTML = '<svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>Draf berhasil dipulihkan!</span>';
+                }
+
+                isFormDirty = true;
+            } catch (e) {
+                console.error('Gagal memulihkan draf:', e);
+                alert('Terjadi kendala saat memulihkan draf.');
+            }
+        }
+
+        function discardDraft() {
+            localStorage.removeItem(DRAFT_KEY);
+            const banner = document.getElementById('draft-restore-banner');
+            if (banner) banner.remove();
+        }
 
         // ─── Inline Vendor Addition (Blueprint 3.1) ──────────────────────────
         let activeItemForVendor = null;
