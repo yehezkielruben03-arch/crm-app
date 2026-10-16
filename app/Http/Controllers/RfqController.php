@@ -1322,7 +1322,7 @@ class RfqController extends Controller
         if (is_array($rawItems)) {
             $cleanNum = function ($val) {
                 if ($val === null || $val === '') return 0.0;
-                if (is_numeric($val)) return (float) $val;
+                if (is_int($val) || is_float($val)) return (float) $val;
                 $cleaned = preg_replace('/[^\d]/', '', (string) $val);
                 return $cleaned !== '' ? (float) $cleaned : 0.0;
             };

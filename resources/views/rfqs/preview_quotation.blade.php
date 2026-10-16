@@ -285,7 +285,7 @@
 
                     @php
                         $isIncludeTax = $rfq->isIncludeTax();
-                        $ppn = $grandSubtotal * 0.11;
+                        $ppn = round($grandSubtotal * 0.11);
                         $grandTotal = $isIncludeTax ? $grandSubtotal : ($grandSubtotal + $ppn);
                         $firstUnit = $quotationItems->first()?->unit ?: 'Unit';
                     @endphp
