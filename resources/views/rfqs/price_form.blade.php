@@ -739,8 +739,8 @@
                             </div>
                         </div>
 
-                        {{-- Toggle Switch Pembulatan --}}
-                        <div class="flex items-center gap-3 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                        {{-- Toggle Switch & Custom Kelipatan Ceiling --}}
+                        <div class="flex flex-wrap items-center gap-3 self-start sm:self-auto bg-white px-3.5 py-2 rounded-xl border border-amber-200 shadow-2xs">
                             <label class="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="hidden" name="{{ $toggleName }}" value="0">
                                 <input type="checkbox" 
@@ -750,9 +750,23 @@
                                        {{ $enableCeiling ? 'checked' : '' }}
                                        onchange="onToggleCeilingChange('{{ $blockKey }}')"
                                        class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-slate-300 cursor-pointer">
-                                <span class="text-xs font-bold text-slate-700">Pembulatan Ceiling</span>
+                                <span class="text-xs font-bold text-slate-800">Pembulatan Ceiling</span>
                             </label>
-                            <input type="hidden" name="{{ $stepName }}" id="input-step-{{ $blockKey }}" value="{{ (int)$ceilingStep }}">
+
+                            <div class="flex items-center gap-1.5 pl-3 border-l border-slate-200 {{ $enableCeiling ? '' : 'opacity-40 pointer-events-none' }}" id="step-container-{{ $blockKey }}">
+                                <span class="text-[11px] font-semibold text-slate-600">Kelipatan:</span>
+                                <div class="relative w-28">
+                                    <span class="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-[11px] font-bold text-slate-400">Rp</span>
+                                    <input type="text" 
+                                           name="{{ $stepName }}" 
+                                           id="input-step-{{ $blockKey }}" 
+                                           data-type="rupiah"
+                                           value="{{ number_format($ceilingStep, 0, ',', '.') }}" 
+                                           oninput="onCeilingStepInput('{{ $blockKey }}')"
+                                           placeholder="500.000"
+                                           class="w-full pl-7 pr-2 py-1 text-xs font-mono font-bold text-slate-800 bg-amber-50/50 border border-amber-300 rounded-lg focus:bg-white focus:ring-1 focus:ring-amber-500 text-right rupiah-input">
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -780,19 +794,20 @@
                         </div>
 
                         {{-- Kolom 3: Total Penawaran Klien (Editable Input) --}}
-                        <div class="md:col-span-5 bg-white p-3 rounded-xl border-2 border-amber-400 shadow-2xs space-y-1.5">
+                        <div class="md:col-span-5 bg-white p-3.5 rounded-xl border-2 border-amber-400 shadow-sm space-y-2">
                             <div class="flex items-center justify-between">
-                                <label for="custom-total-{{ $blockKey }}" class="text-[11px] font-extrabold text-amber-950 uppercase tracking-wide flex items-center gap-1">
+                                <label for="custom-total-{{ $blockKey }}" class="text-[11px] font-extrabold text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
                                     <span>Total Penawaran Klien:</span>
                                     <span class="text-[10px] text-amber-600 font-normal lowercase">(di quotation)</span>
                                 </label>
-                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" id="manual-indicator-{{ $blockKey }}" style="{{ $customVal ? '' : 'display: none;' }}">
-                                    Manual
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300" id="manual-indicator-{{ $blockKey }}" style="{{ $customVal ? '' : 'display: none;' }}">
+                                    ✎ Diedit Manual
                                 </span>
                             </div>
                             
-                            <div class="relative rounded-lg shadow-2xs">
-                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                            <div class="relative rounded-xl shadow-inner group">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-sm font-extrabold text-amber-600">Rp</span>
                                 <input type="text" 
                                        name="{{ $customName }}" 
                                        id="custom-total-{{ $blockKey }}" 
@@ -802,26 +817,40 @@
                                        value="{{ $customVal ? number_format($customVal, 0, ',', '.') : '' }}"
                                        placeholder="Otomatis dari rumus"
                                        oninput="onCustomTotalInput('{{ $blockKey }}')"
-                                       class="w-full pl-8 pr-2.5 py-1.5 text-base font-mono font-black text-amber-950 bg-amber-50/30 border border-amber-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-right rupiah-input">
+                                       class="w-full pl-9 pr-8 py-2 text-base font-mono font-black text-slate-900 bg-white border-2 border-amber-300 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-100 text-right rupiah-input shadow-xs transition-all cursor-text">
+                                <span class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none text-xs text-amber-500 group-hover:text-amber-700">
+                                    ✎
+                                </span>
+                            </div>
+                            <div class="text-[10px] text-slate-500 flex items-center justify-between">
+                                <span class="italic font-medium">✎ Klik angka di atas untuk ketik nominal bebas</span>
                             </div>
 
                             <span id="block-ceiling-total-{{ $blockKey }}" class="hidden">Rp 0</span>
 
                             {{-- Tombol Setel Cepat (Preset) --}}
-                            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
-                                <span class="text-slate-400 font-medium">Setel Cepat:</span>
-                                <div class="flex items-center gap-1.5">
+                            <div class="flex flex-wrap items-center justify-between pt-1.5 border-t border-slate-100 text-[10px] gap-1">
+                                <span class="text-slate-500 font-semibold">Preset:</span>
+                                <div class="flex items-center gap-1">
                                     <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 'raw')" 
                                             class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer">
                                         Harga Asli
                                     </button>
                                     <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 500000)" 
-                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold transition cursor-pointer">
-                                        Bulatkan 500rb
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition cursor-pointer">
+                                        500rb
+                                    </button>
+                                    <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 250000)" 
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition cursor-pointer">
+                                        250rb
                                     </button>
                                     <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 100000)" 
-                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold transition cursor-pointer">
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition cursor-pointer">
                                         100rb
+                                    </button>
+                                    <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 50000)" 
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition cursor-pointer">
+                                        50rb
                                     </button>
                                 </div>
                             </div>
@@ -2096,8 +2125,17 @@
             const manualBadge = document.getElementById('manual-indicator-' + blockKey);
             const badgeFormula = document.getElementById('badge-formula-' + blockKey);
             const deltaDesc = document.getElementById('block-delta-desc-' + blockKey);
+            const stepContainer = document.getElementById('step-container-' + blockKey);
             const stepInput = document.getElementById('input-step-' + blockKey);
-            const step = parseInt(stepInput?.value, 10) || 500000;
+            const step = parseRupiah(stepInput?.value || '500000');
+
+            if (stepContainer) {
+                if (isChecked) {
+                    stepContainer.classList.remove('opacity-40', 'pointer-events-none');
+                } else {
+                    stepContainer.classList.add('opacity-40', 'pointer-events-none');
+                }
+            }
 
             if (customInput) customInput.dataset.isManual = '0';
             if (manualBadge) manualBadge.style.display = 'none';
@@ -2105,7 +2143,7 @@
             if (badgeFormula) {
                 if (isChecked) {
                     badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300';
-                    badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step) + ')';
+                    badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step > 0 ? step : 1) + ')';
                 } else {
                     badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-700 border border-slate-300';
                     badgeFormula.innerText = '=SUM (ASLI)';
@@ -2114,6 +2152,23 @@
 
             if (deltaDesc) {
                 deltaDesc.innerText = isChecked ? 'Dibulatkan ke atas' : 'Sesuai harga asli';
+            }
+
+            updateGrandTotals();
+        }
+
+        function onCeilingStepInput(blockKey) {
+            const stepInput = document.getElementById('input-step-' + blockKey);
+            const step = parseRupiah(stepInput?.value || '500000');
+            const badgeFormula = document.getElementById('badge-formula-' + blockKey);
+            const customInput = document.getElementById('custom-total-' + blockKey);
+            const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+
+            if (customInput) customInput.dataset.isManual = '0';
+            if (manualBadge) manualBadge.style.display = 'none';
+
+            if (badgeFormula) {
+                badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step > 0 ? step : 1) + ')';
             }
 
             updateGrandTotals();
@@ -2137,6 +2192,7 @@
 
         function applyCeilingPreset(blockKey, typeOrStep) {
             const toggle = document.getElementById('toggle-ceiling-' + blockKey);
+            const stepContainer = document.getElementById('step-container-' + blockKey);
             const stepInput = document.getElementById('input-step-' + blockKey);
             const customInput = document.getElementById('custom-total-' + blockKey);
             const manualBadge = document.getElementById('manual-indicator-' + blockKey);
@@ -2148,6 +2204,7 @@
 
             if (typeOrStep === 'raw') {
                 if (toggle) toggle.checked = false;
+                if (stepContainer) stepContainer.classList.add('opacity-40', 'pointer-events-none');
                 if (badgeFormula) {
                     badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-700 border border-slate-300';
                     badgeFormula.innerText = '=SUM (ASLI)';
@@ -2155,7 +2212,8 @@
                 if (deltaDesc) deltaDesc.innerText = 'Sesuai harga asli';
             } else {
                 const step = parseInt(typeOrStep, 10) || 500000;
-                if (stepInput) stepInput.value = step;
+                if (stepInput) stepInput.value = formatRupiah(step);
+                if (stepContainer) stepContainer.classList.remove('opacity-40', 'pointer-events-none');
                 if (toggle) toggle.checked = true;
                 if (badgeFormula) {
                     badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300';
