@@ -706,30 +706,125 @@
                 </div>
 
                 @if($rfq->type === 'Projek' && in_array($categoryName, ['Material Support', 'Jasa Pemasangan']))
-                {{-- Box Total Blok Kuning Sesuai Rumus Excel Projek: =CEILING(SUM; 500.000) --}}
-                <div class="mt-4 p-4 rounded-2xl bg-amber-50/90 border border-amber-300 shadow-2xs flex flex-wrap items-center justify-between gap-3" id="block-summary-box-{{ $blockKey }}">
-                    <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-2xs">
-                            ∑
+                @php
+                    $isMat = ($blockKey === 'material_support');
+                    $toggleName = $isMat ? 'enable_material_ceiling' : 'enable_jasa_ceiling';
+                    $stepName = $isMat ? 'material_ceiling_step' : 'jasa_ceiling_step';
+                    $customName = $isMat ? 'material_custom_total' : 'jasa_custom_total';
+
+                    $enableCeiling = $rfq->$toggleName ?? true;
+                    $ceilingStep = (float)($rfq->$stepName ?? 500000);
+                    $customVal = $rfq->$customName ? (float)$rfq->$customName : null;
+
+                    $cleanTitle = trim(preg_replace('/^blok\s+/i', '', $block['title']));
+                @endphp
+                {{-- Box Total Blok Kuning Interaktif & User-Friendly --}}
+                <div class="mt-4 p-4 sm:p-5 rounded-2xl bg-amber-50/90 border border-amber-300 shadow-2xs space-y-4" id="block-summary-box-{{ $blockKey }}">
+                    {{-- Baris Header: Judul Blok & Switch Toggle Ceiling --}}
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold text-base shadow-2xs flex-shrink-0">
+                                ∑
+                            </div>
+                            <div>
+                                <div class="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                                    <span>TOTAL BLOK {{ strtoupper($cleanTitle) }}</span>
+                                    <span id="badge-formula-{{ $blockKey }}" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold {{ $enableCeiling ? 'bg-amber-200/80 text-amber-900 border border-amber-300' : 'bg-slate-200 text-slate-700 border border-slate-300' }}">
+                                        {{ $enableCeiling ? '=CEILING(SUM; ' . number_format($ceilingStep, 0, ',', '.') . ')' : '=SUM (ASLI)' }}
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-amber-800">
+                                    Seluruh item di blok ini dilebur menjadi 1 baris paket di penawaran resmi klien.
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-2">
-                                <span>TOTAL BLOK {{ strtoupper($block['title']) }}</span>
-                                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300">=CEILING(SUM; 500.000)</span>
-                            </div>
-                            <div class="text-[11px] text-amber-800">
-                                Seluruh item di blok ini otomatis dilebur di Quotation PDF klien menjadi 1 baris seharga pembulatan ceiling 500.000.
-                            </div>
+
+                        {{-- Toggle Switch Pembulatan --}}
+                        <div class="flex items-center gap-3 self-start sm:self-auto bg-white px-3 py-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                            <label class="flex items-center gap-2 cursor-pointer select-none">
+                                <input type="hidden" name="{{ $toggleName }}" value="0">
+                                <input type="checkbox" 
+                                       name="{{ $toggleName }}" 
+                                       id="toggle-ceiling-{{ $blockKey }}" 
+                                       value="1" 
+                                       {{ $enableCeiling ? 'checked' : '' }}
+                                       onchange="onToggleCeilingChange('{{ $blockKey }}')"
+                                       class="w-4 h-4 text-amber-600 rounded focus:ring-amber-500 border-slate-300 cursor-pointer">
+                                <span class="text-xs font-bold text-slate-700">Pembulatan Ceiling</span>
+                            </label>
+                            <input type="hidden" name="{{ $stepName }}" id="input-step-{{ $blockKey }}" value="{{ (int)$ceilingStep }}">
                         </div>
                     </div>
-                    <div class="flex flex-wrap items-center gap-4 text-xs">
-                        <div class="text-slate-600">
-                            Subtotal Real Item: <strong class="font-mono text-slate-800 text-sm" id="block-raw-total-{{ $blockKey }}">Rp 0</strong>
+
+                    {{-- Baris Isi: 3 Kolom Alur Jelas (Subtotal Asli -> Selisih -> Total Penawaran Klien Editable) --}}
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+                        {{-- Kolom 1: Subtotal Asli --}}
+                        <div class="md:col-span-4 bg-white/80 p-3 rounded-xl border border-amber-200/90 flex flex-col justify-center">
+                            <span class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Subtotal Asli Item:</span>
+                            <div class="font-mono text-base font-extrabold text-slate-800 mt-0.5" id="block-raw-total-{{ $blockKey }}">Rp 0</div>
+                            <span class="text-[10px] text-slate-400 mt-0.5">Penjumlahan murni item di blok ini</span>
                         </div>
-                        <span class="text-amber-400 font-bold hidden sm:inline">→</span>
-                        <div class="px-3.5 py-1.5 rounded-xl bg-amber-100 border border-amber-300 text-amber-950 font-bold flex items-center gap-2 shadow-2xs">
-                            <span class="text-[11px] text-amber-800 font-semibold uppercase">Total Penawaran Klien:</span>
-                            <span class="font-mono text-base font-extrabold text-amber-900" id="block-ceiling-total-{{ $blockKey }}">Rp 0</span>
+
+                        {{-- Kolom 2: Indikator Selisih Pembulatan --}}
+                        <div class="md:col-span-3 flex md:flex-col items-center justify-between md:justify-center px-2 py-1 text-center">
+                            <span class="text-[10px] text-amber-800 font-semibold uppercase tracking-wider hidden md:block mb-1">Penyesuaian</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-amber-400 font-bold hidden md:inline">→</span>
+                                <span id="block-delta-badge-{{ $blockKey }}" class="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200">
+                                    +Rp 0
+                                </span>
+                            </div>
+                            <span id="block-delta-desc-{{ $blockKey }}" class="text-[10px] text-amber-700 mt-1 hidden md:block">
+                                {{ $enableCeiling ? 'Dibulatkan ke atas' : 'Sesuai harga asli' }}
+                            </span>
+                        </div>
+
+                        {{-- Kolom 3: Total Penawaran Klien (Editable Input) --}}
+                        <div class="md:col-span-5 bg-white p-3 rounded-xl border-2 border-amber-400 shadow-2xs space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label for="custom-total-{{ $blockKey }}" class="text-[11px] font-extrabold text-amber-950 uppercase tracking-wide flex items-center gap-1">
+                                    <span>Total Penawaran Klien:</span>
+                                    <span class="text-[10px] text-amber-600 font-normal lowercase">(di quotation)</span>
+                                </label>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200" id="manual-indicator-{{ $blockKey }}" style="{{ $customVal ? '' : 'display: none;' }}">
+                                    Manual
+                                </span>
+                            </div>
+                            
+                            <div class="relative rounded-lg shadow-2xs">
+                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
+                                <input type="text" 
+                                       name="{{ $customName }}" 
+                                       id="custom-total-{{ $blockKey }}" 
+                                       data-type="rupiah"
+                                       data-block-key="{{ $blockKey }}"
+                                       data-is-manual="{{ $customVal ? '1' : '0' }}"
+                                       value="{{ $customVal ? number_format($customVal, 0, ',', '.') : '' }}"
+                                       placeholder="Otomatis dari rumus"
+                                       oninput="onCustomTotalInput('{{ $blockKey }}')"
+                                       class="w-full pl-8 pr-2.5 py-1.5 text-base font-mono font-black text-amber-950 bg-amber-50/30 border border-amber-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-right rupiah-input">
+                            </div>
+
+                            <span id="block-ceiling-total-{{ $blockKey }}" class="hidden">Rp 0</span>
+
+                            {{-- Tombol Setel Cepat (Preset) --}}
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+                                <span class="text-slate-400 font-medium">Setel Cepat:</span>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 'raw')" 
+                                            class="px-2 py-0.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition cursor-pointer">
+                                        Harga Asli
+                                    </button>
+                                    <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 500000)" 
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold transition cursor-pointer">
+                                        Bulatkan 500rb
+                                    </button>
+                                    <button type="button" onclick="applyCeilingPreset('{{ $blockKey }}', 100000)" 
+                                            class="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold transition cursor-pointer">
+                                        100rb
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1994,6 +2089,84 @@
             updateGrandTotals();
         }
 
+        function onToggleCeilingChange(blockKey) {
+            const toggle = document.getElementById('toggle-ceiling-' + blockKey);
+            const isChecked = toggle ? toggle.checked : true;
+            const customInput = document.getElementById('custom-total-' + blockKey);
+            const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const badgeFormula = document.getElementById('badge-formula-' + blockKey);
+            const deltaDesc = document.getElementById('block-delta-desc-' + blockKey);
+            const stepInput = document.getElementById('input-step-' + blockKey);
+            const step = parseInt(stepInput?.value, 10) || 500000;
+
+            if (customInput) customInput.dataset.isManual = '0';
+            if (manualBadge) manualBadge.style.display = 'none';
+
+            if (badgeFormula) {
+                if (isChecked) {
+                    badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300';
+                    badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step) + ')';
+                } else {
+                    badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-700 border border-slate-300';
+                    badgeFormula.innerText = '=SUM (ASLI)';
+                }
+            }
+
+            if (deltaDesc) {
+                deltaDesc.innerText = isChecked ? 'Dibulatkan ke atas' : 'Sesuai harga asli';
+            }
+
+            updateGrandTotals();
+        }
+
+        function onCustomTotalInput(blockKey) {
+            const customInput = document.getElementById('custom-total-' + blockKey);
+            const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const val = parseRupiah(customInput?.value || '0');
+
+            if (val > 0) {
+                if (customInput) customInput.dataset.isManual = '1';
+                if (manualBadge) manualBadge.style.display = 'inline-block';
+            } else {
+                if (customInput) customInput.dataset.isManual = '0';
+                if (manualBadge) manualBadge.style.display = 'none';
+            }
+
+            updateGrandTotals();
+        }
+
+        function applyCeilingPreset(blockKey, typeOrStep) {
+            const toggle = document.getElementById('toggle-ceiling-' + blockKey);
+            const stepInput = document.getElementById('input-step-' + blockKey);
+            const customInput = document.getElementById('custom-total-' + blockKey);
+            const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const badgeFormula = document.getElementById('badge-formula-' + blockKey);
+            const deltaDesc = document.getElementById('block-delta-desc-' + blockKey);
+
+            if (customInput) customInput.dataset.isManual = '0';
+            if (manualBadge) manualBadge.style.display = 'none';
+
+            if (typeOrStep === 'raw') {
+                if (toggle) toggle.checked = false;
+                if (badgeFormula) {
+                    badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-200 text-slate-700 border border-slate-300';
+                    badgeFormula.innerText = '=SUM (ASLI)';
+                }
+                if (deltaDesc) deltaDesc.innerText = 'Sesuai harga asli';
+            } else {
+                const step = parseInt(typeOrStep, 10) || 500000;
+                if (stepInput) stepInput.value = step;
+                if (toggle) toggle.checked = true;
+                if (badgeFormula) {
+                    badgeFormula.className = 'px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-200/80 text-amber-900 border border-amber-300';
+                    badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step) + ')';
+                }
+                if (deltaDesc) deltaDesc.innerText = 'Dibulatkan ke atas';
+            }
+
+            updateGrandTotals();
+        }
+
         const isProjectRfq = {{ $rfq->type === 'Projek' ? 'true' : 'false' }};
 
         function updateGrandTotals() {
@@ -2041,21 +2214,69 @@
                     });
                 }
 
-                // Rumus Excel Projek: =CEILING(SUM; 500.000)
-                const matCeilSales = matRawSales > 0 ? (Math.ceil(matRawSales / 500000) * 500000) : 0;
-                const jasaCeilSales = jasaRawSales > 0 ? (Math.ceil(jasaRawSales / 500000) * 500000) : 0;
+                // Evaluasi blok Material Support
+                const matCustomInput = document.getElementById('custom-total-material_support');
+                const matToggle = document.getElementById('toggle-ceiling-material_support');
+                const matStepInput = document.getElementById('input-step-material_support');
+                const isMatManual = matCustomInput?.dataset.isManual === '1';
+                let matFinalSales = 0;
+
+                if (isMatManual && matCustomInput && parseRupiah(matCustomInput.value) > 0) {
+                    matFinalSales = parseRupiah(matCustomInput.value);
+                } else {
+                    const isMatCeil = matToggle ? matToggle.checked : true;
+                    const matStep = parseInt(matStepInput?.value, 10) || 500000;
+                    matFinalSales = isMatCeil ? (matRawSales > 0 ? (Math.ceil(matRawSales / matStep) * matStep) : 0) : matRawSales;
+                    if (matCustomInput && document.activeElement !== matCustomInput) {
+                        matCustomInput.value = matFinalSales > 0 ? formatRupiah(matFinalSales) : '';
+                    }
+                }
 
                 const rawMatEl = document.getElementById('block-raw-total-material_support');
                 if (rawMatEl) rawMatEl.innerText = 'Rp ' + formatRupiah(matRawSales);
                 const ceilMatEl = document.getElementById('block-ceiling-total-material_support');
-                if (ceilMatEl) ceilMatEl.innerText = 'Rp ' + formatRupiah(matCeilSales);
+                if (ceilMatEl) ceilMatEl.innerText = 'Rp ' + formatRupiah(matFinalSales);
+                const deltaMatBadge = document.getElementById('block-delta-badge-material_support');
+                if (deltaMatBadge) {
+                    const delta = Math.round(matFinalSales - matRawSales);
+                    deltaMatBadge.innerText = (delta >= 0 ? '+Rp ' : '-Rp ') + formatRupiah(Math.abs(delta));
+                    deltaMatBadge.className = delta > 0 
+                        ? 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200'
+                        : 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200';
+                }
+
+                // Evaluasi blok Jasa Pemasangan
+                const jasaCustomInput = document.getElementById('custom-total-jasa_pemasangan');
+                const jasaToggle = document.getElementById('toggle-ceiling-jasa_pemasangan');
+                const jasaStepInput = document.getElementById('input-step-jasa_pemasangan');
+                const isJasaManual = jasaCustomInput?.dataset.isManual === '1';
+                let jasaFinalSales = 0;
+
+                if (isJasaManual && jasaCustomInput && parseRupiah(jasaCustomInput.value) > 0) {
+                    jasaFinalSales = parseRupiah(jasaCustomInput.value);
+                } else {
+                    const isJasaCeil = jasaToggle ? jasaToggle.checked : true;
+                    const jasaStep = parseInt(jasaStepInput?.value, 10) || 500000;
+                    jasaFinalSales = isJasaCeil ? (jasaRawSales > 0 ? (Math.ceil(jasaRawSales / jasaStep) * jasaStep) : 0) : jasaRawSales;
+                    if (jasaCustomInput && document.activeElement !== jasaCustomInput) {
+                        jasaCustomInput.value = jasaFinalSales > 0 ? formatRupiah(jasaFinalSales) : '';
+                    }
+                }
 
                 const rawJasaEl = document.getElementById('block-raw-total-jasa_pemasangan');
                 if (rawJasaEl) rawJasaEl.innerText = 'Rp ' + formatRupiah(jasaRawSales);
                 const ceilJasaEl = document.getElementById('block-ceiling-total-jasa_pemasangan');
-                if (ceilJasaEl) ceilJasaEl.innerText = 'Rp ' + formatRupiah(jasaCeilSales);
+                if (ceilJasaEl) ceilJasaEl.innerText = 'Rp ' + formatRupiah(jasaFinalSales);
+                const deltaJasaBadge = document.getElementById('block-delta-badge-jasa_pemasangan');
+                if (deltaJasaBadge) {
+                    const delta = Math.round(jasaFinalSales - jasaRawSales);
+                    deltaJasaBadge.innerText = (delta >= 0 ? '+Rp ' : '-Rp ') + formatRupiah(Math.abs(delta));
+                    deltaJasaBadge.className = delta > 0 
+                        ? 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-100 text-amber-900 border border-amber-200'
+                        : 'px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200';
+                }
 
-                grandSales = hwSales + (matCeilSales > 0 ? matCeilSales : matRawSales) + (jasaCeilSales > 0 ? jasaCeilSales : jasaRawSales);
+                grandSales = hwSales + matFinalSales + jasaFinalSales;
             } else {
                 document.querySelectorAll('input[id^="hpp-"]').forEach(el => {
                     const itemId = el.dataset.itemId || el.id.replace('hpp-', '');

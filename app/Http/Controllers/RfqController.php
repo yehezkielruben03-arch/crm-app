@@ -830,6 +830,12 @@ class RfqController extends Controller
             'payment_term_days'                  => 'nullable|integer|min:1|max:365',
             'material_package_unit'              => 'nullable|string|max:30',
             'jasa_package_unit'                  => 'nullable|string|max:30',
+            'enable_material_ceiling'            => 'nullable',
+            'material_ceiling_step'              => 'nullable',
+            'material_custom_total'              => 'nullable',
+            'enable_jasa_ceiling'                => 'nullable',
+            'jasa_ceiling_step'                  => 'nullable',
+            'jasa_custom_total'                  => 'nullable',
             'items'                              => 'required|array',
             'items.*.is_bundle'                  => 'nullable',
             'items.*.category'                   => 'nullable|string',
@@ -867,6 +873,13 @@ class RfqController extends Controller
         $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request) {
+            $cleanPrice = function ($val, $default = 0.0) {
+                if ($val === null || $val === '') return $default;
+                if (is_int($val) || is_float($val)) return (float) $val;
+                $cleaned = preg_replace('/[^\d]/', '', (string) $val);
+                return $cleaned !== '' ? (float) $cleaned : $default;
+            };
+
             $rfqUpdate = [];
             if ($request->has('notes')) {
                 $rfqUpdate['notes'] = $request->notes;
@@ -879,6 +892,26 @@ class RfqController extends Controller
             }
             if ($request->has('jasa_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'jasa_package_unit')) {
                 $rfqUpdate['jasa_package_unit'] = trim($request->jasa_package_unit) ?: 'Lot';
+            }
+            if ($request->has('enable_material_ceiling')) {
+                $rfqUpdate['enable_material_ceiling'] = $request->boolean('enable_material_ceiling');
+            }
+            if ($request->has('material_ceiling_step')) {
+                $rfqUpdate['material_ceiling_step'] = $cleanPrice($request->material_ceiling_step, 500000.0);
+            }
+            if ($request->has('material_custom_total')) {
+                $customMat = $cleanPrice($request->material_custom_total, 0.0);
+                $rfqUpdate['material_custom_total'] = $customMat > 0 ? $customMat : null;
+            }
+            if ($request->has('enable_jasa_ceiling')) {
+                $rfqUpdate['enable_jasa_ceiling'] = $request->boolean('enable_jasa_ceiling');
+            }
+            if ($request->has('jasa_ceiling_step')) {
+                $rfqUpdate['jasa_ceiling_step'] = $cleanPrice($request->jasa_ceiling_step, 500000.0);
+            }
+            if ($request->has('jasa_custom_total')) {
+                $customJasa = $cleanPrice($request->jasa_custom_total, 0.0);
+                $rfqUpdate['jasa_custom_total'] = $customJasa > 0 ? $customJasa : null;
             }
             if ($request->has('payment_term_type')) {
                 $termType = $request->payment_term_type ?: 'tempo';
@@ -1295,6 +1328,13 @@ class RfqController extends Controller
 
         $rfq->load(['customer.contacts', 'customerContact', 'sales']);
 
+        $cleanNum = function ($val, $default = 0.0) {
+            if ($val === null || $val === '') return $default;
+            if (is_int($val) || is_float($val)) return (float) $val;
+            $cleaned = preg_replace('/[^\d]/', '', (string) $val);
+            return $cleaned !== '' ? (float) $cleaned : $default;
+        };
+
         if ($request->has('notes')) {
             $rfq->notes = $request->input('notes');
         }
@@ -1306,6 +1346,26 @@ class RfqController extends Controller
         }
         if ($request->has('jasa_package_unit')) {
             $rfq->jasa_package_unit = trim($request->input('jasa_package_unit')) ?: 'Lot';
+        }
+        if ($request->has('enable_material_ceiling')) {
+            $rfq->enable_material_ceiling = $request->boolean('enable_material_ceiling');
+        }
+        if ($request->has('material_ceiling_step')) {
+            $rfq->material_ceiling_step = $cleanNum($request->input('material_ceiling_step'), 500000.0);
+        }
+        if ($request->has('material_custom_total')) {
+            $cMat = $cleanNum($request->input('material_custom_total'), 0.0);
+            $rfq->material_custom_total = $cMat > 0 ? $cMat : null;
+        }
+        if ($request->has('enable_jasa_ceiling')) {
+            $rfq->enable_jasa_ceiling = $request->boolean('enable_jasa_ceiling');
+        }
+        if ($request->has('jasa_ceiling_step')) {
+            $rfq->jasa_ceiling_step = $cleanNum($request->input('jasa_ceiling_step'), 500000.0);
+        }
+        if ($request->has('jasa_custom_total')) {
+            $cJasa = $cleanNum($request->input('jasa_custom_total'), 0.0);
+            $rfq->jasa_custom_total = $cJasa > 0 ? $cJasa : null;
         }
         if ($request->has('payment_term_type')) {
             $termType = $request->input('payment_term_type') ?: 'tempo';
@@ -1320,12 +1380,6 @@ class RfqController extends Controller
         $tempItems = collect();
         $rawItems = $request->input('items', []);
         if (is_array($rawItems)) {
-            $cleanNum = function ($val) {
-                if ($val === null || $val === '') return 0.0;
-                if (is_int($val) || is_float($val)) return (float) $val;
-                $cleaned = preg_replace('/[^\d]/', '', (string) $val);
-                return $cleaned !== '' ? (float) $cleaned : 0.0;
-            };
 
             foreach ($rawItems as $itemId => $data) {
                 if (!is_array($data)) {

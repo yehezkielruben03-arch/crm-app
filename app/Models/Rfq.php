@@ -16,13 +16,21 @@ class Rfq extends Model
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
         'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
         'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days',
-        'material_package_unit', 'jasa_package_unit'
+        'material_package_unit', 'jasa_package_unit',
+        'enable_material_ceiling', 'material_ceiling_step', 'material_custom_total',
+        'enable_jasa_ceiling', 'jasa_ceiling_step', 'jasa_custom_total'
     ];
 
     protected $casts = [
         'rfq_date' => 'date',
         'need_date' => 'date',
         'payment_term_days' => 'integer',
+        'enable_material_ceiling' => 'boolean',
+        'material_ceiling_step' => 'decimal:2',
+        'material_custom_total' => 'decimal:2',
+        'enable_jasa_ceiling' => 'boolean',
+        'jasa_ceiling_step' => 'decimal:2',
+        'jasa_custom_total' => 'decimal:2',
     ];
 
     public const STATUS_PENDING_ADMIN = 'Pending Admin';
@@ -534,10 +542,18 @@ class Rfq extends Model
                     $materialDesc = $customMaterialDesc ?: 'Material pendukung instalasi dan aksesoris perkabelan.';
                 }
 
-                // Di Excel Lembar2 J20: =CEILING(SUM(J14:J19), 500000)
-                // Bundling Material Support dibulatkan ke kelipatan 500.000
-                if ($materialTotal > 0) {
-                    $materialTotal = ceil($materialTotal / 500000) * 500000;
+                // Kalkulasi akhir Material Support: Mendukung input custom manual atau toggle ceiling
+                $customMatTotal = $this->material_custom_total !== null ? (float) $this->material_custom_total : null;
+                if ($customMatTotal !== null && $customMatTotal > 0) {
+                    $materialTotal = $customMatTotal;
+                } else {
+                    $enableMatCeil = $this->enable_material_ceiling ?? true;
+                    if ($enableMatCeil && $materialTotal > 0) {
+                        $matStep = (float) ($this->material_ceiling_step ?? 500000);
+                        if ($matStep > 0) {
+                            $materialTotal = ceil($materialTotal / $matStep) * $matStep;
+                        }
+                    }
                 }
 
                 $customMaterialUnit = !empty($this->material_package_unit) ? trim($this->material_package_unit) : null;
@@ -602,10 +618,18 @@ class Rfq extends Model
                     ? implode("\n", $collectedDescs) 
                     : 'Jasa instalasi perangkat, penarikan kabel, konfigurasi sistem, dan pengetesan fungsi operasional.';
 
-                // Di Excel Lembar2 J26: =CEILING(SUM(J22:J25), 500000)
-                // Bundling Jasa Pemasangan & Akomodasi dibulatkan ke kelipatan 500.000
-                if ($jasaTotal > 0) {
-                    $jasaTotal = ceil($jasaTotal / 500000) * 500000;
+                // Kalkulasi akhir Jasa Pemasangan: Mendukung input custom manual atau toggle ceiling
+                $customJasaTotal = $this->jasa_custom_total !== null ? (float) $this->jasa_custom_total : null;
+                if ($customJasaTotal !== null && $customJasaTotal > 0) {
+                    $jasaTotal = $customJasaTotal;
+                } else {
+                    $enableJasaCeil = $this->enable_jasa_ceiling ?? true;
+                    if ($enableJasaCeil && $jasaTotal > 0) {
+                        $jasaStep = (float) ($this->jasa_ceiling_step ?? 500000);
+                        if ($jasaStep > 0) {
+                            $jasaTotal = ceil($jasaTotal / $jasaStep) * $jasaStep;
+                        }
+                    }
                 }
 
                 $customJasaUnit = !empty($this->jasa_package_unit) ? trim($this->jasa_package_unit) : null;
