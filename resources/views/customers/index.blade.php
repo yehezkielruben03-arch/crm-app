@@ -45,9 +45,40 @@
         @endif
     </div>
 
+    <!-- Scope Tabs: Customer Saya vs Semua Database -->
+    <div class="flex items-center gap-2 mb-4 p-1.5 rounded-2xl w-fit" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color);">
+        <a href="{{ route('customers.index', array_merge(request()->except(['page', 'sales_id']), ['scope' => 'my'])) }}"
+           class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all {{ $scope === 'my' ? 'shadow-sm' : 'opacity-70 hover:opacity-100' }}"
+           style="{{ $scope === 'my' ? 'background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); color: #ffffff;' : 'color: var(--text-secondary);' }}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <span>Customer Saya</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                  style="{{ $scope === 'my' ? 'background: rgba(255,255,255,0.25); color: #ffffff;' : 'background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color);' }}">
+                {{ number_format($myCount, 0, ',', '.') }}
+            </span>
+        </a>
+
+        <a href="{{ route('customers.index', array_merge(request()->except('page'), ['scope' => 'all'])) }}"
+           class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all {{ $scope === 'all' ? 'shadow-sm' : 'opacity-70 hover:opacity-100' }}"
+           style="{{ $scope === 'all' ? 'background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); color: #ffffff;' : 'color: var(--text-secondary);' }}">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span>Semua Database</span>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-bold"
+                  style="{{ $scope === 'all' ? 'background: rgba(255,255,255,0.25); color: #ffffff;' : 'background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color);' }}">
+                {{ number_format($allCount, 0, ',', '.') }}
+            </span>
+        </a>
+    </div>
+
     <!-- Filter Bar -->
     <div class="card filter-bar p-4 mb-5">
         <form method="GET" action="{{ route('customers.index') }}" class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <input type="hidden" name="scope" value="{{ $scope }}">
+
             <div class="relative flex-1">
                 <svg class="absolute left-3 top-[38px] -translate-y-1/2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
@@ -62,6 +93,19 @@
                     onfocus="this.style.borderColor='var(--accent-blue)'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.10)'"
                     onblur="this.style.borderColor='var(--border-color)'; this.style.boxShadow='none'">
             </div>
+
+            @if(auth()->user()->isAdminOrAbove() && $scope === 'all')
+            @php
+                $salesOptions = ['' => 'Semua Sales'];
+                foreach($salesList as $s) {
+                    $salesOptions[$s->id] = $s->name;
+                }
+            @endphp
+            <div>
+                <label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Sales Marketing</label>
+                <x-custom-select name="sales_id" :value="request('sales_id')" placeholder="Semua Sales" :options="$salesOptions" minWidth="180px" />
+            </div>
+            @endif
 
             <div>
                 <label class="block text-xs font-medium mb-1" style="color: var(--text-secondary);">Status</label>
@@ -79,8 +123,8 @@
                     style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
                     Filter
                 </button>
-                @if(request()->hasAny(['search', 'status']))
-                <a href="{{ route('customers.index') }}"
+                @if(request()->hasAny(['search', 'status', 'sales_id']))
+                <a href="{{ route('customers.index', ['scope' => $scope]) }}"
                    class="px-4 py-2.5 text-sm text-center rounded-xl transition-colors"
                    style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-secondary);">
                     Reset

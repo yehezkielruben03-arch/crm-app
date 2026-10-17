@@ -42,10 +42,26 @@ class CustomerController extends Controller
     public function index(Request $request)
     {
         $user = $this->authUser();
+        $isSales = $user->isSales();
+
+        // Hitung total customer milik user saat ini dan total seluruh database kantor
+        $myCount = Customer::where('sales_id', $user->id)->count();
+        $allCount = Customer::count();
+
+        // Tentukan scope aktif:
+        // Sales: default 'my' (Customer Saya), kecuali jika request('scope') == 'all'
+        // Admin/Leader: default 'all' (Semua Database), kecuali jika request('scope') == 'my'
+        $defaultScope = $isSales ? 'my' : 'all';
+        $scope = $request->query('scope', $defaultScope);
+        if (!in_array($scope, ['my', 'all'])) {
+            $scope = $defaultScope;
+        }
+
         $query = Customer::with('sales');
 
-        // Transparansi Data Customer: Semua Sales & Admin dapat melihat seluruh database customer
-        if ($request->filled('sales_id')) {
+        if ($scope === 'my') {
+            $query->where('sales_id', $user->id);
+        } elseif ($request->filled('sales_id')) {
             $query->where('sales_id', $request->sales_id);
         }
 
@@ -71,7 +87,7 @@ class CustomerController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('customers.index', compact('customers', 'salesList'));
+        return view('customers.index', compact('customers', 'salesList', 'myCount', 'allCount', 'scope', 'isSales'));
     }
 
     public function show(Customer $customer)
