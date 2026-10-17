@@ -171,13 +171,13 @@
                 @endphp
                 <tr>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 4px; text-align: center; font-weight: bold; font-size: 8.5px; vertical-align: top;">
-                        {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
+                        {{ (int) $item->qty }} {{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}
                     </td>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 6px; font-size: 8.5px; line-height: 1.25; vertical-align: top;">
-                        <div style="font-weight: bold; font-size: 9px; color: #000;">{{ $item->product_name }}</div>
+                        <div style="font-weight: bold; font-size: 9px; color: #000;">{{ ucfirst($item->product_name) }}</div>
                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                         @if(!empty($itemSpec))
-                        <div style="color: #333; margin-top: 1.5px; font-size: 8px; line-height: 1.2; font-style: italic;">{!! nl2br(e($itemSpec)) !!}</div>
+                        <div style="color: #333; margin-top: 1.5px; font-size: 8px; line-height: 1.2; font-style: italic;">{!! nl2br(e(ucfirst($itemSpec))) !!}</div>
                         @endif
 
                         @if($loop->last)
@@ -239,7 +239,7 @@
             @else
                 <!-- TOTAL ROW -->
                 <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9px;">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 4px; text-align: center;">{{ (int) $totalQty }} {{ $firstUnit }}</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 4px; text-align: center;">{{ (int) $totalQty }} {{ ucwords(strtolower(trim($firstUnit))) }}</td>
                     <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 8px; text-align: right; text-transform: uppercase;">TOTAL</td>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>

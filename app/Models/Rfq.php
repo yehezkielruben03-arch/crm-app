@@ -432,7 +432,7 @@ class Rfq extends Model
             return (object) [
                 'id' => $it->id,
                 'qty' => $qty,
-                'unit' => $it->unit ?: 'Unit',
+                'unit' => ucwords(strtolower(trim($it->unit ?: 'Unit'))),
                 'product_name' => $it->product_name,
                 'description' => $desc,
                 'detail_item' => $it->detail_item,

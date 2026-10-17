@@ -223,16 +223,16 @@
                         @endphp
                         <tr class="item-row">
                             <td class="text-center font-bold">
-                                {{ (int) $item->qty }} {{ $item->unit ?: 'Unit' }}
+                                {{ (int) $item->qty }} {{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}
                             </td>
                             <td>
                                 @if($loop->last)
                                     <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-between">
                                         <div>
-                                            <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
+                                            <div class="font-bold text-[12.5px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                            <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e(ucfirst($itemSpec)) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
@@ -254,10 +254,10 @@
                                         </div>
                                     </div>
                                 @else
-                                    <div class="font-bold text-[12.5px] leading-snug text-black">{{ $item->product_name }}</div>
+                                    <div class="font-bold text-[12.5px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e($itemSpec) !!}</div>
+                                    <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e(ucfirst($itemSpec)) !!}</div>
                                     @endif
                                 @endif
                             </td>
@@ -302,7 +302,7 @@
                     @else
                         <!-- 1. TOTAL -->
                         <tr class="total-row">
-                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $firstUnit }}</td>
+                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ ucwords(strtolower(trim($firstUnit))) }}</td>
                             <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL</td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
