@@ -867,6 +867,7 @@ class RfqController extends Controller
             'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
             'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
             'items.*.components.*.description'   => 'nullable|string',
+            'items.*.link_referensi'             => 'nullable|url|max:500',
         ]);
 
         $oldStatus = $rfq->status;
@@ -970,6 +971,8 @@ class RfqController extends Controller
                 $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
                 $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
                 $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
+
+                $item->link_referensi  = $data['link_referensi'] ?? $item->link_referensi;
 
                 $item->price_after_margin = $item->calculatePriceAfterMargin();
                 $item->save();

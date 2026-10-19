@@ -11,7 +11,7 @@ class RfqItem extends Model
     protected $fillable = [
         'rfq_id', 'parent_id', 'is_bundle', 'category', 'product_name', 'qty', 'unit', 'detail_item', 'description',
         'hpp', 'ongkir_pedia', 'ongkir_pelanggan', 'margin', 'ceiling', 'validity_days', 'price_after_margin',
-        'biaya_kirim', 'fee_eu', 'margin_type', 'margin_value', 'custom_ceiling', 'vendor_id'
+        'biaya_kirim', 'fee_eu', 'margin_type', 'margin_value', 'custom_ceiling', 'vendor_id', 'link_referensi'
     ];
 
     public const CATEGORY_HARDWARE = 'Hardware';
