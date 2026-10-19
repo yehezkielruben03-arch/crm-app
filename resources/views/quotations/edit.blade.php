@@ -73,7 +73,7 @@
                             </svg>
                             <span class="text-sm" style="color: var(--text-secondary);">File saat ini: {{ basename($quotation->file_path) }}</span>
                         </div>
-                        <a href="{{ route('quo.download-pdf', $quotation) }}" target="_blank" class="text-xs font-medium" style="color: var(--accent-blue);">Download</a>
+                        <a href="{{ route('quo.download-pdf', [$quotation], false) }}" class="text-xs font-medium" style="color: var(--accent-blue);">Download</a>
                     </div>
                     @endif
 

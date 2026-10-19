@@ -20,6 +20,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Aktifkan forceScheme('https') HANYA jika ada bukti eksplisit
+        // dari proxy/reverse proxy bahwa request masuk via HTTPS.
+        // JANGAN gunakan heuristik nama domain — terlalu rawan false-positive.
         $isHttps = request()->isSecure()
             || request()->header('X-Forwarded-Proto') === 'https'
             || request()->server('HTTP_X_FORWARDED_PROTO') === 'https'
@@ -27,11 +30,7 @@ class AppServiceProvider extends ServiceProvider
             || request()->server('HTTP_X_FORWARDED_SSL') === 'on'
             || (isset($_SERVER['HTTP_CF_VISITOR']) && str_contains($_SERVER['HTTP_CF_VISITOR'], '"scheme":"https"'));
 
-        $httpHost = $_SERVER['HTTP_HOST'] ?? '';
-        $isPublicDomain = $httpHost !== ''
-            && !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|localhost(:\d+)?$)/', $httpHost);
-
-        if ($isHttps || $isPublicDomain) {
+        if ($isHttps) {
             URL::forceScheme('https');
         }
     }
