@@ -27,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
             || request()->server('HTTP_X_FORWARDED_SSL') === 'on'
             || (isset($_SERVER['HTTP_CF_VISITOR']) && str_contains($_SERVER['HTTP_CF_VISITOR'], '"scheme":"https"'));
 
-        $isPublicDomain = isset($_SERVER['HTTP_HOST']) && !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|localhost)/', $_SERVER['HTTP_HOST']);
+        $httpHost = $_SERVER['HTTP_HOST'] ?? '';
+        $isPublicDomain = $httpHost !== ''
+            && !preg_match('/^(10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|127\.|localhost(:\d+)?$)/', $httpHost);
 
         if ($isHttps || $isPublicDomain) {
             URL::forceScheme('https');
