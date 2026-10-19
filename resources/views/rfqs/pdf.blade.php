@@ -5,8 +5,8 @@
     <title>Quotation {{ $rfq->quotation_number }}</title>
     <style>
         @page {
-            margin: 15px 30px 10px 30px;
-            size: a4 portrait;
+            size: A4 portrait;
+            margin: 10mm 12mm 28mm 12mm;
         }
         @if(file_exists(public_path('fonts/msgothic.ttf')))
         @font-face {
@@ -71,14 +71,17 @@
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
         $quotationItems    = $rfq->customer_quotation_items;
-        $itemCount         = count($quotationItems);
-        $noteTopMargin = match(true) {
-            $itemCount <= 1 => '35px',
-            $itemCount <= 2 => '20px',
-            $itemCount <= 3 => '10px',
-            $itemCount <= 4 => '4px',
-            default => '2px'
-        };
+
+        // Compute custom notes once, outside the item loop
+        $customNotes = array_filter(
+            array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))),
+            function($line) {
+                $clean = strtolower(trim(ltrim($line, '- ')));
+                return $clean !== ''
+                    && !str_contains($clean, 'harga dapat berubah')
+                    && !str_contains($clean, 'tanyakan stok');
+            }
+        );
     @endphp
 
     <!-- HEADER TABLE -->
@@ -202,26 +205,6 @@
                         @if(!empty($itemSpec))
                         <div style="color: #333; margin-top: 1px; font-size: 7.5px; line-height: 1.15; font-style: italic;">{!! nl2br(e(ucfirst($itemSpec))) !!}</div>
                         @endif
-
-                        @if($loop->last)
-                        <div style="margin-top: {{ $noteTopMargin }}; font-size: 7.5px; line-height: 1.15;">
-                            <div style="font-weight: bold; color: #000; margin-bottom: 1px;">Note :</div>
-                            @php
-                                $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                                    $clean = strtolower(trim(ltrim($line, '- ')));
-                                    return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
-                                });
-                            @endphp
-                            @foreach($customNotes as $cNote)
-                                @php
-                                    $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
-                                @endphp
-                                <div style="font-style: italic; color: #e00000; line-height: 1.15; font-weight: bold;">{{ $formattedNote }}</div>
-                            @endforeach
-                            <div style="font-style: italic; color: #000; line-height: 1.15;">- Harga dapat berubah tanpa pemberitahuan</div>
-                            <div style="font-style: italic; color: #000; line-height: 1.15;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
-                        </div>
-                        @endif
                     </td>
                     <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; font-size: 8px; font-weight: bold; vertical-align: top;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
@@ -250,16 +233,28 @@
                 </tr>
             @empty
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 20px 5px 3px 5px; font-size: 7.5px; line-height: 1.15; vertical-align: bottom;">
-                        <div style="font-weight: bold; color: #000; margin-bottom: 1px;">Note :</div>
-                        <div style="font-style: italic; color: #000; line-height: 1.15;">- Harga dapat berubah tanpa pemberitahuan</div>
-                        <div style="font-style: italic; color: #000; line-height: 1.15;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
-                    </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: none; padding: 2.5px 4px;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: none; padding: 2.5px 5px;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: none; padding: 2.5px 4px;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: none; padding: 2.5px 4px;"></td>
                 </tr>
             @endforelse
+
+            {{-- NOTE ROW: baris terpisah di bawah semua item, persis seperti Excel sampling --}}
+            <tr style="page-break-inside: avoid;">
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; font-size: 7.5px; line-height: 1.15;">
+                    <div style="font-weight: bold; color: #000; margin-bottom: 1px;">Note :</div>
+                    @foreach($customNotes as $cNote)
+                        @php $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote; @endphp
+                        <div style="font-style: italic; color: #e00000; line-height: 1.15; font-weight: bold;">{{ $formattedNote }}</div>
+                    @endforeach
+                    <div style="font-style: italic; color: #000; line-height: 1.15;">- Harga dapat berubah tanpa pemberitahuan</div>
+                    <div style="font-style: italic; color: #000; line-height: 1.15;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                </td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px;"></td>
+                <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px;"></td>
+            </tr>
 
             @php
                 $isIncludeTax = $rfq->isIncludeTax();
