@@ -765,7 +765,7 @@
                     Web Preview
                 </a>
                 
-                <a href="{{ route('rfq.download_quotation', $rfq) }}"
+                <a href="{{ route('rfq.download_quotation', $rfq, false) }}"
                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 14px rgba(245,158,11,0.35);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

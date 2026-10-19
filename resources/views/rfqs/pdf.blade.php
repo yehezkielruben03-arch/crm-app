@@ -5,8 +5,8 @@
     <title>Quotation {{ $rfq->quotation_number }}</title>
     <style>
         @page {
-            size: A4 portrait;
-            margin: 10mm 12mm 28mm 12mm;
+            margin: 15px 30px 10px 30px;
+            size: a4 portrait;
         }
         @if(file_exists(public_path('fonts/msgothic.ttf')))
         @font-face {
@@ -15,8 +15,8 @@
         }
         @endif
         body {
-            font-family: 'DejaVu Sans', sans-serif;
-            font-size: 9.5px;
+            font-family: 'DejaVu Sans', 'Calibri', 'Arial', sans-serif;
+            font-size: 8.5px;
             line-height: 1.2;
             color: #111;
             margin: 0;
@@ -29,9 +29,6 @@
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-        }
-        .no-break {
-            page-break-inside: avoid;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -76,9 +73,9 @@
         $quotationItems    = $rfq->customer_quotation_items;
         $itemCount         = count($quotationItems);
         $noteTopMargin = match(true) {
-            $itemCount <= 1 => '28px',
-            $itemCount <= 2 => '16px',
-            $itemCount <= 3 => '8px',
+            $itemCount <= 1 => '35px',
+            $itemCount <= 2 => '20px',
+            $itemCount <= 3 => '10px',
             $itemCount <= 4 => '4px',
             default => '2px'
         };
@@ -93,18 +90,18 @@
         <tr>
             <td style="width: 55%; vertical-align: top; border: none; padding: 0;">
                 @if(file_exists(public_path('images/pedia_logo_hd.png')))
-                    <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="width: 130px; height: auto;">
+                    <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="height: 38px; width: auto;">
                 @elseif(file_exists(public_path('images/logo.png')))
-                    <img src="{{ public_path('images/logo.png') }}" style="width: 130px; height: auto;">
+                    <img src="{{ public_path('images/logo.png') }}" style="height: 38px; width: auto;">
                 @else
                     <strong style="font-size: 14px; color: #000;">PEDIA TECHNOLOGY</strong>
                 @endif
-                <div style="font-weight: bold; font-size: 10.5px; text-transform: uppercase; margin-top: 3px; color: #000;">PT. PEDIA TEKNOLOGI INDONESIA</div>
-                <div style="font-style: italic; font-size: 8.5px; color: #555;">With Our Experience Everything Is Possible</div>
+                <div style="font-weight: bold; font-size: 10px; text-transform: uppercase; margin-top: 2px; color: #000;">PT. PEDIA TEKNOLOGI INDONESIA</div>
+                <div style="font-style: italic; font-size: 8px; color: #555;">With Our Experience Everything Is Possible</div>
             </td>
             <td style="width: 45%; vertical-align: top; text-align: right; border: none; padding: 0;">
-                <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 30px; color: #666; line-height: 1; margin-bottom: 6px; font-weight: normal; text-align: right;">Quotation</div>
-                <table align="right" style="width: 100%; border-collapse: collapse; font-size: 8.5px; text-align: right; table-layout: fixed;">
+                <div style="font-family: 'DejaVu Sans', sans-serif; font-size: 32px; color: #666; line-height: 1; margin-bottom: 6px; font-weight: normal; text-align: right;">Quotation</div>
+                <table align="right" style="width: 100%; border-collapse: collapse; font-size: 8px; text-align: right; table-layout: fixed;">
                     <colgroup>
                         <col style="width: 45%;">
                         <col style="width: 55%;">
@@ -130,15 +127,15 @@
     </table>
 
     <!-- INFO KLIEN & BERLAKU S/D -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: 6px; margin-bottom: 3px; border: none; table-layout: fixed;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 5px; margin-bottom: 3px; border: none; table-layout: fixed;">
         <colgroup>
-            <col style="width: 55%;">
-            <col style="width: 45%;">
+            <col style="width: 58%;">
+            <col style="width: 42%;">
         </colgroup>
         <tr>
-            <td style="width: 55%; vertical-align: bottom; font-size: 8.5px; line-height: 1.3; border: none; padding: 0;">
+            <td style="width: 58%; vertical-align: bottom; font-size: 8px; line-height: 1.25; border: none; padding: 0;">
                 <div style="color: #111;">Kepada YTH</div>
-                <div style="font-weight: bold; font-size: 10.5px; color: #000; margin-top: 1px;">{{ $clientCompanyName }}</div>
+                <div style="font-weight: bold; font-size: 10px; color: #000; margin-top: 1px;">{{ $clientCompanyName }}</div>
                 @if(!empty($custAddress))
                 <div style="color: #222;">{!! nl2br(e($custAddress)) !!}</div>
                 @endif
@@ -147,15 +144,15 @@
                 @endif
                 <div style="color: #222;">Up. {{ $custPic }}</div>
             </td>
-            <td style="width: 45%; vertical-align: bottom; text-align: right; border: none; padding: 0;">
-                <table align="right" style="width: 210px; border-collapse: collapse; background-color: #f2f2f2; table-layout: fixed;">
+            <td style="width: 42%; vertical-align: bottom; text-align: right; border: none; padding: 0;">
+                <table align="right" style="width: 200px; border-collapse: collapse; background-color: #f2f2f2; table-layout: fixed;">
                     <colgroup>
-                        <col style="width: 45%;">
-                        <col style="width: 55%;">
+                        <col style="width: 48%;">
+                        <col style="width: 52%;">
                     </colgroup>
                     <tr>
-                        <td style="padding: 3px 6px; font-size: 8.5px; font-style: italic; color: #333; text-align: left; border: none;">Berlaku s/d tgl :</td>
-                        <td style="padding: 3px 6px; font-size: 8.5px; font-weight: bold; color: #111; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
+                        <td style="padding: 2.5px 6px; font-size: 8px; font-style: italic; color: #333; text-align: left; border: none;">Berlaku s/d tgl :</td>
+                        <td style="padding: 2.5px 6px; font-size: 8px; font-weight: bold; color: #111; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
                     </tr>
                 </table>
             </td>
@@ -163,24 +160,24 @@
     </table>
 
     <!-- KALIMAT PEMBUKA -->
-    <div style="font-size: 8.5px; margin-top: 4px; margin-bottom: 3px; color: #111;">
+    <div style="font-size: 8px; margin-top: 4px; margin-bottom: 3px; color: #111;">
         Berikut penawaran dari kami <span class="jp">・ 下記の通り御見積申し上げます。</span>
     </div>
 
     <!-- TABEL PENAWARAN (PERSIS SAMPLING) -->
     <table style="width: 100%; border-collapse: collapse; border: 1px solid #888; table-layout: fixed;">
         <colgroup>
-            <col style="width: 12%;">
-            <col style="width: 52%;">
-            <col style="width: 18%;">
-            <col style="width: 18%;">
+            <col style="width: 10%;">
+            <col style="width: 60%;">
+            <col style="width: 14%;">
+            <col style="width: 16%;">
         </colgroup>
         <thead>
             <tr style="background-color: #f2f2f2;">
-                <th style="border: 1px solid #888; padding: 3px 5px; font-size: 8.5px; text-align: center; text-transform: uppercase;">JUMLAH</th>
-                <th style="border: 1px solid #888; padding: 3px 5px; font-size: 8.5px; text-align: center; text-transform: uppercase;">DESKRIPSI</th>
-                <th style="border: 1px solid #888; padding: 3px 5px; font-size: 8.5px; text-align: center; text-transform: uppercase;">HARGA</th>
-                <th style="border: 1px solid #888; padding: 3px 5px; font-size: 8.5px; text-align: center; text-transform: uppercase;">JUMLAH HARGA</th>
+                <th style="border: 1px solid #888; padding: 2.5px 4px; font-size: 8px; text-align: center; text-transform: uppercase;">JUMLAH</th>
+                <th style="border: 1px solid #888; padding: 2.5px 4px; font-size: 8px; text-align: center; text-transform: uppercase;">DESKRIPSI</th>
+                <th style="border: 1px solid #888; padding: 2.5px 4px; font-size: 8px; text-align: center; text-transform: uppercase;">HARGA</th>
+                <th style="border: 1px solid #888; padding: 2.5px 4px; font-size: 8px; text-align: center; text-transform: uppercase;">JUMLAH HARGA</th>
             </tr>
         </thead>
         <tbody>
@@ -196,18 +193,18 @@
                     $totalQty += $item->qty;
                 @endphp
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; text-align: center; font-weight: bold; font-size: 8.5px; vertical-align: top; word-wrap: break-word;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; text-align: center; font-weight: bold; font-size: 8px; vertical-align: top; word-wrap: break-word;">
                         {{ (int) $item->qty }} {{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; font-size: 8.5px; line-height: 1.25; vertical-align: top; word-wrap: break-word;">
-                        <div style="font-weight: bold; font-size: 9.5px; color: #000;">{{ ucfirst($item->product_name) }}</div>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 5px; font-size: 8px; line-height: 1.2; vertical-align: top; word-wrap: break-word;">
+                        <div style="font-weight: bold; font-size: 8.5px; color: #000;">{{ ucfirst($item->product_name) }}</div>
                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                         @if(!empty($itemSpec))
-                        <div style="color: #333; margin-top: 1px; font-size: 8px; line-height: 1.2; font-style: italic;">{!! nl2br(e(ucfirst($itemSpec))) !!}</div>
+                        <div style="color: #333; margin-top: 1px; font-size: 7.5px; line-height: 1.15; font-style: italic;">{!! nl2br(e(ucfirst($itemSpec))) !!}</div>
                         @endif
 
                         @if($loop->last)
-                        <div style="margin-top: {{ $noteTopMargin }}; font-size: 8px; line-height: 1.15;">
+                        <div style="margin-top: {{ $noteTopMargin }}; font-size: 7.5px; line-height: 1.15;">
                             <div style="font-weight: bold; color: #000; margin-bottom: 1px;">Note :</div>
                             @php
                                 $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
@@ -226,41 +223,41 @@
                         </div>
                         @endif
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; font-size: 8.5px; font-weight: bold; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; font-size: 8px; font-weight: bold; vertical-align: top;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
                                 <col style="width: 75%;">
                             </colgroup>
                             <tr>
-                                <td style="text-align: left; padding: 0; border: none;">Rp</td>
-                                <td style="text-align: right; padding: 0; border: none;">{{ number_format($unitPrice, 0, ',', '.') }}</td>
+                                <td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td>
+                                <td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($unitPrice, 0, ',', '.') }}</td>
                             </tr>
                         </table>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; font-size: 8.5px; font-weight: bold; vertical-align: top;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; font-size: 8px; font-weight: bold; vertical-align: top;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
                                 <col style="width: 75%;">
                             </colgroup>
                             <tr>
-                                <td style="text-align: left; padding: 0; border: none;">Rp</td>
-                                <td style="text-align: right; padding: 0; border: none;">{{ number_format($rowTotal, 0, ',', '.') }}</td>
+                                <td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td>
+                                <td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($rowTotal, 0, ',', '.') }}</td>
                             </tr>
                         </table>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 20px 5px 3px 5px; font-size: 8px; line-height: 1.15; vertical-align: bottom;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 20px 5px 3px 5px; font-size: 7.5px; line-height: 1.15; vertical-align: bottom;">
                         <div style="font-weight: bold; color: #000; margin-bottom: 1px;">Note :</div>
                         <div style="font-style: italic; color: #000; line-height: 1.15;">- Harga dapat berubah tanpa pemberitahuan</div>
                         <div style="font-style: italic; color: #000; line-height: 1.15;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 3px 5px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 2.5px 4px; vertical-align: bottom;"></td>
                 </tr>
             @endforelse
 
@@ -273,10 +270,10 @@
 
             @if($isIncludeTax)
                 <!-- TOTAL HARGA ROW (Include PPN / Perorangan) -->
-                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9px; page-break-inside: avoid;">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;"></td>
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 6px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;">
+                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 8.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 5px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
@@ -291,10 +288,10 @@
                 </tr>
             @else
                 <!-- TOTAL ROW -->
-                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 9px; page-break-inside: avoid;">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px; text-align: center;">{{ (int) $totalQty }} {{ ucwords(strtolower(trim($firstUnit))) }}</td>
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 6px; text-align: right; text-transform: uppercase;">TOTAL</td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;">
+                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: 8.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px; text-align: center;">{{ (int) $totalQty }} {{ ucwords(strtolower(trim($firstUnit))) }}</td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 5px; text-align: right; text-transform: uppercase;">TOTAL</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
@@ -309,10 +306,10 @@
                 </tr>
 
                 <!-- PPN ROW -->
-                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9px; page-break-inside: avoid;">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;"></td>
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 6px; text-align: right;">PPn</td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;">
+                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 8.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 5px; text-align: right;">PPn</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
@@ -327,10 +324,10 @@
                 </tr>
 
                 <!-- TOTAL HARGA ROW -->
-                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 9px; page-break-inside: avoid;">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;"></td>
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 6px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2.5px 5px;">
+                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: 8.5px;">
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;"></td>
+                    <td colspan="2" style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 5px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: 2px 4px;">
                         <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 25%;">
@@ -348,7 +345,7 @@
     </table>
 
     <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
-    <div class="no-break" style="font-size: 8px; line-height: 1.2; margin-top: 4px; margin-bottom: 3px; page-break-inside: avoid;">
+    <div style="font-size: 7.5px; line-height: 1.2; margin-top: 4px; margin-bottom: 3px;">
         @if($rfq->isPaymentTermCbdPersonal())
             <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                 <colgroup>
@@ -359,7 +356,7 @@
                     <td style="width: 4%; vertical-align: top; font-weight: bold; border: none;">✓</td>
                     <td style="width: 96%; border: none; color: #e00000; font-style: italic; line-height: 1.2;">
                         <div>Sistem pembayaran Cash Before Delivery</div>
-                        <table style="width: 100%; border: none; border-collapse: collapse; margin: 0; padding: 0; color: #e00000; font-style: italic; font-size: 8px; line-height: 1.2; table-layout: fixed;">
+                        <table style="width: 100%; border: none; border-collapse: collapse; margin: 0; padding: 0; color: #e00000; font-style: italic; font-size: 7.5px; line-height: 1.2; table-layout: fixed;">
                             <colgroup>
                                 <col style="width: 18%;">
                                 <col style="width: 82%;">
@@ -386,14 +383,14 @@
                     <col style="width: 96%;">
                 </colgroup>
                 <tr>
-                    <td style="width: 4%; vertical-align: top; font-weight: normal; font-size: 8.5px; border: none;" class="jp">※</td>
+                    <td style="width: 4%; vertical-align: top; font-weight: normal; font-size: 8px; border: none;" class="jp">※</td>
                     <td style="width: 96%; border: none;">
                         <div style="font-style: italic;">Sistem pembayaran Cash Before Delivery</div>
                         <div style="color: #555;" class="jp">支払条件：前払い（納品前）</div>
                     </td>
                 </tr>
                 <tr>
-                    <td style="width: 4%; vertical-align: top; font-weight: normal; font-size: 8.5px; padding-top: 2px; border: none;" class="jp">※</td>
+                    <td style="width: 4%; vertical-align: top; font-weight: normal; font-size: 8px; padding-top: 2px; border: none;" class="jp">※</td>
                     <td style="width: 96%; padding-top: 2px; border: none;">
                         <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
                         <div style="color: #555;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
@@ -426,12 +423,12 @@
     </div>
 
     <!-- PENUTUP -->
-    <div class="no-break" style="font-size: 8px; color: #222; margin-top: 2px; margin-bottom: 3px; line-height: 1.15; page-break-inside: avoid;">
+    <div style="font-size: 7.5px; color: #222; margin-top: 2px; margin-bottom: 3px; line-height: 1.15;">
         Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi saya di nomor telp : <strong>{{ $salesPhone }}</strong> atau e-mail <strong>{{ $salesEmail }}</strong>. Atas perhatian dan kepercayaan nya kami ucapkan Terima Kasih.
     </div>
 
     <!-- TANDA TANGAN (Persis Sampling) -->
-    <table class="no-break" style="width: 100%; font-size: 8.5px; margin-top: 2px; margin-bottom: 4px; border: none; border-collapse: collapse; table-layout: fixed; page-break-inside: avoid;">
+    <table style="width: 100%; font-size: 8px; margin-top: 2px; margin-bottom: 4px; border: none; border-collapse: collapse; table-layout: fixed;">
         <colgroup>
             <col style="width: 50%;">
             <col style="width: 50%;">
@@ -448,28 +445,28 @@
                         <img src="{{ $salesSigPath }}" style="position: absolute; left: 0px; top: 0px; width: 85px; height: auto;">
                     @endif
                 </div>
-                <div style="font-weight: bold; font-size: 9px; margin-top: 1px;">{{ $salesName }}</div>
-                <div style="font-style: italic; color: #555;">{{ $salesRole }}</div>
+                <div style="font-weight: bold; font-size: 8.5px; margin-top: 1px;">{{ $salesName }}</div>
+                <div style="font-style: italic; color: #555; font-size: 7.5px;">{{ $salesRole }}</div>
             </td>
             <td style="width: 50%; vertical-align: top; padding-left: 15px; border: none;">
                 <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
-                <div style="font-size: 7.5px; color: #555; margin-bottom: 1px;" class="jp">上記の数量と価格に同意いたします。</div>
-                <div style="font-weight: bold; font-size: 9px; margin-bottom: 18px;">{{ $clientCompanyName }}</div>
+                <div style="font-size: 7px; color: #555; margin-bottom: 1px;" class="jp">上記の数量と価格に同意いたします。</div>
+                <div style="font-weight: bold; font-size: 8.5px; margin-bottom: 16px;">{{ $clientCompanyName }}</div>
                 
                 <table style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
                     <colgroup>
                         <col style="width: 25%;">
                         <col style="width: 75%;">
                     </colgroup>
-                    <tr><td style="font-size: 8px; border: none; padding: 1px 0;">Nama</td><td style="font-size: 8px; border: none; padding: 1px 0;">: </td></tr>
-                    <tr><td style="font-size: 8px; border: none; padding: 1px 0;">Jabatan</td><td style="font-size: 8px; border: none; padding: 1px 0;">: </td></tr>
+                    <tr><td style="font-size: 7.5px; border: none; padding: 1px 0;">Nama</td><td style="font-size: 7.5px; border: none; padding: 1px 0;">: </td></tr>
+                    <tr><td style="font-size: 7.5px; border: none; padding: 1px 0;">Jabatan</td><td style="font-size: 7.5px; border: none; padding: 1px 0;">: </td></tr>
                 </table>
             </td>
         </tr>
     </table>
 
     <!-- FOOTER (Persis Sampling) -->
-    <div style="position: fixed; bottom: 0px; left: 0px; right: 0px; text-align: center; font-size: 7.5px; color: #222;">
+    <div style="position: fixed; bottom: 0px; left: 0px; right: 0px; text-align: center; font-size: 7px; color: #222;">
         <div style="font-weight: bold; font-size: 8.5px; letter-spacing: 0.5px; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
         <div style="font-size: 7.5px; margin-bottom: 2px;" class="jp">お買い上げくださってありがとうございます！</div>
         <div style="line-height: 1.2; color: #555; margin-bottom: 3px;">
