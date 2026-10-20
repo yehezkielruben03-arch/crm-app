@@ -92,9 +92,9 @@
                 Quotation Sent to Client
             </div>
             @endif
-            <a href="{{ route('rfq.download_quotation', $rfq->id, false) }}" download class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
+            <a href="{{ route('rfq.download_quotation', $rfq->id, false) }}" download onclick="return downloadQuotationPdf(event, this)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-                Download PDF
+                <span>Download PDF</span>
             </a>
         </div>
         @endif
@@ -441,5 +441,43 @@
         </div>
 
     </div>
+    <script>
+        async function downloadQuotationPdf(e, el) {
+            e.preventDefault();
+            const url = el.getAttribute('href');
+            const labelSpan = el.querySelector('span');
+            const origText = labelSpan ? labelSpan.textContent : '';
+            if (labelSpan) labelSpan.textContent = 'Mengunduh...';
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.75';
+            try {
+                const res = await fetch(url, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const disp = res.headers.get('Content-Disposition') || '';
+                let filename = '{{ $rfq->rfq_number }}_Penawaran.pdf';
+                const match = disp.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)["']?/i);
+                if (match && match[1]) filename = decodeURIComponent(match[1]);
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                }, 1500);
+            } catch (err) {
+                window.location.href = url;
+            } finally {
+                if (labelSpan) labelSpan.textContent = origText;
+                el.style.pointerEvents = '';
+                el.style.opacity = '';
+            }
+            return false;
+        }
+    </script>
 </body>
 </html>

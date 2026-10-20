@@ -1279,8 +1279,21 @@ class RfqController extends Controller
 
         [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'));
+        $fontCacheDir = storage_path('fonts');
+        if (!is_dir($fontCacheDir)) {
+            @mkdir($fontCacheDir, 0777, true);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'), [], 'UTF-8');
         $pdf->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'isFontSubsettingEnabled' => true,
+            'fontDir' => $fontCacheDir,
+            'fontCache' => $fontCacheDir,
+            'chroot' => [public_path(), storage_path(), base_path()],
+        ]);
 
         // Format Penamaan File Resmi Pedia:
         // {RFQ_NUMBER}_Penawaran {NAMA_ITEM}[_rev{N}].pdf
@@ -1305,6 +1318,8 @@ class RfqController extends Controller
         }, $filename, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Access-Control-Expose-Headers' => 'Content-Disposition',
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Pragma' => 'no-cache',
             'Expires' => '0',

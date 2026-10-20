@@ -765,13 +765,13 @@
                     Web Preview
                 </a>
                 
-                <a href="{{ route('rfq.download_quotation', $rfq, false) }}" download
+                <a href="{{ route('rfq.download_quotation', $rfq, false) }}" download onclick="return downloadQuotationPdf(event, this)"
                    class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
                    style="background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 14px rgba(245,158,11,0.35);">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    Download PDF
+                    <span>Download PDF</span>
                 </a>
             </div>
             @endif
@@ -935,6 +935,43 @@
         document.getElementById('rejectModal')?.addEventListener('click', function(e) {
             if (e.target === this) closeRejectModal();
         });
+
+        async function downloadQuotationPdf(e, el) {
+            e.preventDefault();
+            const url = el.getAttribute('href');
+            const labelSpan = el.querySelector('span');
+            const origText = labelSpan ? labelSpan.textContent : '';
+            if (labelSpan) labelSpan.textContent = 'Mengunduh...';
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0.75';
+            try {
+                const res = await fetch(url, { credentials: 'same-origin' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const disp = res.headers.get('Content-Disposition') || '';
+                let filename = '{{ $rfq->rfq_number }}_Penawaran.pdf';
+                const match = disp.match(/filename\*?=(?:UTF-8'')?["']?([^"';\n]+)["']?/i);
+                if (match && match[1]) filename = decodeURIComponent(match[1]);
+                const blob = await res.blob();
+                const blobUrl = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    a.remove();
+                }, 1500);
+            } catch (err) {
+                window.location.href = url;
+            } finally {
+                if (labelSpan) labelSpan.textContent = origText;
+                el.style.pointerEvents = '';
+                el.style.opacity = '';
+            }
+            return false;
+        }
     </script>
 
 </x-app-layout>
