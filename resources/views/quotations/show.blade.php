@@ -23,7 +23,7 @@
     {{-- Action Bar --}}
     <div class="flex flex-wrap gap-2 mb-5 animate-in" style="animation-delay: 0.1s;">
         @if($quo->rfq)
-        <a href="{{ route('rfq.download_quotation', $quo->rfq, false) }}" target="_blank"
+        <a href="{{ route('rfq.download_quotation', $quo->rfq, false) }}" download
             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all hover:-translate-y-0.5"
             style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); color: #dc2626;">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

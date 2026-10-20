@@ -21,7 +21,7 @@
         <div class="flex gap-2">
             {{-- Download PDF --}}
             @if($po->file_path)
-            <a href="{{ route('po.download-pdf', $po) }}"
+            <a href="{{ route('po.download-pdf', $po, false) }}" download
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl transition-all hover:-translate-y-0.5"
                style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1280,6 +1280,7 @@ class RfqController extends Controller
         [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'));
+        $pdf->setPaper('a4', 'portrait');
 
         // Format Penamaan File Resmi Pedia:
         // {RFQ_NUMBER}_Penawaran {NAMA_ITEM}[_rev{N}].pdf
@@ -1299,7 +1300,15 @@ class RfqController extends Controller
 
         $filename = "{$rfqNum}_Penawaran {$cleanTitle}{$revSuffix}.pdf";
 
-        return $pdf->download($filename);
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 
     public function previewQuotation(Rfq $rfq)
