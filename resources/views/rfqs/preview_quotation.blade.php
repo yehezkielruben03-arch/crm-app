@@ -101,7 +101,12 @@
     </div>
 
     @php
-        $clientCompanyName = $rfq->resolved_company_name;
+        $rawCompName = trim($rfq->resolved_company_name ?? '');
+        if (preg_match('/^(.+?),\s*(PT|CV)\.?$/i', $rawCompName, $m)) {
+            $clientCompanyName = strtoupper($m[2]) . '. ' . trim($m[1]);
+        } else {
+            $clientCompanyName = $rawCompName;
+        }
         $custAddress       = $rfq->resolved_customer_address;
         $custPhone         = $rfq->resolved_customer_phone;
         $custPic           = $rfq->resolved_pic_name;
@@ -299,14 +304,16 @@
                         $isIncludeTax = $rfq->isIncludeTax();
                         $ppn = round($grandSubtotal * 0.11);
                         $grandTotal = $isIncludeTax ? $grandSubtotal : ($grandSubtotal + $ppn);
-                        $firstUnit = $quotationItems->first()?->unit ?: 'Unit';
+                        $uniqueUnits = $quotationItems->map(fn($i) => ucwords(strtolower(trim($i->unit ?: 'Unit'))))->unique()->values();
+                        $summaryUnitLabel = $uniqueUnits->count() > 1 ? 'Item' : ($uniqueUnits->first() ?: 'Unit');
                     @endphp
 
                     @if($isIncludeTax)
                         <!-- TOTAL HARGA (Include PPN / Perorangan) -->
                         <tr class="total-row">
-                            <td></td>
-                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
+                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
+                            <td style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL HARGA</td>
+                            <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
                             </td>
@@ -314,8 +321,9 @@
                     @else
                         <!-- 1. TOTAL -->
                         <tr class="total-row">
-                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ ucwords(strtolower(trim($firstUnit))) }}</td>
-                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL</td>
+                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
+                            <td style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL</td>
+                            <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
                             </td>
@@ -323,8 +331,8 @@
 
                         <!-- 2. PPn -->
                         <tr class="total-row" style="border-top: none;">
-                            <td></td>
-                            <td colspan="2" class="text-right pr-4 font-bold">PPn</td>
+                            <td colspan="2" style="border-right: none;" class="text-right pr-3 font-bold">PPn</td>
+                            <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($ppn, 0, ',', '.') }}</span></div>
                             </td>
@@ -332,8 +340,8 @@
 
                         <!-- 3. TOTAL HARGA -->
                         <tr class="total-row" style="border-top: none;">
-                            <td></td>
-                            <td colspan="2" class="text-right pr-4 uppercase font-bold">TOTAL HARGA</td>
+                            <td colspan="2" style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL HARGA</td>
+                            <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandTotal, 0, ',', '.') }}</span></div>
                             </td>
@@ -427,10 +435,10 @@
                 <div class="w-1/2 text-left pl-6">
                     <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
                     <div class="italic text-[11px] text-[#555] mb-1">上記の数量と価格に同意いたします。</div>
-                    <div class="font-bold text-[13px] text-black mb-12">{{ $clientCompanyName }}</div>
+                    <div class="font-normal text-[12px] text-black mb-12">{{ $clientCompanyName }}</div>
                     
                     <table class="text-[11.5px] text-black w-full max-w-[280px]">
-                        <tr><td class="w-16 py-0.5 text-[#333]">Nama</td><td>: </td></tr>
+                        <tr><td class="w-12 py-0.5 text-[#333]">Nama</td><td>: </td></tr>
                         <tr><td class="py-0.5 text-[#333]">Jabatan</td><td>: </td></tr>
                     </table>
                 </div>
@@ -441,13 +449,13 @@
         <div class="mt-8 text-center text-black">
             <div class="font-bold text-[11.5px] tracking-wide text-black mb-0.5 uppercase">THANK YOU FOR YOUR BUSINESS!</div>
             <div class="font-bold text-[11px] text-black mb-2">お買い上げくださってありがとうございます！</div>
-            <div class="text-[10.5px] leading-relaxed text-[#333] mb-3">
+            <div class="text-[11.5px] leading-snug text-[#222] mb-2">
                 Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,<br>
                 Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147<br>
                 Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175
             </div>
-            <!-- Blue Banner Full Width -->
-            <div class="bg-[#005a9c] text-white text-[12px] py-1.5 tracking-wider font-semibold">
+            <!-- Blue Banner 76% Width Centered -->
+            <div class="w-[76%] mx-auto bg-[#005496] text-white text-[12px] py-1 tracking-wider font-normal">
                 website : https://pedia-technology.co.id
             </div>
         </div>
