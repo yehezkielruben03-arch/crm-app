@@ -105,14 +105,27 @@
             $salesName     = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
             $salesRole     = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
         }
+        $sigUser = ($rfq->sales && !empty($rfq->sales->signature_path)) ? $rfq->sales : null;
+        if (!$sigUser && $isHouseAccount) {
+            try {
+                $sigUser = \App\Models\User::whereIn('role', ['Leader', 'Super Admin', 'Admin', 'Admin Purchase'])
+                    ->whereNotNull('signature_path')
+                    ->where('signature_path', '!=', '')
+                    ->orderByRaw("CASE WHEN role = 'Leader' THEN 1 WHEN role = 'Super Admin' THEN 2 ELSE 3 END")
+                    ->first();
+            } catch (\Throwable $e) {
+                $sigUser = null;
+            }
+        }
+
         $salesSigPath      = null;
-        if (!$isHouseAccount && $rfq->sales?->signature_path) {
-            if (file_exists(storage_path('app/public/' . $rfq->sales->signature_path))) {
-                $salesSigPath = storage_path('app/public/' . $rfq->sales->signature_path);
-            } elseif (file_exists(public_path('storage/' . $rfq->sales->signature_path))) {
-                $salesSigPath = public_path('storage/' . $rfq->sales->signature_path);
-            } elseif (file_exists(public_path($rfq->sales->signature_path))) {
-                $salesSigPath = public_path($rfq->sales->signature_path);
+        if ($sigUser && $sigUser->signature_path) {
+            if (file_exists(storage_path('app/public/' . $sigUser->signature_path))) {
+                $salesSigPath = storage_path('app/public/' . $sigUser->signature_path);
+            } elseif (file_exists(public_path('storage/' . $sigUser->signature_path))) {
+                $salesSigPath = public_path('storage/' . $sigUser->signature_path);
+            } elseif (file_exists(public_path($sigUser->signature_path))) {
+                $salesSigPath = public_path($sigUser->signature_path);
             }
         }
         $validityDays      = $rfq->items->max('validity_days') ?: 7;
@@ -412,11 +425,14 @@
             <td style="width: 52%; vertical-align: top; border: none; padding: 0;">
                 <div>Hormat Kami</div>
                 <div style="position: relative; width: 220px; height: 66px; margin: 2px 0;">
-                    @php $stampPath = public_path('images/pedia_company_stamp.png'); @endphp
+                    @php
+                        $stampPath = public_path('images/pedia_company_stamp.png');
+                        $hasSig = $salesSigPath && file_exists($salesSigPath);
+                    @endphp
                     @if(file_exists($stampPath))
-                        <img src="{{ $stampPath }}" style="position: absolute; left: {{ $isHouseAccount ? '6px' : '22px' }}; top: 4px; width: 118px; height: auto;">
+                        <img src="{{ $stampPath }}" style="position: absolute; left: {{ $hasSig ? '22px' : '6px' }}; top: 4px; width: 118px; height: auto;">
                     @endif
-                    @if(!$isHouseAccount && $salesSigPath && file_exists($salesSigPath))
+                    @if($hasSig)
                         <img src="{{ $salesSigPath }}" style="position: absolute; left: 0px; top: 0px; height: 64px; width: auto;">
                     @endif
                 </div>

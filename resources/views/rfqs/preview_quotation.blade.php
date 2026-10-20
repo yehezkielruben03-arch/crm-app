@@ -115,7 +115,19 @@
             $salesName     = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
             $salesRole     = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
         }
-        $salesSignature    = !$isHouseAccount ? $rfq->sales?->signature_url : null;
+        $sigUser = ($rfq->sales && !empty($rfq->sales->signature_path)) ? $rfq->sales : null;
+        if (!$sigUser && $isHouseAccount) {
+            try {
+                $sigUser = \App\Models\User::whereIn('role', ['Leader', 'Super Admin', 'Admin', 'Admin Purchase'])
+                    ->whereNotNull('signature_path')
+                    ->where('signature_path', '!=', '')
+                    ->orderByRaw("CASE WHEN role = 'Leader' THEN 1 WHEN role = 'Super Admin' THEN 2 ELSE 3 END")
+                    ->first();
+            } catch (\Throwable $e) {
+                $sigUser = null;
+            }
+        }
+        $salesSignature    = $sigUser?->signature_url;
         $validityDays      = $rfq->items->max('validity_days') ?: 7;
 
         $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
@@ -399,11 +411,11 @@
                     <div class="relative w-[220px] h-[72px] my-1 -ml-1">
                         <!-- Stempel Resmi Perusahaan -->
                         <img src="{{ asset('images/pedia_company_stamp.png') }}" alt="Stempel Pedia" 
-                             class="absolute {{ $isHouseAccount ? 'left-2' : 'left-8' }} top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
+                             class="absolute {{ $salesSignature ? 'left-8' : 'left-2' }} top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
                         
-                        <!-- Tanda Tangan Sales -->
-                        @if(!$isHouseAccount && $salesSignature)
-                            <img src="{{ $salesSignature }}" alt="Tanda Tangan Sales" 
+                        <!-- Tanda Tangan Sales / Management -->
+                        @if($salesSignature)
+                            <img src="{{ $salesSignature }}" alt="Tanda Tangan" 
                                  class="absolute left-0 top-0 h-[72px] object-contain block" style="z-index: 2;">
                         @endif
                     </div>
