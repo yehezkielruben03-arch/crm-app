@@ -79,38 +79,33 @@
         $visualWeight = ($itemCount * 2) + $totalSpecLines + $noteLineCount;
 
         $density = match(true) {
-            $visualWeight <= 16 && $itemCount <= 3 => 'normal',
-            $visualWeight <= 26 && $itemCount <= 5 => 'medium',
+            $visualWeight <= 18 && $itemCount <= 3 => 'normal',
+            $visualWeight <= 28 && $itemCount <= 5 => 'medium',
             default => 'compact',
         };
 
-        $noteTopMargin = match(true) {
-            $density === 'compact' => '8px',
-            $itemCount <= 1 && $totalSpecLines <= 4 => '105px',
-            $itemCount <= 1 && $totalSpecLines <= 8 => '65px',
-            $itemCount <= 1 => '30px',
-            $itemCount <= 2 && $totalSpecLines <= 6 => '65px',
-            $itemCount <= 2 => '25px',
-            $itemCount <= 3 && $totalSpecLines <= 6 => '40px',
-            default => '12px'
-        };
+        // Hitung sisa ruang vertikal ideal untuk spasi di atas "Note :" agar 1 halaman A4 terisi proporsional tanpa pernah menabrak footer
+        $freeLines = max(0, 17 - $visualWeight);
+        $noteTopMarginPt = $density === 'compact' ? 2 : max(6, min(68, $freeLines * 6));
+        $noteTopMargin = $noteTopMarginPt . 'pt';
 
-        $pageMargin = $density === 'compact' ? '7mm 13mm 7mm 13mm' : '11mm 14mm 10mm 14mm';
-        $logoWidth = $density === 'compact' ? '150px' : '175px';
-        $quoTitleSize = $density === 'compact' ? '38px' : '44px';
-        $quoTitleMb = $density === 'compact' ? '8px' : '16px';
-        $baseFontSize = $density === 'compact' ? '9px' : '10px';
-        $itemTitleSize = $density === 'compact' ? '9.5px' : '11px';
-        $itemSpecSize = $density === 'compact' ? '8px' : '9.5px';
-        $cellPad = $density === 'compact' ? '2.5px 5px' : '4px 6px';
-        $totPad = $density === 'compact' ? '2px 5px' : '3.5px 6px';
-        $totFontSize = $density === 'compact' ? '9.5px' : '10.5px';
-        $termFontSize = $density === 'compact' ? '8px' : '9px';
-        $termJpSize = $density === 'compact' ? '7.5px' : '8.5px';
-        $sigBoxHeight = $density === 'compact' ? '50px' : '66px';
-        $stampWidth = $density === 'compact' ? '98px' : '118px';
-        $sigImgHeight = $density === 'compact' ? '48px' : '64px';
-        $clientApproveMb = $density === 'compact' ? '22px' : '36px';
+        $pageMargin    = $density === 'compact' ? '6mm 13mm 3mm 13mm' : '10mm 13mm 5mm 13mm';
+        $logoWidth     = $density === 'compact' ? '114pt' : '145pt';
+        $quoTitleSize  = $density === 'compact' ? '30pt' : '40pt';
+        $quoTitleMb    = $density === 'compact' ? '2pt' : '11pt';
+        $itemTitleSize = match($density) { 'compact' => '7.8pt', 'medium' => '9.8pt', default => '10.5pt' };
+        $itemSpecSize  = match($density) { 'compact' => '6.6pt', 'medium' => '8.4pt', default => '8.9pt' };
+        $specLineH     = $density === 'compact' ? '0.98' : '1.06';
+        $cellPad       = match($density) { 'compact' => '0.8pt 3pt', 'medium' => '2.2pt 3.5pt', default => '3pt 4pt' };
+        $totPad        = match($density) { 'compact' => '1pt 3pt', 'medium' => '2.2pt 3.5pt', default => '3pt 4pt' };
+        $totFontSize   = match($density) { 'compact' => '7.9pt', 'medium' => '9.8pt', default => '10.5pt' };
+        $termFontSize  = $density === 'compact' ? '7.2pt' : '8.7pt';
+        $termJpSize    = $density === 'compact' ? '6.8pt' : '8.5pt';
+        $sigBoxHeight  = $density === 'compact' ? '28pt' : '50pt';
+        $stampWidth    = $density === 'compact' ? '68pt' : '94pt';
+        $sigImgHeight  = $density === 'compact' ? '28pt' : '50pt';
+        $footerSpacer  = $density === 'compact' ? '58pt' : '68pt';
+        $footerImgW    = $density === 'compact' ? '78%' : '92%';
     @endphp
     <style>
         @page {
@@ -122,12 +117,6 @@
             font-family: 'CalibriLight';
             src: url('{{ str_replace('\\', '/', public_path('fonts/calibril.ttf')) }}') format('truetype');
             font-weight: normal;
-            font-style: normal;
-        }
-        @font-face {
-            font-family: 'CalibriLight';
-            src: url('{{ str_replace('\\', '/', public_path('fonts/calibril.ttf')) }}') format('truetype');
-            font-weight: bold;
             font-style: normal;
         }
         @endif
@@ -163,6 +152,30 @@
             font-style: italic;
         }
         @endif
+        @if(file_exists(public_path('fonts/arial.ttf')))
+        @font-face {
+            font-family: 'ArialFont';
+            src: url('{{ str_replace('\\', '/', public_path('fonts/arial.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        @endif
+        @if(file_exists(public_path('fonts/arialbd.ttf')))
+        @font-face {
+            font-family: 'ArialFont';
+            src: url('{{ str_replace('\\', '/', public_path('fonts/arialbd.ttf')) }}') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        @endif
+        @if(file_exists(public_path('fonts/ariali.ttf')))
+        @font-face {
+            font-family: 'ArialFont';
+            src: url('{{ str_replace('\\', '/', public_path('fonts/ariali.ttf')) }}') format('truetype');
+            font-weight: normal;
+            font-style: italic;
+        }
+        @endif
         @if(file_exists(public_path('fonts/msgothic.ttf')))
         @font-face {
             font-family: 'JapaneseFont';
@@ -179,11 +192,14 @@
         @endif
         body {
             font-family: 'CalibriFont', 'Helvetica', 'Arial', sans-serif;
-            font-size: {{ $baseFontSize }};
+            font-size: 8.9pt;
             color: #000;
             margin: 0;
             padding: 0;
-            line-height: 1.1;
+            line-height: 1.12;
+        }
+        .arial {
+            font-family: 'ArialFont', 'Helvetica', 'Arial', sans-serif;
         }
         .jp {
             font-family: 'JapaneseFont', sans-serif;
@@ -201,7 +217,7 @@
             width: 100%;
             table-layout: fixed;
             border-collapse: collapse;
-            border: 1px solid #888;
+            border: 1px solid #808080;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -212,34 +228,34 @@
 </head>
 <body>
 
-    <!-- HEADER TABLE -->
-    <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 1px;">
+    <!-- HEADER TABLE (Grid 65% Kiri / 35% Kanan sejajar dengan kolom HARGA + JUMLAH HARGA) -->
+    <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 1pt;">
         <tr>
-            <td style="width: 55%; vertical-align: top; border: none; padding: 0;">
+            <td style="width: 65%; vertical-align: top; border: none; padding: 0;">
                 @if(file_exists(public_path('images/pedia_logo_hd.png')))
                     <img src="{{ public_path('images/pedia_logo_hd.png') }}" style="width: {{ $logoWidth }}; height: auto; display: block;">
                 @elseif(file_exists(public_path('images/logo.png')))
                     <img src="{{ public_path('images/logo.png') }}" style="width: {{ $logoWidth }}; height: auto; display: block;">
                 @else
-                    <strong style="font-size: 16px; color: #000;">PEDIA TECHNOLOGY</strong>
+                    <strong style="font-size: 14pt; color: #000;">PEDIA TECHNOLOGY</strong>
                 @endif
-                <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '10px' : '11px' }}; text-transform: uppercase; margin-top: 2px; color: #000; line-height: 1.05;">PT. PEDIA TEKNOLOGI INDONESIA</div>
-                <div style="font-style: italic; font-size: {{ $density === 'compact' ? '8px' : '8.5px' }}; color: #595959; line-height: 1.05; padding-left: 6px;">With Our Experience Everything Is Possible</div>
+                <div style="font-weight: bold; font-size: 9.8pt; text-transform: uppercase; margin-top: 2pt; color: #000; line-height: 1.1;">PT. PEDIA TEKNOLOGI INDONESIA</div>
+                <div style="font-weight: bold; font-style: italic; font-size: 7.6pt; color: #7f7f7f; line-height: 1.1; padding-left: 7pt;">With Our Experience Everything Is Possible</div>
             </td>
-            <td style="width: 45%; vertical-align: top; text-align: right; border: none; padding: 0;">
-                <div style="font-family: 'CalibriLight', 'CalibriFont', sans-serif; font-size: {{ $quoTitleSize }}; color: #7f7f7f; line-height: 1; margin-top: 2px; margin-bottom: {{ $quoTitleMb }}; font-weight: bold; text-align: right;">Quotation</div>
-                <table align="right" style="width: 215px; border-collapse: collapse; font-size: {{ $baseFontSize }};">
+            <td style="width: 35%; vertical-align: top; text-align: right; border: none; padding: 0;">
+                <div style="font-family: 'CalibriFont', sans-serif; font-size: {{ $quoTitleSize }}; color: #7f7f7f; line-height: 0.92; margin-top: 2pt; margin-bottom: {{ $quoTitleMb }}; font-weight: normal; text-align: right;">Quotation</div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 8.9pt;">
                     <tr>
-                        <td style="font-weight: bold; padding: 1px 6px 1px 0; text-align: right; text-transform: uppercase; border: none; width: 95px;">TANGGAL</td>
-                        <td style="text-align: right; padding: 1px 0; border: none; width: 120px;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
+                        <td style="width: 50%; font-weight: bold; padding: 1pt 4pt 1pt 0; text-align: right; text-transform: uppercase; border: none;">TANGGAL</td>
+                        <td style="width: 50%; text-align: right; padding: 1pt 0; border: none;">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
                     </tr>
                     <tr>
-                        <td style="font-weight: bold; padding: 1px 6px 1px 0; text-align: right; border: none;">No. Penawaran</td>
-                        <td style="text-align: right; padding: 1px 0; border: none;">{{ $rfq->quotation_number }}</td>
+                        <td style="font-weight: bold; padding: 1pt 4pt 1pt 0; text-align: right; border: none;">No. Penawaran</td>
+                        <td style="text-align: right; padding: 1pt 0; border: none;">{{ $rfq->quotation_number }}</td>
                     </tr>
                     @if(isset($revisionCount) && $revisionCount > 0)
                     <tr>
-                        <td colspan="2" style="color: #c00000; font-weight: bold; text-align: right; padding: 1px 0 0 0; border: none;">
+                        <td colspan="2" style="color: #ff0000; font-weight: bold; text-align: right; padding: 1pt 0 0 0; border: none;">
                             REVISI {{ $revRoman }} : {{ $formattedRevDate }}
                         </td>
                     </tr>
@@ -249,31 +265,31 @@
         </tr>
     </table>
 
-    <!-- INFO KLIEN & BERLAKU S/D -->
-    <table style="width: 100%; border-collapse: collapse; margin-top: {{ $density === 'compact' ? '3px' : '6px' }}; margin-bottom: {{ $density === 'compact' ? '3px' : '6px' }}; border: none;">
+    <!-- INFO KLIEN & BERLAKU S/D (Kiri 65% Arial, Kanan 35% sejajar kolom HARGA + JUMLAH HARGA) -->
+    <table style="width: 100%; border-collapse: collapse; margin-top: 1pt; margin-bottom: {{ $density === 'compact' ? '2pt' : '6pt' }}; border: none;">
         <tr>
-            <td style="width: 58%; vertical-align: bottom; font-size: {{ $baseFontSize }}; line-height: 1.04; border: none; padding: 0;">
-                <div style="color: #000; line-height: 1.04;">Kepada YTH</div>
-                <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '10.5px' : '11.5px' }}; color: #000; line-height: 1.08; margin-top: 1px; margin-bottom: 1px;">{{ $clientCompanyName }}</div>
+            <td class="arial" style="width: 65%; vertical-align: bottom; font-size: {{ $density === 'compact' ? '8.4pt' : '8.9pt' }}; line-height: {{ $density === 'compact' ? '1.08' : '1.14' }}; border: none; padding: 0;">
+                <div style="color: #000;">Kepada YTH</div>
+                <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '9.2pt' : '9.8pt' }}; color: #000; line-height: 1.15; margin-top: 1pt; margin-bottom: 1pt;">{{ $clientCompanyName }}</div>
                 @if(!empty($custAddress))
                     @foreach(preg_split('/\r\n|\r|\n/', trim($custAddress)) as $addrLine)
                         @if(trim($addrLine) !== '')
-                        <div style="color: #000; line-height: 1.04;">{{ trim($addrLine) }}</div>
+                        <div style="color: #000;">{{ trim($addrLine) }}</div>
                         @endif
                     @endforeach
                 @endif
                 @if(!empty($custPhone))
-                <div style="color: #000; line-height: 1.04;">Telp : {{ $custPhone }}</div>
+                <div style="color: #000;">Telp : {{ $custPhone }}</div>
                 @endif
                 @if(!empty($custPic))
-                <div style="color: #000; line-height: 1.04;">Up. {{ $custPic }}</div>
+                <div style="color: #000;">Up. {{ $custPic }}</div>
                 @endif
             </td>
-            <td style="width: 42%; vertical-align: bottom; text-align: right; border: none; padding: 0;">
-                <table align="right" style="width: 215px; border-collapse: collapse; background-color: #f2f2f2;">
+            <td style="width: 35%; vertical-align: bottom; text-align: right; border: none; padding: 0;">
+                <table style="width: 100%; border-collapse: collapse; background-color: #f2f2f2;">
                     <tr>
-                        <td style="padding: 2.5px 8px; font-size: {{ $baseFontSize }}; font-style: italic; color: #000; text-align: left; border: none;">Berlaku s/d tgl :</td>
-                        <td style="padding: 2.5px 8px; font-size: {{ $baseFontSize }}; color: #000; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
+                        <td class="arial" style="width: 50%; padding: 2pt 4pt; font-size: 8.9pt; font-style: italic; color: #000; text-align: center; border: none;">Berlaku s/d tgl :</td>
+                        <td style="width: 50%; padding: 2pt 2pt; font-size: 8.9pt; color: #000; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
                     </tr>
                 </table>
             </td>
@@ -281,18 +297,18 @@
     </table>
 
     <!-- KALIMAT PEMBUKA -->
-    <div style="font-size: {{ $baseFontSize }}; margin-top: {{ $density === 'compact' ? '3px' : '6px' }}; margin-bottom: 2px; color: #000; line-height: 1.05;">
-        Berikut penawaran dari kami<span class="jp" style="font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }};">・下記の通り御見積申し上げます。</span>
+    <div style="font-size: {{ $density === 'compact' ? '8.8pt' : '9.8pt' }}; margin-top: {{ $density === 'compact' ? '2pt' : '5pt' }}; margin-bottom: 2pt; color: #000; line-height: 1.1;">
+        Berikut penawaran dari kami<span class="jp" style="font-size: {{ $density === 'compact' ? '8.5pt' : '9.5pt' }};">・下記の通り御見積申し上げます。</span>
     </div>
 
-    <!-- TABEL PENAWARAN (PERSIS SAMPLING) -->
+    <!-- TABEL PENAWARAN (PERSIS SAMPLING: 9.6% | 55.4% | 17.5% | 17.5%) -->
     <table class="main-table">
         <thead>
             <tr style="background-color: #f2f2f2;">
-                <th style="border: 1px solid #888; padding: {{ $density === 'compact' ? '2.5px 4px' : '4px 4px' }}; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; width: 11%; text-align: center; text-transform: uppercase;">JUMLAH</th>
-                <th style="border: 1px solid #888; padding: {{ $density === 'compact' ? '2.5px 4px' : '4px 4px' }}; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; width: 53%; text-align: center; text-transform: uppercase;">DESKRIPSI</th>
-                <th style="border: 1px solid #888; padding: {{ $density === 'compact' ? '2.5px 4px' : '4px 4px' }}; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; width: 17%; text-align: center; text-transform: uppercase;">HARGA</th>
-                <th style="border: 1px solid #888; padding: {{ $density === 'compact' ? '2.5px 4px' : '4px 4px' }}; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; width: 19%; text-align: center; text-transform: uppercase;">JUMLAH HARGA</th>
+                <th style="border: 1px solid #808080; padding: {{ $density === 'compact' ? '2pt 2pt' : '3pt 2pt' }}; font-weight: bold; font-size: 8.7pt; width: 9.6%; text-align: center; text-transform: uppercase;">JUMLAH</th>
+                <th style="border: 1px solid #808080; padding: {{ $density === 'compact' ? '2pt 4pt' : '3pt 4pt' }}; font-weight: bold; font-size: 8.7pt; width: 55.4%; text-align: center; text-transform: uppercase;">DESKRIPSI</th>
+                <th style="border: 1px solid #808080; padding: {{ $density === 'compact' ? '2pt 4pt' : '3pt 4pt' }}; font-weight: bold; font-size: 8.7pt; width: 17.5%; text-align: center; text-transform: uppercase;">HARGA</th>
+                <th style="border: 1px solid #808080; padding: {{ $density === 'compact' ? '2pt 4pt' : '3pt 4pt' }}; font-weight: bold; font-size: 8.7pt; width: 17.5%; text-align: center; text-transform: uppercase;">JUMLAH HARGA</th>
             </tr>
         </thead>
         <tbody>
@@ -308,53 +324,58 @@
                     $totalQty += $item->qty;
                 @endphp
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $cellPad }}; text-align: center; font-weight: bold; font-size: {{ $itemTitleSize }}; vertical-align: top; line-height: 1.05;">
-                        {{ (int) $item->qty }} {{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-weight: bold; font-size: {{ $itemTitleSize }}; vertical-align: top; line-height: 1.08;">
+                        <table style="width: 100%; border: none;">
+                            <tr>
+                                <td style="width: 40%; text-align: right; padding: 0 2pt 0 0; border: none; font-weight: bold;">{{ (int) $item->qty }}</td>
+                                <td style="width: 60%; text-align: left; padding: 0 0 0 2pt; border: none; font-weight: bold;">{{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}</td>
+                            </tr>
+                        </table>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $cellPad }}; font-size: {{ $baseFontSize }}; line-height: 1.05; vertical-align: top;">
-                        <div style="font-weight: bold; font-size: {{ $itemTitleSize }}; color: #000; line-height: 1.06;">{{ ucfirst($item->product_name) }}</div>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: 8.9pt; line-height: 1.08; vertical-align: top;">
+                        <div style="font-weight: bold; font-size: {{ $itemTitleSize }}; color: #000; line-height: 1.08;">{{ ucfirst($item->product_name) }}</div>
                         @php $itemSpec = trim((string) ($item->description ?: $item->detail_item)); @endphp
                         @if($itemSpec !== '')
-                        <div style="color: #111; margin-top: 1px; font-size: {{ $itemSpecSize }}; font-style: italic;">
+                        <div style="color: #000; margin-top: 1pt; font-size: {{ $itemSpecSize }}; font-style: italic;">
                             @foreach(preg_split('/\r\n|\r|\n/', ucfirst($itemSpec)) as $specLine)
                                 @if(trim($specLine) !== '')
-                                <div style="line-height: 1.04;">{{ trim($specLine) }}</div>
+                                <div style="line-height: {{ $specLineH }};">{{ trim($specLine) }}</div>
                                 @endif
                             @endforeach
                         </div>
                         @endif
 
                         @if($loop->last)
-                        <div style="margin-top: {{ $noteTopMargin }}; font-size: {{ $itemSpecSize }}; line-height: 1.04;">
-                            <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '9px' : '10.5px' }}; color: #000; margin-bottom: 1px; line-height: 1.06;">Note :</div>
+                        <div style="margin-top: {{ $noteTopMargin }}; font-size: {{ $itemSpecSize }}; line-height: {{ $specLineH }};">
+                            <div style="font-weight: bold; font-size: {{ $itemTitleSize }}; color: #000; margin-bottom: 1pt; line-height: 1.05;">Note :</div>
                             @foreach($customNotes as $cNote)
                                 @php
                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                 @endphp
-                                <div style="font-style: italic; color: #c00000; line-height: 1.04; font-weight: bold;">{{ $formattedNote }}</div>
+                                <div style="font-style: italic; color: #ff0000; line-height: {{ $specLineH }}; font-weight: bold;">{{ $formattedNote }}</div>
                             @endforeach
-                            <div style="font-style: italic; color: #000; line-height: 1.04;">- Harga dapat berubah tanpa pemberitahuan</div>
-                            <div style="font-style: italic; color: #000; line-height: 1.04;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                            <div style="font-style: italic; color: #000; line-height: {{ $specLineH }};">- Harga dapat berubah tanpa pemberitahuan</div>
+                            <div style="font-style: italic; color: #000; line-height: {{ $specLineH }};">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                         </div>
                         @endif
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.05;">
-                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.08;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.05;">
-                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none;">Rp</td><td style="text-align: right; padding: 0; border: none;">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.08;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 60px 6px 4px 6px; font-size: 9.5px; line-height: 1.08; vertical-align: bottom;">
-                        <div style="font-weight: bold; font-size: 10.5px; color: #000; margin-bottom: 2px;">Note :</div>
-                        <div style="font-style: italic; color: #000; line-height: 1.08;">- Harga dapat berubah tanpa pemberitahuan</div>
-                        <div style="font-style: italic; color: #000; line-height: 1.08;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 4pt; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 50pt 4pt 4pt 4pt; font-size: 8.9pt; line-height: 1.1; vertical-align: bottom;">
+                        <div style="font-weight: bold; font-size: 10.5pt; color: #000; margin-bottom: 2pt;">Note :</div>
+                        <div style="font-style: italic; color: #000; line-height: 1.1;">- Harga dapat berubah tanpa pemberitahuan</div>
+                        <div style="font-style: italic; color: #000; line-height: 1.1;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                     </td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; border-bottom: 1px solid #888; padding: 4px; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 4pt; vertical-align: bottom;"></td>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 4pt; vertical-align: bottom;"></td>
                 </tr>
             @endforelse
 
@@ -368,39 +389,53 @@
 
             @if($isIncludeTax)
                 <!-- TOTAL HARGA ROW (Include PPN / Perorangan) -->
-                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: {{ $totFontSize }};">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }}; text-align: center;">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
-                    <td style="border-left: 1px solid #888; border-right: none; padding: {{ $totPad }}; padding-right: 10px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
-                    <td style="border-left: none; border-right: 1px solid #888; padding: {{ $totPad }};"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }};">
+                <tr style="font-weight: bold; font-size: {{ $totFontSize }};">
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
+                        <table style="width: 100%; border: none;">
+                            <tr>
+                                <td style="width: 40%; text-align: right; padding: 0 2pt 0 0; border: none; font-weight: bold;">{{ (int) $totalQty }}</td>
+                                <td style="width: 60%; text-align: left; padding: 0 0 0 2pt; border: none; font-weight: bold;">{{ $summaryUnitLabel }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: 1px solid #808080; border-right: none; padding: {{ $totPad }}; padding-right: 6pt; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: none; border-right: 1px solid #808080; padding: {{ $totPad }};"></td>
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
             @else
-                <!-- TOTAL ROW (Sesuai Sampling: Label TOTAL di ujung kanan kolom DESKRIPSI, kolom HARGA kosong) -->
-                <tr style="border-top: 1px solid #888; border-bottom: 1px solid #888; font-weight: bold; font-size: {{ $totFontSize }};">
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }}; text-align: center;">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
-                    <td style="border-left: 1px solid #888; border-right: none; padding: {{ $totPad }}; padding-right: 10px; text-align: right; text-transform: uppercase;">TOTAL</td>
-                    <td style="border-left: none; border-right: 1px solid #888; padding: {{ $totPad }};"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }};">
+                <!-- TOTAL ROW (Sesuai Sampling: Label TOTAL di ujung kanan kolom DESKRIPSI, border horizontal utuh tanpa putus) -->
+                <tr style="font-weight: bold; font-size: {{ $totFontSize }};">
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
+                        <table style="width: 100%; border: none;">
+                            <tr>
+                                <td style="width: 40%; text-align: right; padding: 0 2pt 0 0; border: none; font-weight: bold;">{{ (int) $totalQty }}</td>
+                                <td style="width: 60%; text-align: left; padding: 0 0 0 2pt; border: none; font-weight: bold;">{{ $summaryUnitLabel }}</td>
+                            </tr>
+                        </table>
+                    </td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: 1px solid #808080; border-right: none; padding: {{ $totPad }}; padding-right: 6pt; text-align: right; text-transform: uppercase;">TOTAL</td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: none; border-right: 1px solid #808080; padding: {{ $totPad }};"></td>
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandSubtotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
 
                 <!-- PPN ROW -->
-                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: {{ $totFontSize }};">
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: none; padding: {{ $totPad }}; padding-right: 10px; text-align: right;">PPn</td>
-                    <td style="border-left: none; border-right: 1px solid #888; padding: {{ $totPad }};"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }};">
+                <tr style="font-weight: bold; font-size: {{ $totFontSize }};">
+                    <td colspan="2" style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: 1px solid #808080; border-right: none; padding: {{ $totPad }}; padding-right: 6pt; text-align: right;">PPn</td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: none; border-right: 1px solid #808080; padding: {{ $totPad }};"></td>
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($ppn, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
 
                 <!-- TOTAL HARGA ROW -->
-                <tr style="border-bottom: 1px solid #888; font-weight: bold; font-size: {{ $totFontSize }};">
-                    <td colspan="2" style="border-left: 1px solid #888; border-right: none; padding: {{ $totPad }}; padding-right: 10px; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
-                    <td style="border-left: none; border-right: 1px solid #888; padding: {{ $totPad }};"></td>
-                    <td style="border-left: 1px solid #888; border-right: 1px solid #888; padding: {{ $totPad }};">
+                <tr style="font-weight: bold; font-size: {{ $totFontSize }};">
+                    <td colspan="2" style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: 1px solid #808080; border-right: none; padding: {{ $totPad }}; padding-right: 6pt; text-align: right; text-transform: uppercase;">TOTAL HARGA</td>
+                    <td style="border-top: 1px solid #808080; border-bottom: 1px solid #808080; border-left: none; border-right: 1px solid #808080; padding: {{ $totPad }};"></td>
+                    <td style="border: 1px solid #808080; padding: {{ $totPad }};">
                         <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($grandTotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
@@ -411,15 +446,15 @@
     <!-- BAGIAN BAWAH (SYARAT, PENUTUP, TTD) DIJAGA AGAR TIDAK TERPOTONG BURUK -->
     <div style="page-break-inside: avoid;">
         <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
-        <div style="font-size: {{ $termFontSize }}; line-height: 1.06; margin-top: {{ $density === 'compact' ? '3px' : '5px' }}; margin-bottom: {{ $density === 'compact' ? '3px' : '6px' }};">
+        <div style="font-size: {{ $termFontSize }}; line-height: 1.12; margin-top: {{ $density === 'compact' ? '2pt' : '4pt' }}; margin-bottom: {{ $density === 'compact' ? '3pt' : '6pt' }};">
             @if($rfq->isPaymentTermCbdPersonal())
                 <table style="width: 100%; border: none;">
                     <tr>
-                        <td class="check" style="width: 24px; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
-                        <td style="border: none; color: #c00000; font-style: italic; line-height: 1.06;">
-                            <div style="line-height: 1.06;">Sistem pembayaran Cash Before Delivery</div>
-                            <table style="border: none; border-collapse: collapse; margin: 0; padding: 0; color: #c00000; font-style: italic; font-size: {{ $termFontSize }}; line-height: 1.06;">
-                                <tr><td style="width: 68px; border: none; padding: 0;">Nama Bank</td><td style="border: none; padding: 0;">: BANK MANDIRI</td></tr>
+                        <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
+                        <td style="width: 95.4%; border: none; color: #ff0000; font-style: italic; line-height: 1.12;">
+                            <div style="line-height: 1.12;">Sistem pembayaran Cash Before Delivery</div>
+                            <table style="border: none; border-collapse: collapse; margin: 0; padding: 0; color: #ff0000; font-style: italic; font-size: {{ $termFontSize }}; line-height: 1.12;">
+                                <tr><td style="width: 65pt; border: none; padding: 0;">Nama Bank</td><td style="border: none; padding: 0;">: BANK MANDIRI</td></tr>
                                 <tr><td style="border: none; padding: 0;">Cabang</td><td style="border: none; padding: 0;">: KEMANG PRATAMA BEKASI</td></tr>
                                 <tr><td style="border: none; padding: 0;">Nama Akun</td><td style="border: none; padding: 0;">: PEDIA TEKNOLOGI INDONESIA</td></tr>
                                 <tr><td style="border: none; padding: 0;">No. Akun</td><td style="border: none; padding: 0;">: 1670024241514 (IDR)</td></tr>
@@ -427,27 +462,27 @@
                         </td>
                     </tr>
                     <tr>
-                        <td class="check" style="width: 24px; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2px; border: none; text-align: center;">&#10003;</td>
-                        <td style="padding-top: 2px; border: none; color: #000; line-height: 1.06;">
-                            <div style="font-style: italic; line-height: 1.06;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="jp" style="color: #000; font-style: normal; font-size: {{ $termJpSize }}; line-height: 1.1; margin-top: 1px;">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                        <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;">&#10003;</td>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; color: #000; line-height: 1.12;">
+                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="jp" style="color: #000; font-style: normal; font-size: {{ $termJpSize }}; line-height: 1.15; margin-top: 1pt;">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </td>
                     </tr>
                 </table>
             @elseif($rfq->isPaymentTermCbdB2b())
                 <table style="width: 100%; border: none;">
                     <tr>
-                        <td style="width: 24px; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; border: none; text-align: center;" class="jp">※</td>
-                        <td style="border: none; line-height: 1.06;">
-                            <div style="font-style: italic; line-height: 1.06;">Sistem pembayaran Cash Before Delivery</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.1;" class="jp">支払条件：前払い（納品前）</div>
+                        <td style="width: 4.6%; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; border: none; text-align: center;" class="jp">※</td>
+                        <td style="width: 95.4%; border: none; line-height: 1.12;">
+                            <div style="font-style: italic; line-height: 1.12;">Sistem pembayaran Cash Before Delivery</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">支払条件：前払い（納品前）</div>
                         </td>
                     </tr>
                     <tr>
-                        <td style="width: 24px; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; padding-top: 2px; border: none; text-align: center;" class="jp">※</td>
-                        <td style="padding-top: 2px; border: none; line-height: 1.06;">
-                            <div style="line-height: 1.06;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.1;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <td style="width: 4.6%; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;" class="jp">※</td>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12;">
+                            <div style="line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </td>
                     </tr>
                 </table>
@@ -455,17 +490,17 @@
                 @php $termDays = $rfq->getPaymentTermDays(); @endphp
                 <table style="width: 100%; border: none;">
                     <tr>
-                        <td class="check" style="width: 24px; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
-                        <td style="border: none; line-height: 1.06;">
-                            <div style="font-style: italic; line-height: 1.06;">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.1;" class="jp">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                        <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
+                        <td style="width: 95.4%; border: none; line-height: 1.12;">
+                            <div style="font-style: italic; line-height: 1.12;">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
                         </td>
                     </tr>
                     <tr>
-                        <td class="check" style="width: 24px; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2px; border: none; text-align: center;">&#10003;</td>
-                        <td style="padding-top: 2px; border: none; line-height: 1.06;">
-                            <div style="font-style: italic; line-height: 1.06;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.1;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;">&#10003;</td>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12;">
+                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </td>
                     </tr>
                 </table>
@@ -473,58 +508,75 @@
         </div>
 
         <!-- PENUTUP -->
-        <div style="font-size: {{ $termFontSize }}; color: #000; margin-top: {{ $density === 'compact' ? '3px' : '6px' }}; margin-bottom: {{ $density === 'compact' ? '5px' : '10px' }}; line-height: 1.06;">
+        <div style="font-size: {{ $termFontSize }}; color: #000; margin-top: {{ $density === 'compact' ? '2pt' : '5pt' }}; margin-bottom: {{ $density === 'compact' ? '3pt' : '8pt' }}; line-height: 1.12;">
             Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi saya di nomor telp : {{ $salesPhone }} atau e-mail {{ $salesEmail }} . Atas perhatian dan kepercayaan nya kami ucapkan Terima Kasih.
         </div>
 
-        <!-- TANDA TANGAN (Persis Sampling) -->
-        <table style="width: 100%; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; margin-top: 2px; margin-bottom: {{ $density === 'compact' ? '4px' : '6px' }}; border: none;">
+        <!-- TANDA TANGAN (Persis Sampling — Baris Nama Sales & Nama Klien sejajar horizontal 100%) -->
+        <table style="width: 100%; font-size: {{ $termFontSize }}; margin-top: 1pt; margin-bottom: 2pt; border: none;">
             <tr>
-                <td style="width: 52%; vertical-align: top; border: none; padding: 0;">
-                    <div>Hormat Kami</div>
-                    <div style="position: relative; width: 220px; height: {{ $sigBoxHeight }}; margin: 2px 0;">
+                <td style="width: 53%; vertical-align: top; border: none; padding: 0;">
+                    <div style="line-height: 1.15;">Hormat Kami</div>
+                    <div style="position: relative; width: 180pt; height: {{ $sigBoxHeight }}; margin: 2pt 0;">
                         @php
                             $stampPath = public_path('images/pedia_company_stamp.png');
                             $hasSig = $salesSigPath && file_exists($salesSigPath);
                         @endphp
                         @if(file_exists($stampPath))
-                            <img src="{{ $stampPath }}" style="position: absolute; left: {{ $hasSig ? '22px' : '6px' }}; top: 2px; width: {{ $stampWidth }}; height: auto;">
+                            <img src="{{ $stampPath }}" style="position: absolute; left: {{ $hasSig ? '16pt' : '4pt' }}; top: 1pt; width: {{ $stampWidth }}; height: auto;">
                         @endif
                         @if($hasSig)
-                            <img src="{{ $salesSigPath }}" style="position: absolute; left: 0px; top: 0px; height: {{ $sigImgHeight }}; width: auto;">
+                            <img src="{{ $salesSigPath }}" style="position: absolute; left: 0pt; top: 0pt; height: {{ $sigImgHeight }}; width: auto;">
                         @endif
                     </div>
-                    <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '9px' : '10px' }}; margin-top: 1px;">{{ $salesName }}</div>
-                    <div style="font-style: italic; font-size: {{ $density === 'compact' ? '8px' : '9px' }}; color: #111;">{{ $salesRole }}</div>
                 </td>
-                <td style="width: 48%; vertical-align: top; padding-left: 10px; border: none;">
-                    <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
-                    <div style="font-size: {{ $density === 'compact' ? '7.5px' : '8.5px' }}; color: #000; margin-bottom: 2px;" class="jp">上記の数量と価格に同意いたします。</div>
-                    <div style="font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; color: #000; margin-bottom: {{ $clientApproveMb }};">{{ $clientCompanyName }}</div>
-                    
+                <td style="width: 47%; vertical-align: top; border: none; padding: 0;">
+                    <div style="line-height: 1.15;">Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
+                    <div style="font-size: {{ $termJpSize }}; color: #000; line-height: 1.15;" class="jp">上記の数量と価格に同意いたします。</div>
+                    <div style="font-size: {{ $termFontSize }}; color: #000; line-height: 1.15; margin-top: 1pt;">{{ $clientCompanyName }}</div>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align: bottom; border: none; padding: 0; font-weight: bold; font-size: {{ $termFontSize }}; line-height: 1.15;">
+                    {{ $salesName }}
+                </td>
+                <td style="vertical-align: bottom; border: none; padding: 0; font-size: {{ $termFontSize }}; line-height: 1.15;">
                     <table style="width: 100%; border: none;">
-                        <tr><td style="width: 36px; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; border: none; padding: 1px 0;">Nama</td><td style="font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; border: none; padding: 1px 0;">: </td></tr>
-                        <tr><td style="font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; border: none; padding: 1px 0;">Jabatan</td><td style="font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; border: none; padding: 1px 0;">: </td></tr>
+                        <tr><td style="width: 34pt; border: none; padding: 0;">Nama</td><td style="border: none; padding: 0;">: </td></tr>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td style="vertical-align: top; border: none; padding: 0; font-style: italic; font-size: {{ $density === 'compact' ? '7.5pt' : '8.2pt' }}; color: #000; line-height: 1.15;">
+                    {{ $salesRole }}
+                </td>
+                <td style="vertical-align: top; border: none; padding: 0; font-size: {{ $termFontSize }}; line-height: 1.15;">
+                    <table style="width: 100%; border: none;">
+                        <tr><td style="width: 34pt; border: none; padding: 0;">Jabatan</td><td style="border: none; padding: 0;">: </td></tr>
                     </table>
                 </td>
             </tr>
         </table>
         <!-- Spacer seukuran tinggi footer agar konten di atas tidak pernah menabrak area footer di bawah -->
-        <div style="height: 64px;"></div>
+        <div style="height: {{ $footerSpacer }};"></div>
     </div>
 
-    <!-- FOOTER (Persis Sampling — selalu menempel di paling bawah halaman terakhir & tidak pernah ganda) -->
-    <div style="position: absolute; bottom: 0px; left: 0px; right: 0px; text-align: center; color: #000;">
-        <div style="font-weight: bold; font-size: 9.5px; line-height: 1.1; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
-        <div style="font-size: 8.5px; line-height: 1.15; margin-bottom: 4px;" class="jp">お買い上げくださってありがとうございます！</div>
-        <div style="font-size: 11px; color: #222; margin-bottom: 5px;">
-            <div style="line-height: 1.02;">Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,</div>
-            <div style="line-height: 1.02;">Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147</div>
-            <div style="line-height: 1.02;">Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175</div>
-        </div>
-        <div style="width: 76%; margin: 0 auto; background-color: #005496; color: #fff; padding: 3px 0; font-size: 10.5px; line-height: 1.1;">
-            website : https://pedia-technology.co.id
-        </div>
+    <!-- FOOTER (Persis Sampling — menggunakan banner footer resmi HD dari sampling Excel/PDF) -->
+    <div style="position: absolute; bottom: 0pt; left: 0pt; right: 0pt; text-align: center; color: #000;">
+        <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '8.2pt' : '8.9pt' }}; line-height: 1.12; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
+        <div style="font-size: {{ $density === 'compact' ? '7.8pt' : '8.5pt' }}; line-height: 1.12; margin-bottom: 2pt;" class="jp">お買い上げくださってありがとうございます！</div>
+        @if(file_exists(public_path('images/pedia_footer_hd.png')))
+            <img src="{{ public_path('images/pedia_footer_hd.png') }}" style="width: {{ $footerImgW }}; height: auto; display: block; margin: 0 auto;">
+        @else
+            <div class="arial" style="font-size: 10.5pt; color: #222; margin-bottom: 4pt;">
+                <div style="line-height: 1.08;">Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,</div>
+                <div style="line-height: 1.08;">Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147</div>
+                <div style="line-height: 1.08;">Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175</div>
+            </div>
+            <div class="arial" style="width: 76%; margin: 0 auto; background-color: #005496; color: #fff; padding: 2.5pt 0; font-size: 9.8pt; line-height: 1.1;">
+                website : https://pedia-technology.co.id
+            </div>
+        @endif
     </div>
 
 </body>

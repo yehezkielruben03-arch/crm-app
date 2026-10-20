@@ -156,28 +156,28 @@
         <div>
             <!-- HEADER -->
             <div class="flex justify-between items-start">
-                <!-- Kiri: Logo & Tagline -->
-                <div>
-                    <img src="{{ asset('images/pedia_logo_hd.png') }}" alt="Pedia Technology" class="h-[52px] object-contain block" onerror="this.src='{{ asset('images/logo.png') }}'">
-                    <div class="font-bold text-[13px] uppercase tracking-tight text-black mt-2 leading-none">PT. PEDIA TEKNOLOGI INDONESIA</div>
-                    <div class="italic text-[11px] text-[#444] font-normal mt-1">With Our Experience Everything Is Possible</div>
+                <!-- Kiri: Logo & Tagline (65%) -->
+                <div class="w-[65%]">
+                    <img src="{{ asset('images/pedia_logo_hd.png') }}" alt="Pedia Technology" class="w-[195px] h-auto object-contain block" onerror="this.src='{{ asset('images/logo.png') }}'">
+                    <div class="font-bold text-[13px] uppercase tracking-tight text-black mt-1 leading-tight">PT. PEDIA TEKNOLOGI INDONESIA</div>
+                    <div class="italic font-bold text-[10.5px] text-[#7f7f7f] pl-2 leading-tight">With Our Experience Everything Is Possible</div>
                 </div>
 
-                <!-- Kanan: Judul Quotation -->
-                <div class="text-right">
-                    <div class="text-[44px] text-[#555555] font-light leading-none mb-3 tracking-wide" style="font-family: 'Calibri Light', Calibri, sans-serif;">Quotation</div>
-                    <table class="ml-auto text-[11.5px] text-right border-collapse">
+                <!-- Kanan: Judul Quotation (35% sejajar HARGA + JUMLAH HARGA) -->
+                <div class="w-[35%] text-right">
+                    <div class="text-[52px] text-[#7f7f7f] font-normal leading-none mb-3" style="font-family: Calibri, sans-serif;">Quotation</div>
+                    <table class="w-full text-[12px] border-collapse">
                         <tr>
-                            <td class="pr-5 py-0.5 text-right uppercase text-[#222]" style="font-family: 'Calibri Light', Calibri, sans-serif;">TANGGAL</td>
-                            <td class="text-right font-normal text-black py-0.5">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
+                            <td class="w-1/2 pr-2 py-0.5 text-right uppercase text-black">TANGGAL</td>
+                            <td class="w-1/2 text-right font-normal text-black py-0.5">{{ \Carbon\Carbon::parse($rfq->rfq_date)->format('d M Y') }}</td>
                         </tr>
                         <tr>
-                            <td class="pr-5 py-0.5 text-right text-[#222]" style="font-family: 'Calibri Light', Calibri, sans-serif;">No. Penawaran</td>
-                            <td class="text-right font-normal text-black py-0.5">{{ $rfq->quotation_number }}</td>
+                            <td class="w-1/2 pr-2 py-0.5 text-right text-black">No. Penawaran</td>
+                            <td class="w-1/2 text-right font-normal text-black py-0.5">{{ $rfq->quotation_number }}</td>
                         </tr>
                         @if(isset($revisionCount) && $revisionCount > 0)
                         <tr>
-                            <td colspan="2" class="text-red-600 font-bold py-0.5 text-right tracking-wide text-[11.5px]">
+                            <td colspan="2" class="text-[#ff0000] font-bold py-0.5 text-right text-[12px]">
                                 REVISI {{ $revRoman }} : {{ $formattedRevDate }}
                             </td>
                         </tr>
@@ -187,42 +187,44 @@
             </div>
 
             <!-- INFO KLIEN & BERLAKU S/D -->
-            <div class="flex justify-between items-end mt-4 mb-2 text-[11.5px]">
-                <!-- Info Klien (Kiri) -->
-                <div class="leading-relaxed max-w-[340px]" style="font-family: Arial, sans-serif;">
-                    <div class="text-black" style="font-family: Calibri, sans-serif;">Kepada YTH</div>
-                    <div class="font-bold text-[13px] text-black mt-0.5">{{ $clientCompanyName }}</div>
+            <div class="flex justify-between items-end mt-2 mb-2 text-[12px]">
+                <!-- Info Klien (Kiri 65%) -->
+                <div class="w-[65%] leading-snug pr-4" style="font-family: Arial, sans-serif;">
+                    <div class="text-black">Kepada YTH</div>
+                    <div class="font-bold text-[13px] text-black my-0.5">{{ $clientCompanyName }}</div>
                     @if(!empty($custAddress))
-                    <div class="whitespace-pre-line text-[#222]">{{ $custAddress }}</div>
+                    <div class="whitespace-pre-line text-black">{{ $custAddress }}</div>
                     @endif
                     @if(!empty($custPhone))
-                    <div class="text-[#222]">Telp : {{ $custPhone }}</div>
+                    <div class="text-black">Telp : {{ $custPhone }}</div>
                     @endif
-                    <div class="text-[#222]">Up. {{ $custPic }}</div>
+                    @if(!empty($custPic))
+                    <div class="text-black">Up. {{ $custPic }}</div>
+                    @endif
                 </div>
 
-                <!-- Berlaku s/d (Kanan, Kotak Abu-abu persis sampling) -->
-                <div class="self-end mb-1">
-                    <div class="bg-[#f2f2f2] px-3.5 py-1 w-[240px] flex items-center justify-between text-[11.5px]">
-                        <span class="italic text-black" style="font-family: Arial, sans-serif;">Berlaku s/d tgl :</span>
-                        <span class="font-normal text-black" style="font-family: Calibri, sans-serif;">{{ $rfq->formatted_valid_until }}</span>
+                <!-- Berlaku s/d (Kanan 35%, Kotak Abu-abu sejajar kolom HARGA + JUMLAH HARGA) -->
+                <div class="w-[35%] self-end">
+                    <div class="bg-[#f2f2f2] py-1 px-1 w-full flex items-center text-[12px]">
+                        <span class="w-1/2 text-center italic text-black" style="font-family: Arial, sans-serif;">Berlaku s/d tgl :</span>
+                        <span class="w-1/2 text-right pr-1 font-normal text-black" style="font-family: Calibri, sans-serif;">{{ $rfq->formatted_valid_until }}</span>
                     </div>
                 </div>
             </div>
 
             <!-- Kalimat Pembuka -->
-            <div class="text-[11.5px] text-black mt-3 mb-2 font-normal">
-                Berikut penawaran dari kami ・ 下記の通り御見積申し上げます。
+            <div class="text-[13px] text-black mt-3 mb-1.5 font-normal">
+                Berikut penawaran dari kami・下記の通り御見積申し上げます。
             </div>
 
-            <!-- TABEL PENAWARAN (PERSIS SAMPLING) -->
-            <table class="table-sampling mb-4">
+            <!-- TABEL PENAWARAN (PERSIS SAMPLING: 9.6% | 55.4% | 17.5% | 17.5%) -->
+            <table class="table-sampling mb-2">
                 <thead>
                     <tr>
-                        <th style="width: 58px;">JUMLAH</th>
-                        <th>DESKRIPSI</th>
-                        <th style="width: 115px;">HARGA</th>
-                        <th style="width: 125px;">JUMLAH HARGA</th>
+                        <th style="width: 9.6%; font-weight: normal;">JUMLAH</th>
+                        <th style="width: 55.4%; font-weight: normal;">DESKRIPSI</th>
+                        <th style="width: 17.5%; font-weight: normal;">HARGA</th>
+                        <th style="width: 17.5%; font-weight: normal;">JUMLAH HARGA</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -239,21 +241,24 @@
                             $totalQty += $item->qty;
                         @endphp
                         <tr class="item-row">
-                            <td class="text-center font-bold">
-                                {{ (int) $item->qty }} {{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}
+                            <td class="font-bold !px-1">
+                                <div class="flex w-full">
+                                    <span class="w-[40%] text-right pr-1">{{ (int) $item->qty }}</span>
+                                    <span class="w-[60%] text-left pl-0.5">{{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}</span>
+                                </div>
                             </td>
                             <td>
                                 @if($loop->last)
                                     <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-between">
                                         <div>
-                                            <div class="font-bold text-[12.5px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
+                                            <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e(ucfirst($itemSpec)) !!}</div>
+                                            <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! e(ucfirst($itemSpec)) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
-                                            <div class="font-bold text-[12px] text-black mb-1">Note :</div>
+                                            <div class="font-bold text-[14px] text-black mb-0.5">Note :</div>
                                             @php
                                                 $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
                                                     $clean = strtolower(trim(ltrim($line, '- ')));
@@ -264,17 +269,17 @@
                                                 @php
                                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                                 @endphp
-                                                <div class="italic text-rose-600 font-semibold text-[11.5px] leading-relaxed">{{ $formattedNote }}</div>
+                                                <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug">{{ $formattedNote }}</div>
                                             @endforeach
-                                            <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
-                                            <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                                            <div class="italic text-black text-[12px] leading-snug">- Harga dapat berubah tanpa pemberitahuan</div>
+                                            <div class="italic text-black text-[12px] leading-snug">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                                         </div>
                                     </div>
                                 @else
-                                    <div class="font-bold text-[12.5px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
+                                    <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[11.5px] text-[#333] whitespace-pre-line mt-0.5 leading-normal">{!! e(ucfirst($itemSpec)) !!}</div>
+                                    <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! e(ucfirst($itemSpec)) !!}</div>
                                     @endif
                                 @endif
                             </td>
@@ -290,9 +295,9 @@
                             <td></td>
                             <td>
                                 <div style="min-height: 180px;" class="flex flex-col justify-end">
-                                    <div class="font-bold text-[12px] text-black mb-1">Note :</div>
-                                    <div class="italic text-black text-[11.5px] leading-relaxed">- Harga dapat berubah tanpa pemberitahuan</div>
-                                    <div class="italic text-black text-[11.5px] leading-relaxed">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
+                                    <div class="font-bold text-[14px] text-black mb-0.5">Note :</div>
+                                    <div class="italic text-black text-[12px] leading-snug">- Harga dapat berubah tanpa pemberitahuan</div>
+                                    <div class="italic text-black text-[12px] leading-snug">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                                 </div>
                             </td>
                             <td></td>
@@ -311,8 +316,13 @@
                     @if($isIncludeTax)
                         <!-- TOTAL HARGA (Include PPN / Perorangan) -->
                         <tr class="total-row">
-                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
-                            <td style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL HARGA</td>
+                            <td class="font-bold !px-1">
+                                <div class="flex w-full">
+                                    <span class="w-[40%] text-right pr-1">{{ (int) $totalQty }}</span>
+                                    <span class="w-[60%] text-left pl-0.5">{{ $summaryUnitLabel }}</span>
+                                </div>
+                            </td>
+                            <td style="border-right: none;" class="text-right pr-2 uppercase font-bold">TOTAL HARGA</td>
                             <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
@@ -321,8 +331,13 @@
                     @else
                         <!-- 1. TOTAL -->
                         <tr class="total-row">
-                            <td class="text-center font-bold">{{ (int) $totalQty }} {{ $summaryUnitLabel }}</td>
-                            <td style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL</td>
+                            <td class="font-bold !px-1">
+                                <div class="flex w-full">
+                                    <span class="w-[40%] text-right pr-1">{{ (int) $totalQty }}</span>
+                                    <span class="w-[60%] text-left pl-0.5">{{ $summaryUnitLabel }}</span>
+                                </div>
+                            </td>
+                            <td style="border-right: none;" class="text-right pr-2 uppercase font-bold">TOTAL</td>
                             <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandSubtotal, 0, ',', '.') }}</span></div>
@@ -331,7 +346,7 @@
 
                         <!-- 2. PPn -->
                         <tr class="total-row" style="border-top: none;">
-                            <td colspan="2" style="border-right: none;" class="text-right pr-3 font-bold">PPn</td>
+                            <td colspan="2" style="border-right: none;" class="text-right pr-2 font-bold">PPn</td>
                             <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($ppn, 0, ',', '.') }}</span></div>
@@ -340,7 +355,7 @@
 
                         <!-- 3. TOTAL HARGA -->
                         <tr class="total-row" style="border-top: none;">
-                            <td colspan="2" style="border-right: none;" class="text-right pr-3 uppercase font-bold">TOTAL HARGA</td>
+                            <td colspan="2" style="border-right: none;" class="text-right pr-2 uppercase font-bold">TOTAL HARGA</td>
                             <td style="border-left: none;"></td>
                             <td class="font-bold">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($grandTotal, 0, ',', '.') }}</span></div>
@@ -351,13 +366,13 @@
             </table>
 
             <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
-            <div class="text-[11.5px] text-black leading-tight my-4 space-y-2">
+            <div class="text-[12px] text-black leading-snug my-2 space-y-1">
                 @if($rfq->isPaymentTermCbdPersonal())
-                    <div class="flex items-start text-rose-600 italic">
-                        <span class="mr-2 font-bold not-italic text-black" style="font-family: Arial, sans-serif;">✓</span>
-                        <div class="space-y-0.5 leading-snug">
+                    <div class="flex items-start text-[#ff0000] italic">
+                        <span class="w-[4.6%] text-center font-normal not-italic text-black">✓</span>
+                        <div class="w-[95.4%] space-y-0.5 leading-snug">
                             <div>Sistem pembayaran Cash Before Delivery</div>
-                            <table class="border-none text-[11.5px] text-rose-600 italic">
+                            <table class="border-none text-[12px] text-[#ff0000] italic">
                                 <tr><td class="w-24 p-0">Nama Bank</td><td class="p-0">: BANK MANDIRI</td></tr>
                                 <tr><td class="p-0">Cabang</td><td class="p-0">: KEMANG PRATAMA BEKASI</td></tr>
                                 <tr><td class="p-0">Nama Akun</td><td class="p-0">: PEDIA TEKNOLOGI INDONESIA</td></tr>
@@ -366,98 +381,94 @@
                         </div>
                     </div>
                     <div class="flex items-start text-black italic">
-                        <span class="mr-2 font-bold not-italic text-black" style="font-family: Arial, sans-serif;">✓</span>
-                        <div class="space-y-0.5">
+                        <span class="w-[4.6%] text-center font-normal not-italic text-black">✓</span>
+                        <div class="w-[95.4%] space-y-0.5">
                             <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                            <div class="text-black not-italic">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </div>
                     </div>
                 @elseif($rfq->isPaymentTermCbdB2b())
                     <div class="flex items-start">
-                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">※</span>
-                        <div>
+                        <span class="w-[4.6%] text-center text-black font-normal">※</span>
+                        <div class="w-[95.4%]">
                             <div class="italic">Sistem pembayaran Cash Before Delivery</div>
-                            <div class="italic text-[#555]">支払条件：前払い（納品前）</div>
+                            <div class="text-black">支払条件：前払い（納品前）</div>
                         </div>
                     </div>
                     <div class="flex items-start">
-                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">※</span>
-                        <div>
+                        <span class="w-[4.6%] text-center text-black font-normal">※</span>
+                        <div class="w-[95.4%]">
                             <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="italic text-[#555]">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                            <div class="text-black">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @else
                     @php $termDays = $rfq->getPaymentTermDays(); @endphp
                     <div class="flex items-start">
-                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
-                        <div>
-                            <div>Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
-                            <div class="italic text-[#555]">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                        <span class="w-[4.6%] text-center text-black font-normal">✓</span>
+                        <div class="w-[95.4%]">
+                            <div class="italic">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
+                            <div class="text-black">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
                         </div>
                     </div>
                     <div class="flex items-start">
-                        <span class="mr-2 text-black font-bold" style="font-family: Arial, sans-serif;">✓</span>
-                        <div>
-                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="italic text-[#555]">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <span class="w-[4.6%] text-center text-black font-normal">✓</span>
+                        <div class="w-[95.4%]">
+                            <div class="italic">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @endif
             </div>
 
             <!-- Kalimat Penutup -->
-            <p class="text-[11.5px] text-black mb-6 leading-relaxed">
+            <p class="text-[12px] text-black mt-2 mb-4 leading-snug">
                 Demikian penawaran ini kami kirimkan. Jika ada hal yang ingin ditanyakan, dapat menghubungi saya di nomor telp : <span class="font-normal">{{ $salesPhone }}</span> atau e-mail <span class="font-normal">{{ $salesEmail }}</span> . Atas perhatian dan kepercayaan nya kami ucapkan Terima Kasih.
             </p>
 
-            <!-- TANDA TANGAN (Persis Sampling) -->
-            <div class="flex justify-between items-start text-[11.5px] text-black mb-8">
-                <!-- TTD Pedia (Kiri) -->
-                <div class="w-1/2">
-                    <div class="mb-1">Hormat Kami</div>
-                    <div class="relative w-[220px] h-[72px] my-1 -ml-1">
-                        <!-- Stempel Resmi Perusahaan -->
-                        <img src="{{ asset('images/pedia_company_stamp.png') }}" alt="Stempel Pedia" 
-                             class="absolute {{ $salesSignature ? 'left-8' : 'left-2' }} top-1.5 h-[58px] object-contain opacity-90 select-none pointer-events-none" style="z-index: 1;">
-                        
-                        <!-- Tanda Tangan Sales / Management -->
-                        @if($salesSignature)
-                            <img src="{{ $salesSignature }}" alt="Tanda Tangan" 
-                                 class="absolute left-0 top-0 h-[72px] object-contain block" style="z-index: 2;">
-                        @endif
-                    </div>
-                    <div class="font-bold text-[13px] text-black mt-1">{{ $salesName }}</div>
-                    <div class="italic text-[11.5px] text-[#333]">{{ $salesRole }}</div>
-                </div>
-
-                <!-- TTD Klien (Kanan) -->
-                <div class="w-1/2 text-left pl-6">
-                    <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
-                    <div class="italic text-[11px] text-[#555] mb-1">上記の数量と価格に同意いたします。</div>
-                    <div class="font-normal text-[12px] text-black mb-12">{{ $clientCompanyName }}</div>
-                    
-                    <table class="text-[11.5px] text-black w-full max-w-[280px]">
-                        <tr><td class="w-12 py-0.5 text-[#333]">Nama</td><td>: </td></tr>
-                        <tr><td class="py-0.5 text-[#333]">Jabatan</td><td>: </td></tr>
-                    </table>
-                </div>
-            </div>
+            <!-- TANDA TANGAN (Persis Sampling — Nama Sales & Nama Klien sejajar horizontal) -->
+            <table class="w-full text-[12px] text-black mb-6 border-collapse">
+                <tr>
+                    <td class="w-[52%] align-top p-0">
+                        <div>Hormat Kami</div>
+                        <div class="relative w-[220px] h-[72px] my-1">
+                            <!-- Stempel Resmi Perusahaan -->
+                            <img src="{{ asset('images/pedia_company_stamp.png') }}" alt="Stempel Pedia" 
+                                 class="absolute {{ $salesSignature ? 'left-6' : 'left-1' }} top-1 h-[54px] object-contain opacity-95 select-none pointer-events-none" style="z-index: 1;">
+                            
+                            <!-- Tanda Tangan Sales / Management -->
+                            @if($salesSignature)
+                                <img src="{{ $salesSignature }}" alt="Tanda Tangan" 
+                                     class="absolute left-0 top-0 h-[70px] object-contain block" style="z-index: 2;">
+                            @endif
+                        </div>
+                    </td>
+                    <td class="w-[48%] align-top p-0">
+                        <div>Kami menyetujui dengan qty dan harga yang ditawarkan di atas.</div>
+                        <div class="text-[11.5px] text-black">上記の数量と価格に同意いたします。</div>
+                        <div class="font-normal text-[12px] text-black mt-0.5">{{ $clientCompanyName }}</div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="align-bottom p-0 font-bold text-[12px] text-black">{{ $salesName }}</td>
+                    <td class="align-bottom p-0 text-[12px] text-black">
+                        <div class="flex"><span class="w-12">Nama</span><span>: </span></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="align-top p-0 italic text-[11px] text-black">{{ $salesRole }}</td>
+                    <td class="align-top p-0 text-[12px] text-black">
+                        <div class="flex"><span class="w-12">Jabatan</span><span>: </span></div>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <!-- FOOTER (Persis Sampling) -->
-        <div class="mt-8 text-center text-black">
-            <div class="font-bold text-[11.5px] tracking-wide text-black mb-0.5 uppercase">THANK YOU FOR YOUR BUSINESS!</div>
-            <div class="font-bold text-[11px] text-black mb-2">お買い上げくださってありがとうございます！</div>
-            <div class="text-[11.5px] leading-snug text-[#222] mb-2">
-                Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,<br>
-                Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147<br>
-                Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175
-            </div>
-            <!-- Blue Banner 76% Width Centered -->
-            <div class="w-[76%] mx-auto bg-[#005496] text-white text-[12px] py-1 tracking-wider font-normal">
-                website : https://pedia-technology.co.id
-            </div>
+        <!-- FOOTER (Persis Sampling — menggunakan banner footer resmi HD) -->
+        <div class="mt-4 text-center text-black">
+            <div class="font-bold text-[12px] text-black leading-tight uppercase">THANK YOU FOR YOUR BUSINESS!</div>
+            <div class="font-bold text-[11.5px] text-black mb-1 leading-tight">お買い上げくださってありがとうございます！</div>
+            <img src="{{ asset('images/pedia_footer_hd.png') }}" alt="Footer PT Pedia Teknologi Indonesia" class="w-[92%] mx-auto h-auto block">
         </div>
 
     </div>
