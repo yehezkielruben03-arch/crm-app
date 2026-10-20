@@ -83,10 +83,6 @@
             default => 'compact',
         };
 
-        // Hanya gunakan position: fixed pada footer jika dokumen dijamin pendek (normal/medium)
-        // Jika item sangat banyak, footer mengalir di bawah tanda tangan agar TIDAK PERNAH ganda / menabrak tabel
-        $pinFooterFixed = ($visualWeight <= 24 && $itemCount <= 5);
-
         $noteTopMargin = match(true) {
             $density === 'compact' => '6px',
             $itemCount <= 1 && $totalSpecLines <= 4 => '105px',
@@ -493,19 +489,21 @@
                 </td>
             </tr>
         </table>
+        <!-- Spacer seukuran tinggi footer agar konten di atas tidak pernah menabrak area footer di bawah -->
+        <div style="height: 64px;"></div>
+    </div>
 
-        <!-- FOOTER (Persis Sampling — tidak pernah ganda atau menabrak tabel) -->
-        <div style="{{ $pinFooterFixed ? 'position: fixed; bottom: 0px; left: 0px; right: 0px;' : 'margin-top: 8px;' }} text-align: center; color: #000;">
-            <div style="font-weight: bold; font-size: {{ $density === 'compact' ? '8.5px' : '9.5px' }}; line-height: 1.1; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
-            <div style="font-size: {{ $density === 'compact' ? '8px' : '8.5px' }}; line-height: 1.15; margin-bottom: 3px;" class="jp">お買い上げくださってありがとうございます！</div>
-            <div style="font-size: {{ $density === 'compact' ? '9.5px' : '11px' }}; color: #222; margin-bottom: 4px;">
-                <div style="line-height: 1.02;">Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,</div>
-                <div style="line-height: 1.02;">Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147</div>
-                <div style="line-height: 1.02;">Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175</div>
-            </div>
-            <div style="width: 76%; margin: 0 auto; background-color: #005496; color: #fff; padding: 2.5px 0; font-size: {{ $density === 'compact' ? '9.5px' : '10.5px' }}; line-height: 1.1;">
-                website : https://pedia-technology.co.id
-            </div>
+    <!-- FOOTER (Persis Sampling — selalu menempel di paling bawah halaman terakhir & tidak pernah ganda) -->
+    <div style="position: absolute; bottom: 0px; left: 0px; right: 0px; text-align: center; color: #000;">
+        <div style="font-weight: bold; font-size: 9.5px; line-height: 1.1; text-transform: uppercase;">THANK YOU FOR YOUR BUSINESS!</div>
+        <div style="font-size: 8.5px; line-height: 1.15; margin-bottom: 4px;" class="jp">お買い上げくださってありがとうございます！</div>
+        <div style="font-size: 11px; color: #222; margin-bottom: 5px;">
+            <div style="line-height: 1.02;">Rukan Rose Garden Blok RRGB No. 93, Jl. Grand Galaxy City Central Park 3,</div>
+            <div style="line-height: 1.02;">Kel. Jaka Setia, Kec. Bekasi Selatan, Kota Bekasi, Jawa Barat 17147</div>
+            <div style="line-height: 1.02;">Telp : (+62) 021-3971-2155, Fax : (+62) 021-3970-0175</div>
+        </div>
+        <div style="width: 76%; margin: 0 auto; background-color: #005496; color: #fff; padding: 3px 0; font-size: 10.5px; line-height: 1.1;">
+            website : https://pedia-technology.co.id
         </div>
     </div>
 
