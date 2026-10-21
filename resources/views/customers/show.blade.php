@@ -9,8 +9,8 @@
          * viewOnly = Sales yang melihat customer milik orang lain
          *            → hanya bisa lihat, tidak ada tombol Edit
          */
-        $isHouseAccount = empty($customer->sales_id) || empty($customer->sales);
-        $isOwner  = $customer->sales_id === auth()->id();
+        $isHouseAccount = empty($customer->sales_id) || empty($customer->sales) || ($customer->sales && $customer->sales->isAdminOrAbove());
+        $isOwner  = $customer->sales_id === auth()->id() && !$isHouseAccount;
         $canEdit  = auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $isOwner);
         $viewOnly = auth()->user()->isSales() && !$isOwner;
     @endphp

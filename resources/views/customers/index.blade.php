@@ -231,7 +231,7 @@
                             --}}
                             <td>
                                 @php
-                                    $isHouseAccount = empty($customer->sales_id) || empty($customer->sales);
+                                    $isHouseAccount = empty($customer->sales_id) || empty($customer->sales) || ($customer->sales && $customer->sales->isAdminOrAbove());
                                 @endphp
                                 @if($isHouseAccount)
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style="background: rgba(37,99,235,0.10); color: var(--accent-blue); border: 1px solid rgba(37,99,235,0.20);">
@@ -298,7 +298,7 @@
 
                                     {{-- Edit: hanya tampil untuk Admin ATAU Sales pemilik data ini (dan bukan house account Pedia) --}}
                                     @php
-                                        $canEditCustomer = auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $customer->sales_id === auth()->id());
+                                        $canEditCustomer = auth()->user()->isAdminOrAbove() || (auth()->user()->isSales() && $customer->sales_id === auth()->id() && !$isHouseAccount);
                                     @endphp
                                     @if($canEditCustomer)
                                     <!-- Edit -->
