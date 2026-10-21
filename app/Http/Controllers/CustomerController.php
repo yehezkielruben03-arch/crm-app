@@ -205,8 +205,7 @@ class CustomerController extends Controller
         $inputCleanMatch = strtolower(preg_replace('/[^a-z0-9]/i', '', $inputName));
 
         foreach ($existingCustomers as $existing) {
-            $isHouseAccount = $existing->sales && $existing->sales->isAdminOrAbove();
-            $ownerName = $isHouseAccount ? 'Pedia' : ($existing->sales ? $existing->sales->name : 'Admin');
+            $ownerName = $existing->sales ? $existing->sales->name : 'Pedia';
 
             // Cek duplikasi email
             if (!empty($validated['email']) && strtolower($validated['email']) === strtolower($existing->email)) {

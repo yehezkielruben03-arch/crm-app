@@ -110,27 +110,37 @@
         $custAddress       = $rfq->resolved_customer_address;
         $custPhone         = $rfq->resolved_customer_phone;
         $custPic           = $rfq->resolved_pic_name;
-        $isHouseAccount    = $rfq->sales_name === 'Pedia' || ($rfq->sales && $rfq->sales->isAdminOrAbove());
-        $salesPhone        = $rfq->sales?->phone ?: '021-3971-2155';
-        $salesEmail        = $rfq->sales?->email ?: 'info@pedia-technology.co.id';
-        if ($isHouseAccount) {
+
+        // Ambil data user sales: utamakan relasi sales di RFQ, fallback ke sales di customer
+        $salesUser         = $rfq->sales ?: $rfq->customer?->sales;
+        $isHouseAccount    = !$salesUser && ($rfq->sales_name === 'Pedia' || empty($rfq->sales_name));
+
+        if ($salesUser) {
+            $salesName     = $salesUser->name;
+            $salesRole     = $salesUser->effective_job_title ?: (in_array($salesUser->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($salesUser->role ?: 'Account Manager'));
+            $salesPhone    = $salesUser->phone ?: '021-3971-2155';
+            $salesEmail    = $salesUser->email ?: 'info@pedia-technology.co.id';
+            $sigUser       = !empty($salesUser->signature_path) ? $salesUser : null;
+        } elseif ($isHouseAccount) {
             $salesName     = 'PT Pedia Technology Indonesia';
             $salesRole     = 'Management';
-        } else {
-            $salesName     = $rfq->sales?->name ?: ($rfq->sales_name ?: 'Ade Zulvida');
-            $salesRole     = $rfq->sales?->effective_job_title ?: (in_array($rfq->sales?->role, ['Sales', 'Sales Marketing']) ? 'Account Manager' : ($rfq->sales?->role ?: 'Account Manager'));
-        }
-        $sigUser = ($rfq->sales && !empty($rfq->sales->signature_path)) ? $rfq->sales : null;
-        if (!$sigUser && $isHouseAccount) {
+            $salesPhone    = '021-3971-2155';
+            $salesEmail    = 'info@pedia-technology.co.id';
             try {
-                $sigUser = \App\Models\User::whereIn('role', ['Leader', 'Super Admin', 'Admin', 'Admin Purchase'])
+                $sigUser   = \App\Models\User::whereIn('role', ['Leader', 'Super Admin', 'Admin', 'Admin Purchase'])
                     ->whereNotNull('signature_path')
                     ->where('signature_path', '!=', '')
                     ->orderByRaw("CASE WHEN role = 'Leader' THEN 1 WHEN role = 'Super Admin' THEN 2 ELSE 3 END")
                     ->first();
             } catch (\Throwable $e) {
-                $sigUser = null;
+                $sigUser   = null;
             }
+        } else {
+            $salesName     = $rfq->sales_name ?: 'Ade Zulvida';
+            $salesRole     = 'Account Manager';
+            $salesPhone    = '021-3971-2155';
+            $salesEmail    = 'info@pedia-technology.co.id';
+            $sigUser       = null;
         }
         $salesSignature    = $sigUser?->signature_url;
         $validityDays      = $rfq->items->max('validity_days') ?: 7;

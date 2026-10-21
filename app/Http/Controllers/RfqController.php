@@ -77,8 +77,8 @@ class RfqController extends Controller
 
         $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
         $salesId   = $customer->sales_id ?? Auth::id();
-        $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
-        $salesName = $isHouseAccount ? 'Pedia' : ($customer->sales ? $customer->sales->name : $this->authUser()->name);
+        $salesUser = $customer->sales ?: User::find($salesId);
+        $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
 
         try {
             DB::beginTransaction();
@@ -248,8 +248,8 @@ class RfqController extends Controller
             $salesName = $this->authUser()->name;
         } else {
             $salesId   = $customer->sales_id ?? Auth::id();
-            $isHouseAccount = $customer->sales && $customer->sales->isAdminOrAbove();
-            $salesName = $isHouseAccount ? 'Pedia' : ($customer->sales ? $customer->sales->name : $this->authUser()->name);
+            $salesUser = $customer->sales ?: User::find($salesId);
+            $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
         }
 
         try {
@@ -514,9 +514,10 @@ class RfqController extends Controller
             $newCustomer = Customer::with('sales')->findOrFail($validated['customer_id']);
             $rfq->customer_name = $newCustomer->company_name;
             $rfq->customer_code = $newCustomer->company_code;
-            $isHouseAccount     = $newCustomer->sales && $newCustomer->sales->isAdminOrAbove();
-            $rfq->sales_id      = $newCustomer->sales_id ?? Auth::id();
-            $rfq->sales_name    = $isHouseAccount ? 'Pedia' : ($newCustomer->sales ? $newCustomer->sales->name : $this->authUser()->name);
+            $salesId            = $newCustomer->sales_id ?? Auth::id();
+            $salesUser          = $newCustomer->sales ?: User::find($salesId);
+            $rfq->sales_id      = $salesId;
+            $rfq->sales_name    = $salesUser ? $salesUser->name : $this->authUser()->name;
 
             if (!$this->authUser()->isAdminOrAbove()) {
                 $rfq->sales_id   = Auth::id();
@@ -1271,7 +1272,7 @@ class RfqController extends Controller
             }
         }
 
-        $rfq->load(['customer.contacts', 'customerContact', 'items', 'sales']);
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
         
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')
@@ -1338,7 +1339,7 @@ class RfqController extends Controller
             Rfq::STATUS_GOAL
         ]), 403, 'Quotation belum tersedia.');
 
-        $rfq->load(['customer.contacts', 'customerContact', 'items', 'sales']);
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
         
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')
@@ -1353,7 +1354,7 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke pratinjau penawaran ini.');
 
-        $rfq->load(['customer.contacts', 'customerContact', 'sales']);
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'sales']);
 
         $cleanNum = function ($val, $default = 0.0) {
             if ($val === null || $val === '') return $default;
