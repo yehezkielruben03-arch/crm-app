@@ -393,8 +393,8 @@
                     <div class="flex items-start text-black italic">
                         <span class="w-[4.6%] flex-shrink-0 text-center font-normal not-italic text-black">✓</span>
                         <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
-                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black not-italic break-words">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black not-italic break-words">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。<br>なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </div>
                     </div>
                 @elseif($rfq->isPaymentTermCbdB2b())
@@ -408,8 +408,8 @@
                     <div class="flex items-start">
                         <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">※</span>
                         <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
-                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。<br>ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @else
@@ -424,8 +424,8 @@
                     <div class="flex items-start">
                         <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">✓</span>
                         <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
-                            <div class="italic break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                            <div class="italic break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。<br>ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @endif

@@ -485,9 +485,9 @@
                     </tr>
                     <tr>
                         <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;">&#10003;</td>
-                        <td style="width: 95.4%; padding-top: 2pt; border: none; color: #000; line-height: 1.12;">
-                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="jp" style="color: #000; font-style: normal; font-size: {{ $termJpSize }}; line-height: 1.15; margin-top: 1pt;">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; color: #000; line-height: 1.12; word-wrap: break-word; overflow-wrap: break-word;">
+                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="jp" style="color: #000; font-style: normal; font-size: {{ $termJpSize }}; line-height: 1.15; margin-top: 1pt;">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。<br>なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </td>
                     </tr>
                 </table>
@@ -502,9 +502,9 @@
                     </tr>
                     <tr>
                         <td style="width: 4.6%; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;" class="jp">※</td>
-                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12;">
-                            <div style="line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12; word-wrap: break-word; overflow-wrap: break-word;">
+                            <div style="line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。<br>ご署名後はキャンセルできませんのでご了承ください。</div>
                         </td>
                     </tr>
                 </table>
@@ -520,9 +520,9 @@
                     </tr>
                     <tr>
                         <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; padding-top: 2pt; border: none; text-align: center;">&#10003;</td>
-                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12;">
-                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <td style="width: 95.4%; padding-top: 2pt; border: none; line-height: 1.12; word-wrap: break-word; overflow-wrap: break-word;">
+                            <div style="font-style: italic; line-height: 1.12;">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku.<br>Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。<br>ご署名後はキャンセルできませんのでご了承ください。</div>
                         </td>
                     </tr>
                 </table>
