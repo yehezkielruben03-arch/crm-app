@@ -88,33 +88,33 @@
         $visualWeight = ($itemCount * 2) + $totalSpecLines + $noteLineCount;
 
         $density = match(true) {
-            $visualWeight <= 18 && $itemCount <= 3 => 'normal',
-            $visualWeight <= 28 && $itemCount <= 5 => 'medium',
+            $visualWeight <= 10 && $itemCount <= 2 => 'normal',
+            $visualWeight <= 17 && $itemCount <= 3 => 'medium',
             default => 'compact',
         };
 
         // Hitung sisa ruang vertikal ideal untuk spasi di atas "Note :" agar 1 halaman A4 terisi proporsional tanpa pernah menabrak footer
-        $freeLines = max(0, 17 - $visualWeight);
-        $noteTopMarginPt = $density === 'compact' ? 2 : max(6, min(68, $freeLines * 6));
+        $freeLines = max(0, 14 - $visualWeight);
+        $noteTopMarginPt = $density === 'compact' ? 2 : max(4, min(48, $freeLines * 4));
         $noteTopMargin = $noteTopMarginPt . 'pt';
 
-        $pageMargin    = $density === 'compact' ? '6mm 13mm 3mm 13mm' : '10mm 13mm 5mm 13mm';
-        $logoWidth     = $density === 'compact' ? '114pt' : '145pt';
-        $quoTitleSize  = $density === 'compact' ? '30pt' : '40pt';
-        $quoTitleMb    = $density === 'compact' ? '2pt' : '11pt';
-        $itemTitleSize = match($density) { 'compact' => '7.8pt', 'medium' => '9.8pt', default => '10.5pt' };
-        $itemSpecSize  = match($density) { 'compact' => '6.6pt', 'medium' => '8.4pt', default => '8.9pt' };
-        $specLineH     = $density === 'compact' ? '0.98' : '1.06';
-        $cellPad       = match($density) { 'compact' => '0.8pt 3pt', 'medium' => '2.2pt 3.5pt', default => '3pt 4pt' };
-        $totPad        = match($density) { 'compact' => '1pt 3pt', 'medium' => '2.2pt 3.5pt', default => '3pt 4pt' };
-        $totFontSize   = match($density) { 'compact' => '7.9pt', 'medium' => '9.8pt', default => '10.5pt' };
-        $termFontSize  = $density === 'compact' ? '7.2pt' : '8.7pt';
-        $termJpSize    = $density === 'compact' ? '6.8pt' : '8.5pt';
-        $sigBoxHeight  = $density === 'compact' ? '28pt' : '50pt';
-        $stampWidth    = $density === 'compact' ? '68pt' : '94pt';
-        $sigImgHeight  = $density === 'compact' ? '28pt' : '50pt';
-        $footerSpacer  = $density === 'compact' ? '58pt' : '68pt';
-        $footerImgW    = $density === 'compact' ? '78%' : '92%';
+        $pageMargin    = match($density) { 'compact' => '6mm 13mm 3mm 13mm', 'medium' => '7.5mm 13mm 3.5mm 13mm', default => '10mm 13mm 5mm 13mm' };
+        $logoWidth     = match($density) { 'compact' => '114pt', 'medium' => '128pt', default => '145pt' };
+        $quoTitleSize  = match($density) { 'compact' => '30pt', 'medium' => '34pt', default => '40pt' };
+        $quoTitleMb    = match($density) { 'compact' => '2pt', 'medium' => '6pt', default => '11pt' };
+        $itemTitleSize = match($density) { 'compact' => '7.8pt', 'medium' => '9.5pt', default => '10.5pt' };
+        $itemSpecSize  = match($density) { 'compact' => '6.6pt', 'medium' => '8.0pt', default => '8.9pt' };
+        $specLineH     = match($density) { 'compact' => '0.98', 'medium' => '1.02', default => '1.06' };
+        $cellPad       = match($density) { 'compact' => '0.8pt 3pt', 'medium' => '2pt 3.5pt', default => '3pt 4pt' };
+        $totPad        = match($density) { 'compact' => '1pt 3pt', 'medium' => '2pt 3.5pt', default => '3pt 4pt' };
+        $totFontSize   = match($density) { 'compact' => '7.9pt', 'medium' => '9.5pt', default => '10.5pt' };
+        $termFontSize  = match($density) { 'compact' => '7.2pt', 'medium' => '8.0pt', default => '8.7pt' };
+        $termJpSize    = match($density) { 'compact' => '6.8pt', 'medium' => '7.6pt', default => '8.5pt' };
+        $sigBoxHeight  = match($density) { 'compact' => '28pt', 'medium' => '38pt', default => '50pt' };
+        $stampWidth    = match($density) { 'compact' => '68pt', 'medium' => '80pt', default => '94pt' };
+        $sigImgHeight  = match($density) { 'compact' => '28pt', 'medium' => '38pt', default => '50pt' };
+        $footerSpacer  = match($density) { 'compact' => '54pt', 'medium' => '60pt', default => '68pt' };
+        $footerImgW    = match($density) { 'compact' => '78%', 'medium' => '85%', default => '92%' };
     @endphp
     <style>
         @page {
