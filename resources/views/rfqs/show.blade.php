@@ -962,7 +962,7 @@
                 setTimeout(() => {
                     window.URL.revokeObjectURL(blobUrl);
                     a.remove();
-                }, 1500);
+                }, 60000);
             } catch (err) {
                 window.location.href = url;
             } finally {
