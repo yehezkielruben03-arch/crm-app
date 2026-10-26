@@ -379,8 +379,8 @@
             <div class="text-[12px] text-black leading-snug my-2 space-y-1">
                 @if($rfq->isPaymentTermCbdPersonal())
                     <div class="flex items-start text-[#ff0000] italic">
-                        <span class="w-[4.6%] text-center font-normal not-italic text-black">✓</span>
-                        <div class="w-[95.4%] space-y-0.5 leading-snug">
+                        <span class="w-[4.6%] flex-shrink-0 text-center font-normal not-italic text-black">✓</span>
+                        <div class="w-[95.4%] min-w-0 space-y-0.5 leading-snug break-words">
                             <div>Sistem pembayaran Cash Before Delivery</div>
                             <table class="border-none text-[12px] text-[#ff0000] italic">
                                 <tr><td class="w-24 p-0">Nama Bank</td><td class="p-0">: BANK MANDIRI</td></tr>
@@ -391,41 +391,41 @@
                         </div>
                     </div>
                     <div class="flex items-start text-black italic">
-                        <span class="w-[4.6%] text-center font-normal not-italic text-black">✓</span>
-                        <div class="w-[95.4%] space-y-0.5">
-                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black not-italic">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
+                        <span class="w-[4.6%] flex-shrink-0 text-center font-normal not-italic text-black">✓</span>
+                        <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
+                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black not-italic break-words">本見積書へのご署名をもって、本見積内容および諸条件にご同意いただいたものとみなします。なお、ご署名後のキャンセルはお受けできませんので、ご了承ください。</div>
                         </div>
                     </div>
                 @elseif($rfq->isPaymentTermCbdB2b())
                     <div class="flex items-start">
-                        <span class="w-[4.6%] text-center text-black font-normal">※</span>
-                        <div class="w-[95.4%]">
+                        <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">※</span>
+                        <div class="w-[95.4%] min-w-0 break-words">
                             <div class="italic">Sistem pembayaran Cash Before Delivery</div>
                             <div class="text-black">支払条件：前払い（納品前）</div>
                         </div>
                     </div>
                     <div class="flex items-start">
-                        <span class="w-[4.6%] text-center text-black font-normal">※</span>
-                        <div class="w-[95.4%]">
-                            <div>Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">※</span>
+                        <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
+                            <div class="break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @else
                     @php $termDays = $rfq->getPaymentTermDays(); @endphp
                     <div class="flex items-start">
-                        <span class="w-[4.6%] text-center text-black font-normal">✓</span>
-                        <div class="w-[95.4%]">
+                        <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">✓</span>
+                        <div class="w-[95.4%] min-w-0 break-words">
                             <div class="italic">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
                             <div class="text-black">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
                         </div>
                     </div>
                     <div class="flex items-start">
-                        <span class="w-[4.6%] text-center text-black font-normal">✓</span>
-                        <div class="w-[95.4%]">
-                            <div class="italic">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
-                            <div class="text-black">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
+                        <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">✓</span>
+                        <div class="w-[95.4%] min-w-0 space-y-0.5 break-words">
+                            <div class="italic break-words">Dengan menandatangani penawaran ini, pihak Pemesan menyetujui harga, qty, dan seluruh ketentuan yang berlaku. Setelah ditandatangani, penawaran tidak dapat dibatalkan.</div>
+                            <div class="text-black break-words">本見積書にご署名いただくことで、発注内容および条件に同意されたものといたします。ご署名後はキャンセルできませんのでご了承ください。</div>
                         </div>
                     </div>
                 @endif

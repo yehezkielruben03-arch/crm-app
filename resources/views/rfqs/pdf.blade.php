@@ -214,6 +214,9 @@
             font-family: 'JapaneseFont', sans-serif;
             font-weight: normal;
             font-style: normal;
+            word-break: break-all;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
         }
         .check {
             font-family: 'DejaVu Sans', sans-serif;
@@ -221,6 +224,16 @@
         table {
             width: 100%;
             border-collapse: collapse;
+        }
+        .terms-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            border: none;
+        }
+        .terms-table td {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .main-table {
             width: 100%;
@@ -457,7 +470,7 @@
         <!-- SYARAT & KETENTUAN (Dinamis Sesuai Payment Terms) -->
         <div style="font-size: {{ $termFontSize }}; line-height: 1.12; margin-top: {{ $density === 'compact' ? '2pt' : '4pt' }}; margin-bottom: {{ $density === 'compact' ? '3pt' : '6pt' }};">
             @if($rfq->isPaymentTermCbdPersonal())
-                <table style="width: 100%; border: none;">
+                <table class="terms-table" style="width: 100%; table-layout: fixed; border: none;">
                     <tr>
                         <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
                         <td style="width: 95.4%; border: none; color: #ff0000; font-style: italic; line-height: 1.12;">
@@ -479,7 +492,7 @@
                     </tr>
                 </table>
             @elseif($rfq->isPaymentTermCbdB2b())
-                <table style="width: 100%; border: none;">
+                <table class="terms-table" style="width: 100%; table-layout: fixed; border: none;">
                     <tr>
                         <td style="width: 4.6%; vertical-align: top; font-weight: normal; font-size: {{ $termFontSize }}; border: none; text-align: center;" class="jp">※</td>
                         <td style="width: 95.4%; border: none; line-height: 1.12;">
@@ -497,7 +510,7 @@
                 </table>
             @else
                 @php $termDays = $rfq->getPaymentTermDays(); @endphp
-                <table style="width: 100%; border: none;">
+                <table class="terms-table" style="width: 100%; table-layout: fixed; border: none;">
                     <tr>
                         <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
                         <td style="width: 95.4%; border: none; line-height: 1.12;">
