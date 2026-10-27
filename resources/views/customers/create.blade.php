@@ -563,7 +563,7 @@
 
                 {{-- Tombol Aksi --}}
                 <div class="flex flex-col gap-2 animate-in" style="animation-delay: 0.25s;">
-                    <button type="submit"
+                    <button type="submit" id="btnSubmitCustomer"
                         class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all active:scale-95 hover:-translate-y-0.5"
                         style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -683,7 +683,18 @@
             const existingMsg = document.getElementById(`duplicate-${type}-msg`);
             if (existingMsg) existingMsg.remove();
 
-            if (!value || value.trim().length < 3) return;
+            const submitBtn = document.getElementById('btnSubmitCustomer') || document.querySelector('button[type="submit"]');
+
+            if (!value || value.trim().length < 3) {
+                const currentMsg = document.getElementById(`duplicate-${type}-msg`);
+                if (currentMsg) currentMsg.remove();
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '';
+                    submitBtn.style.pointerEvents = '';
+                }
+                return;
+            }
 
             const fieldParam = type === 'name' ? 'q' : 'email';
             const url = `/api/customers/check-duplicate?${fieldParam}=${encodeURIComponent(value.trim())}`;
@@ -693,6 +704,22 @@
                 .then(data => {
                     const currentMsg = document.getElementById(`duplicate-${type}-msg`);
                     if (currentMsg) currentMsg.remove();
+
+                    const hasExact = data && data.some(d => d.is_exact);
+
+                    if (submitBtn) {
+                        if (hasExact) {
+                            submitBtn.disabled = true;
+                            submitBtn.style.opacity = '0.5';
+                            submitBtn.style.pointerEvents = 'none';
+                            submitBtn.title = 'Perusahaan ini sudah terdaftar di sistem. Tidak dapat mendaftarkan duplikat.';
+                        } else {
+                            submitBtn.disabled = false;
+                            submitBtn.style.opacity = '';
+                            submitBtn.style.pointerEvents = '';
+                            submitBtn.title = '';
+                        }
+                    }
 
                     if (data && data.length > 0) {
                         const targetInput = type === 'name' ? nameInput : emailInput;
@@ -707,11 +734,17 @@
                         if (isExact) {
                             msg.style.cssText = 'background: rgba(225,29,72,0.08); border: 1px solid rgba(225,29,72,0.30); color: var(--accent-rose);';
                             msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span><strong>Peringatan Duplikasi!</strong> "${match.company_name}" sudah terdaftar di sistem atas nama Sales <strong>${match.owner}</strong>. Pendaftaran dengan nama yang sama akan ditolak.</span>`;
+                                <div>
+                                    <strong>Peringatan Duplikasi!</strong> "${match.company_name}" sudah terdaftar di sistem atas nama Sales/Akun <strong>${match.owner}</strong> (Status: <strong>${match.status || 'Active'}</strong>).
+                                    <div class="mt-1">Pendaftaran ditolak karena duplikat. Anda tidak perlu membuat PT ini lagi. Silakan gunakan akun yang sudah ada atau hubungi Admin untuk pengalihan akun.</div>
+                                </div>`;
                         } else {
                             msg.style.cssText = 'background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.30); color: var(--accent-amber);';
                             msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span><strong>Kemiripan Terdeteksi!</strong> Ditemukan perusahaan serupa: <strong>"${match.company_name}"</strong> (Sales: <strong>${match.owner}</strong>). Pastikan tidak terjadi duplikasi akun.</span>`;
+                                <div>
+                                    <strong>Kemiripan Terdeteksi!</strong> Ditemukan perusahaan serupa: <strong>"${match.company_name}"</strong> (Sales/Akun: <strong>${match.owner}</strong>).
+                                    <div class="mt-1">Pastikan tidak terjadi pendaftaran ganda jika perusahaan tersebut adalah badan usaha yang sama.</div>
+                                </div>`;
                         }
 
                         targetInput.parentElement.appendChild(msg);

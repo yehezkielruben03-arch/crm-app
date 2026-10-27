@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
         Route::put('/customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
         Route::post('/customers/{customer}/approve', [CustomerController::class, 'approve'])->name('customers.approve');
+        Route::post('/customers/{customer}/reject', [CustomerController::class, 'reject'])->name('customers.reject');
         Route::post('/customers/bulk-approve', [CustomerController::class, 'bulkApprove'])->name('customers.bulk-approve');
         Route::post('/customers/import/preview', [CustomerController::class, 'previewImport'])->name('customers.import.preview');
         Route::post('/customers/import/process', [CustomerController::class, 'processImport'])->name('customers.import.process');

@@ -40,15 +40,23 @@
                             {{ $customer->sales->name ?? 'Belum ditugaskan' }}
                         </td>
                         <td class="py-3 text-right">
-                            <form action="{{ route('customers.approve', $customer) }}" method="POST" class="inline-block" onsubmit="return confirm('Setujui pelanggan ini? Status akan berubah menjadi Active dan kode perusahaan akan dibuat otomatis.');">
-                                @csrf
-                                <button type="submit" class="action-btn text-xs px-3 py-1.5" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
-                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-emerald);">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            <div class="flex justify-end gap-2 items-center">
+                                <form action="{{ route('customers.approve', $customer) }}" method="POST" class="inline-block" onsubmit="return confirm('Setujui pelanggan ini? Status akan berubah menjadi Active dan kode perusahaan akan dibuat otomatis.');">
+                                    @csrf
+                                    <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                        </svg>
+                                        Approve
+                                    </button>
+                                </form>
+                                <button type="button" onclick="openRejectCustomerModal('{{ $customer->id }}', '{{ addslashes($customer->company_name) }}')" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(225,29,72,0.3); color: var(--accent-rose);">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                     </svg>
-                                    Approve
+                                    Reject
                                 </button>
-                            </form>
+                            </div>
                         </td>
                     </tr>
                     @empty
@@ -288,6 +296,35 @@
         </div>
     </section>
 
+    <!-- MODAL REJECT CUSTOMER -->
+    <div id="rejectCustomerModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+        <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    Tolak Pengajuan Customer
+                </h3>
+                <button type="button" onclick="closeRejectCustomerModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <p class="text-xs text-gray-600 mb-4" id="rejectCustomerSubtitle">Masukkan alasan penolakan customer untuk Sales pemilik:</p>
+            <form id="rejectCustomerForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Menolak...'; return true;">
+                @csrf
+                <div class="mb-4">
+                    <label for="customerRejectReason" class="block text-xs font-semibold text-gray-700 mb-1">Alasan Penolakan (Opsional):</label>
+                    <textarea id="customerRejectReason" name="reason" rows="3" class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Perusahaan ini sudah terdaftar di sistem atau data tidak valid."></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" onclick="closeRejectCustomerModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm">Tolak Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- MODAL REJECT RFQ -->
     <div id="rejectModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in">
@@ -318,6 +355,27 @@
     </div>
 
     <script>
+        function openRejectCustomerModal(customerId, customerName) {
+            const modal = document.getElementById('rejectCustomerModal');
+            const form = document.getElementById('rejectCustomerForm');
+            const subtitle = document.getElementById('rejectCustomerSubtitle');
+            const textarea = document.getElementById('customerRejectReason');
+
+            form.action = '/customers/' + customerId + '/reject';
+            subtitle.textContent = 'Masukkan alasan penolakan customer "' + customerName + '" untuk Sales:';
+            textarea.value = '';
+            modal.classList.remove('hidden');
+            setTimeout(() => textarea.focus(), 100);
+        }
+
+        function closeRejectCustomerModal() {
+            document.getElementById('rejectCustomerModal').classList.add('hidden');
+        }
+
+        document.getElementById('rejectCustomerModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeRejectCustomerModal();
+        });
+
         function openRejectModal(rfqId, rfqNumber) {
             const modal = document.getElementById('rejectModal');
             const form = document.getElementById('rejectForm');

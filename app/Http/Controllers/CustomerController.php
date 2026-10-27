@@ -201,31 +201,34 @@ class CustomerController extends Controller
         // ============================================================
         // ALGORITMA SMART EXACT MATCH (Mencegah Duplikasi Trivial)
         // ============================================================
-        $existingCustomers = Customer::select('id', 'company_name', 'email', 'sales_id')->with('sales')->get();
-        $inputCleanMatch = strtolower(preg_replace('/[^a-z0-9]/i', '', $inputName));
+        $existingCustomers = Customer::withTrashed()
+            ->select('id', 'company_name', 'email', 'sales_id', 'status', 'deleted_at')
+            ->with('sales')
+            ->get();
+        $inputCleanMatch = Customer::normalizeCompanyName($inputName);
 
         foreach ($existingCustomers as $existing) {
             $isHouseAccount = empty($existing->sales_id) || empty($existing->sales) || ($existing->sales && $existing->sales->isAdminOrAbove());
-            $ownerName = $isHouseAccount ? 'Pedia' : ($existing->sales ? $existing->sales->name : 'Admin');
+            $ownerName = $isHouseAccount ? 'Pedia (House Account)' : ($existing->sales ? $existing->sales->name : 'Admin');
 
             // Cek duplikasi email
             if (!empty($validated['email']) && strtolower($validated['email']) === strtolower($existing->email)) {
                 return back()
                     ->withInput()
                     ->withErrors([
-                        'email' => "Perusahaan dengan email \"{$existing->email}\" sudah terdaftar dan dipegang oleh \"{$ownerName}\".",
+                        'email' => "Perusahaan dengan email \"{$existing->email}\" sudah terdaftar di sistem atas nama \"{$ownerName}\".",
                     ]);
             }
 
-            // Bandingkan nama yang sudah dibersihkan (tanpa PT/CV dan tanpa spasi/simbol)
-            $existingClean = trim(preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $existing->company_name));
-            $existingCleanMatch = strtolower(preg_replace('/[^a-z0-9]/i', '', $existingClean));
+            // Bandingkan nama ternormalisasi
+            $existingCleanMatch = Customer::normalizeCompanyName($existing->company_name);
 
-            if ($inputCleanMatch === $existingCleanMatch) {
+            if ($inputCleanMatch !== '' && $inputCleanMatch === $existingCleanMatch) {
+                $statusLabel = $existing->trashed() ? 'Dihapus/Nonaktif' : ($existing->status ?? 'Aktif');
                 return back()
                     ->withInput()
                     ->withErrors([
-                        'company_name' => "Perusahaan dengan nama yang sama (\"" . $existing->company_name . "\") sudah terdaftar dan dipegang oleh \"{$ownerName}\". Anda tidak bisa mendaftarkan perusahaan yang sama.",
+                        'company_name' => "Perusahaan dengan nama \"{$existing->company_name}\" sudah terdaftar di sistem atas nama \"{$ownerName}\" (Status: {$statusLabel}). Anda tidak perlu mendaftarkan ulang perusahaan ini.",
                     ]);
             }
         }
@@ -730,16 +733,25 @@ class CustomerController extends Controller
             return redirect()->back()->with('error', 'Customer ini tidak berstatus Prospect.');
         }
 
-        // Generate kode perusahaan di titik ini (bukan saat Sales input)
-        $companyCode = $customer->company_code
-            ?? Customer::generateCompanyCode();
+        try {
+            $companyCode = DB::transaction(function () use ($customer) {
+                // Lock row customer ini agar tidak bentrok
+                $locked = Customer::where('id', $customer->id)->lockForUpdate()->first();
 
-        $customer->update([
-            'status'       => 'Active',
-            'company_code' => $companyCode,
-            'approved_by'  => Auth::id(),
-            'approved_at'  => now(),
-        ]);
+                $code = $locked->company_code ?: Customer::generateCompanyCode();
+
+                $locked->update([
+                    'status'       => Customer::STATUS_ACTIVE,
+                    'company_code' => $code,
+                    'approved_by'  => Auth::id(),
+                    'approved_at'  => now(),
+                ]);
+
+                return $code;
+            });
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', 'Gagal menyetujui customer: ' . $e->getMessage());
+        }
 
         // Kirim notifikasi ke Sales pemilik agar dia tahu customernya sudah disetujui
         if ($customer->sales_id) {
@@ -753,6 +765,35 @@ class CustomerController extends Controller
         }
 
         return redirect()->back()->with('success', "Customer {$customer->company_name} berhasil di-approve (Status: Active, Kode: {$companyCode}).");
+    }
+
+    public function reject(Request $request, Customer $customer)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+
+        if (!in_array($customer->status, Customer::pendingApprovalStatuses(), true)) {
+            return redirect()->back()->with('error', 'Customer ini tidak sedang menunggu approval.');
+        }
+
+        $reason = trim($request->input('reason', ''));
+        $noteEntry = "\n[Ditolak oleh " . $this->authUser()->name . " (" . now()->format('d/m/Y H:i') . ")]: " . ($reason ?: 'Tidak ada alasan khusus');
+
+        $customer->update([
+            'status' => Customer::STATUS_REJECTED,
+            'notes'  => trim(($customer->notes ?? '') . $noteEntry),
+        ]);
+
+        if ($customer->sales_id) {
+            \App\Jobs\CreateNotification::dispatch([
+                'user_id' => $customer->sales_id,
+                'title'   => 'Customer Ditolak ❌',
+                'message' => "Pengajuan customer \"" . $customer->company_name . "\" ditolak oleh " . $this->authUser()->name . ($reason ? ". Alasan: {$reason}" : "."),
+                'type'    => 'danger',
+                'link'    => route('customers.show', $customer),
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Customer {$customer->company_name} berhasil ditolak.");
     }
 
     private function authUser(): User
@@ -772,30 +813,33 @@ class CustomerController extends Controller
         }
 
         if (!empty($query)) {
-            // Bersihkan input: buang PT/CV di awal/akhir dan semua simbol non-alphanumeric
-            $rawClean = trim(preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $query));
-            $cleanInput = strtolower(preg_replace('/[^a-z0-9]/i', '', $rawClean));
+            $cleanInput = Customer::normalizeCompanyName($query);
 
             if (strlen($cleanInput) < 3) {
                 return response()->json([]);
             }
 
-            $all = Customer::with('sales:id,name')->get(['id', 'company_name', 'email', 'sales_id']);
+            $all = Customer::with('sales:id,name')->get(['id', 'company_name', 'email', 'sales_id', 'status']);
             $results = collect();
             
             foreach ($all as $c) {
-                $existingRaw = trim(preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?)$/i', '', $c->company_name));
-                $existingClean = strtolower(preg_replace('/[^a-z0-9]/i', '', $existingRaw));
+                $existingClean = Customer::normalizeCompanyName($c->company_name);
                 
                 $isExact = ($cleanInput === $existingClean);
-                $isSimilar = str_contains($existingClean, $cleanInput) || str_contains($cleanInput, $existingClean);
+                $percent = 0;
+                $isSimilar = ($cleanInput !== '' && $existingClean !== '') && (
+                    str_contains($existingClean, $cleanInput) || 
+                    str_contains($cleanInput, $existingClean) ||
+                    (strlen($cleanInput) > 5 && strlen($existingClean) > 5 && similar_text($cleanInput, $existingClean, $percent) && $percent > 85)
+                );
 
                 if ($isExact || $isSimilar) {
                     $results->push([
                         'id'           => $c->id,
                         'company_name' => $c->company_name,
                         'email'        => $c->email,
-                        'owner'        => $c->sales?->name ?? 'Admin',
+                        'owner'        => $c->sales?->name ?? 'Pedia (House Account)',
+                        'status'       => $c->status ?? 'Active',
                         'is_exact'     => $isExact,
                     ]);
                 }
@@ -809,13 +853,14 @@ class CustomerController extends Controller
         if (!empty($email)) {
             $match = Customer::with('sales:id,name')
                 ->where('email', $email)
-                ->first(['id', 'company_name', 'email', 'sales_id']);
+                ->first(['id', 'company_name', 'email', 'sales_id', 'status']);
             if ($match) {
                 return response()->json([[
                     'id'           => $match->id,
                     'company_name' => $match->company_name,
                     'email'        => $match->email,
-                    'owner'        => $match->sales?->name ?? 'Admin',
+                    'owner'        => $match->sales?->name ?? 'Pedia (House Account)',
+                    'status'       => $match->status ?? 'Active',
                     'is_exact'     => true,
                 ]]);
             }
@@ -839,15 +884,17 @@ class CustomerController extends Controller
 
         $count = 0;
         foreach ($pendingCustomers as $customer) {
-            $companyCode = $customer->company_code
-                ?? Customer::generateCompanyCode();
-
-            $customer->update([
-                'status'       => 'Active',
-                'company_code' => $companyCode,
-                'approved_by'  => Auth::id(),
-                'approved_at'  => now(),
-            ]);
+            $companyCode = DB::transaction(function () use ($customer) {
+                $locked = Customer::where('id', $customer->id)->lockForUpdate()->first();
+                $code = $locked->company_code ?: Customer::generateCompanyCode();
+                $locked->update([
+                    'status'       => Customer::STATUS_ACTIVE,
+                    'company_code' => $code,
+                    'approved_by'  => Auth::id(),
+                    'approved_at'  => now(),
+                ]);
+                return $code;
+            });
 
             // Notifikasi balik ke Sales pemilik masing-masing
             if ($customer->sales_id) {

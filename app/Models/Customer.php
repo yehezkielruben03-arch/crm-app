@@ -314,16 +314,38 @@ class Customer extends Model
         return $this->purchaseOrders()->where('status', PurchaseOrder::STATUS_GOAL)->sum('grand_total');
     }
 
+    /**
+     * Normalisasi nama perusahaan untuk perbandingan duplikasi yang akurat.
+     * Membersihkan prefix/suffix legalitas (PT, CV, UD, TBK, PERSERO, dll) dan semua karakter non-alphanumeric.
+     */
+    public static function normalizeCompanyName(string $name): string
+    {
+        $cleaned = preg_replace('/\b(PT|CV|UD|PD|TBK|PERSERO|PERORANGAN|PEMERINTAH)\b/i', '', $name);
+        $cleaned = preg_replace('/[^a-zA-Z0-9]/', '', $cleaned);
+        return strtolower(trim($cleaned));
+    }
+
     // Generate company code format: PTIyyyymmddxxxxxxx
     public static function generateCompanyCode(): string
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () {
-            $prefix = 'PTI' . now()->format('Ymd');
-            $last = self::where('company_code', 'LIKE', $prefix . '%')
-                ->orderByDesc('id')
+        $prefix = 'PTI' . now()->format('Ymd');
+
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
+            $maxCode = self::withTrashed()
+                ->where('company_code', 'LIKE', $prefix . '%')
                 ->lockForUpdate()
-                ->first();
-            $next = $last ? (int) substr($last->company_code, -7) + 1 : 1;
+                ->max('company_code');
+
+            $next = 1;
+            if ($maxCode && strlen($maxCode) >= strlen($prefix) + 7) {
+                $lastSeq = (int) substr($maxCode, -7);
+                $next = $lastSeq + 1;
+            }
+
+            while (self::withTrashed()->where('company_code', $prefix . str_pad($next, 7, '0', STR_PAD_LEFT))->exists()) {
+                $next++;
+            }
+
             return $prefix . str_pad($next, 7, '0', STR_PAD_LEFT);
         });
     }
