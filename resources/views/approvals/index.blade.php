@@ -41,7 +41,7 @@
                         </td>
                         <td class="py-3 text-right">
                             <div class="flex justify-end gap-2 items-center">
-                                <form action="{{ route('customers.approve', $customer) }}" method="POST" class="inline-block" onsubmit="return confirm('Setujui pelanggan ini? Status akan berubah menjadi Active dan kode perusahaan akan dibuat otomatis.');">
+                                <form action="{{ route('customers.approve', $customer) }}" method="POST" class="inline-block" onsubmit="if(!confirm('Setujui pelanggan ini? Status akan berubah menjadi Active dan kode perusahaan akan dibuat otomatis.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
                                     @csrf
                                     <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

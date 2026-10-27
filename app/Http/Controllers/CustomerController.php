@@ -430,8 +430,51 @@ class CustomerController extends Controller
         $inputName = trim($cleanName);
         if (!empty($inputName)) {
             $validated['company_name'] = Customer::formatTitleCase($inputName);
+
+            // Mencegah perubahan nama menjadi duplikat perusahaan lain yang sudah ada
+            $inputCleanMatch = Customer::normalizeCompanyName($validated['company_name']);
+            if ($inputCleanMatch !== '') {
+                $existingDuplicate = Customer::withTrashed()
+                    ->where('id', '!=', $customer->id)
+                    ->select('id', 'company_name', 'sales_id', 'status', 'deleted_at')
+                    ->with('sales')
+                    ->get()
+                    ->first(function ($other) use ($inputCleanMatch) {
+                        return Customer::normalizeCompanyName($other->company_name) === $inputCleanMatch;
+                    });
+
+                if ($existingDuplicate) {
+                    $ownerName = $existingDuplicate->sales ? $existingDuplicate->sales->name : 'Pedia (House Account)';
+                    $statusLabel = $existingDuplicate->trashed() ? 'Dihapus/Nonaktif' : ($existingDuplicate->status ?? 'Aktif');
+                    return back()
+                        ->withInput()
+                        ->withErrors([
+                            'company_name' => "Nama perusahaan bentrok dengan customer lain (\"{$existingDuplicate->company_name}\") atas nama \"{$ownerName}\" (Status: {$statusLabel}).",
+                        ]);
+                }
+            }
         } else {
             unset($validated['company_name']); // Pertahankan nama sebelumnya jika dikosongkan
+        }
+
+        // Mencegah perubahan email menjadi duplikat customer lain
+        if (!empty($validated['email'])) {
+            $existingEmail = Customer::withTrashed()
+                ->where('id', '!=', $customer->id)
+                ->where('email', strtolower(trim($validated['email'])))
+                ->select('id', 'company_name', 'sales_id', 'status', 'deleted_at')
+                ->with('sales')
+                ->first();
+
+            if ($existingEmail) {
+                $ownerName = $existingEmail->sales ? $existingEmail->sales->name : 'Pedia (House Account)';
+                $statusLabel = $existingEmail->trashed() ? 'Dihapus/Nonaktif' : ($existingEmail->status ?? 'Aktif');
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'email' => "Email \"{$validated['email']}\" sudah digunakan oleh customer lain (\"{$existingEmail->company_name}\") atas nama \"{$ownerName}\" (Status: {$statusLabel}).",
+                    ]);
+            }
         }
 
         if (!empty($validated['cp_name'])) {
@@ -442,9 +485,33 @@ class CustomerController extends Controller
             unset($validated['status']);
         }
 
+        // Jika status diset ke Active oleh Admin dan belum memiliki company_code, buat otomatis
+        if (($validated['status'] ?? $customer->status) === Customer::STATUS_ACTIVE && empty($customer->company_code)) {
+            $validated['company_code'] = Customer::generateCompanyCode();
+            $validated['approved_by']  = Auth::id();
+            $validated['approved_at']  = now();
+        }
+
         // Sales tidak bisa pindah-pindah ownership customer, manipulasi status, atau ubah NPWP/NIB
         if (!$this->authUser()->isAdminOrAbove()) {
             unset($validated['sales_id'], $validated['status'], $validated['npwp'], $validated['nib']);
+
+            // Jika customer sebelumnya berstatus Rejected, update oleh Sales akan mengajukan ulang ke Prospect
+            if ($customer->status === Customer::STATUS_REJECTED) {
+                $validated['status'] = Customer::STATUS_PROSPECT;
+                $admins = User::whereIn('role', ['Admin', 'Admin Purchase', 'Leader', 'Super Admin'])
+                    ->where('status', 'Active')
+                    ->get();
+                foreach ($admins as $admin) {
+                    \App\Jobs\CreateNotification::dispatch([
+                        'user_id' => $admin->id,
+                        'title'   => 'Pengajuan Ulang Customer',
+                        'message' => $this->authUser()->name . ' telah memperbarui customer "' . $customer->company_name . '" yang sebelumnya ditolak dan mengajukan ulang untuk persetujuan.',
+                        'type'    => 'info',
+                        'link'    => route('approvals.index'),
+                    ]);
+                }
+            }
         }
 
         try {
@@ -729,8 +796,8 @@ class CustomerController extends Controller
     {
         abort_if(!$this->authUser()->isAdminOrAbove(), 403);
 
-        if (!in_array($customer->status, Customer::pendingApprovalStatuses(), true)) {
-            return redirect()->back()->with('error', 'Customer ini tidak berstatus Prospect.');
+        if (!in_array($customer->status, array_merge(Customer::pendingApprovalStatuses(), [Customer::STATUS_REJECTED]), true)) {
+            return redirect()->back()->with('error', 'Customer ini tidak berstatus Prospect atau Rejected.');
         }
 
         try {
@@ -819,7 +886,7 @@ class CustomerController extends Controller
                 return response()->json([]);
             }
 
-            $all = Customer::with('sales:id,name')->get(['id', 'company_name', 'email', 'sales_id', 'status']);
+            $all = Customer::withTrashed()->with('sales:id,name')->get(['id', 'company_name', 'email', 'sales_id', 'status', 'deleted_at']);
             $results = collect();
             
             foreach ($all as $c) {
@@ -839,7 +906,7 @@ class CustomerController extends Controller
                         'company_name' => $c->company_name,
                         'email'        => $c->email,
                         'owner'        => $c->sales?->name ?? 'Pedia (House Account)',
-                        'status'       => $c->status ?? 'Active',
+                        'status'       => $c->trashed() ? 'Dihapus/Nonaktif' : ($c->status ?? 'Active'),
                         'is_exact'     => $isExact,
                     ]);
                 }
@@ -851,16 +918,18 @@ class CustomerController extends Controller
         }
 
         if (!empty($email)) {
-            $match = Customer::with('sales:id,name')
-                ->where('email', $email)
-                ->first(['id', 'company_name', 'email', 'sales_id', 'status']);
+            $cleanEmail = strtolower(trim($email));
+            $match = Customer::withTrashed()
+                ->with('sales:id,name')
+                ->where('email', $cleanEmail)
+                ->first(['id', 'company_name', 'email', 'sales_id', 'status', 'deleted_at']);
             if ($match) {
                 return response()->json([[
                     'id'           => $match->id,
                     'company_name' => $match->company_name,
                     'email'        => $match->email,
                     'owner'        => $match->sales?->name ?? 'Pedia (House Account)',
-                    'status'       => $match->status ?? 'Active',
+                    'status'       => $match->trashed() ? 'Dihapus/Nonaktif' : ($match->status ?? 'Active'),
                     'is_exact'     => true,
                 ]]);
             }

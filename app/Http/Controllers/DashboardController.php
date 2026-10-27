@@ -49,7 +49,7 @@ class DashboardController extends Controller
             return Customer::where('sales_id', $userId)
                 ->selectRaw('
                     COUNT(*) as total,
-                    SUM(CASE WHEN status = \'Pending\' THEN 1 ELSE 0 END) as pending,
+                    SUM(CASE WHEN status IN (\'Prospect\', \'Pending\', \'Lead\') THEN 1 ELSE 0 END) as pending,
                     SUM(CASE WHEN status = \'Active\' THEN 1 ELSE 0 END) as active
                 ')
                 ->first();
@@ -430,7 +430,7 @@ class DashboardController extends Controller
         $globalStats = Cache::remember('dash:admin:global', 60, function () {
             $cust = Customer::selectRaw('
                 COUNT(*) as total,
-                SUM(CASE WHEN status = \'Pending\' THEN 1 ELSE 0 END) as pending
+                SUM(CASE WHEN status IN (\'Prospect\', \'Pending\', \'Lead\') THEN 1 ELSE 0 END) as pending
             ')->first();
 
             $rfq = Rfq::selectRaw("

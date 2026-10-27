@@ -70,7 +70,7 @@ class Customer extends Model
             'Lead'     => 'Prospect',
             'Active'   => 'Active',
             'Inactive' => 'Inactive',
-            'Rejected' => 'Blacklist',
+            'Rejected' => 'Rejected',
             'Blacklist'=> 'Blacklist',
         ];
     }
@@ -331,14 +331,15 @@ class Customer extends Model
         $prefix = 'PTI' . now()->format('Ymd');
 
         return \Illuminate\Support\Facades\DB::transaction(function () use ($prefix) {
-            $maxCode = self::withTrashed()
+            $lastCustomer = self::withTrashed()
                 ->where('company_code', 'LIKE', $prefix . '%')
+                ->orderByDesc('company_code')
                 ->lockForUpdate()
-                ->max('company_code');
+                ->first(['company_code']);
 
             $next = 1;
-            if ($maxCode && strlen($maxCode) >= strlen($prefix) + 7) {
-                $lastSeq = (int) substr($maxCode, -7);
+            if ($lastCustomer && !empty($lastCustomer->company_code) && strlen($lastCustomer->company_code) >= strlen($prefix) + 7) {
+                $lastSeq = (int) substr($lastCustomer->company_code, -7);
                 $next = $lastSeq + 1;
             }
 

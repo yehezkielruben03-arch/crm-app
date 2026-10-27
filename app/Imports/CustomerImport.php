@@ -22,6 +22,8 @@ class CustomerImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
     private array $mapping = [];
     private int $headingRow = 1;
     private array $seenNames = [];
+    private array $existingNames = [];
+    private array $existingEmails = [];
     private ?int $codeCounter = null;
     private ?string $codePrefix = null;
 
@@ -36,10 +38,27 @@ class CustomerImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
 
         // Cache kode perusahaan terakhir untuk performa bulk import super cepat
         $this->codePrefix = 'PTI' . now()->format('Ymd');
-        $last = Customer::where('company_code', 'LIKE', $this->codePrefix . '%')
+        $last = Customer::withTrashed()
+            ->where('company_code', 'LIKE', $this->codePrefix . '%')
             ->orderByDesc('company_code')
             ->first();
         $this->codeCounter = $last ? (int) substr($last->company_code, -7) : 0;
+
+        // Cache nama perusahaan yang sudah ada di database untuk pencegahan duplikasi super cepat O(1)
+        $this->existingNames = Customer::withTrashed()
+            ->pluck('company_name')
+            ->mapWithKeys(function ($name) {
+                $norm = Customer::normalizeCompanyName($name ?? '');
+                return $norm !== '' ? [$norm => true] : [];
+            })
+            ->toArray();
+
+        // Cache email yang sudah ada di database
+        $this->existingEmails = Customer::withTrashed()
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->mapWithKeys(fn($e) => [strtolower(trim($e)) => true])
+            ->toArray();
     }
 
     public function headingRow(): int
@@ -49,8 +68,12 @@ class CustomerImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
 
     private function generateSequentialCompanyCode(): string
     {
-        $this->codeCounter++;
-        return $this->codePrefix . str_pad($this->codeCounter, 7, '0', STR_PAD_LEFT);
+        do {
+            $this->codeCounter++;
+            $code = $this->codePrefix . str_pad($this->codeCounter, 7, '0', STR_PAD_LEFT);
+        } while (Customer::withTrashed()->where('company_code', $code)->exists());
+
+        return $code;
     }
 
     public function model(array $row)
@@ -70,22 +93,23 @@ class CustomerImport implements ToModel, WithHeadingRow, WithCalculatedFormulas
             return null;
         }
 
-        // Cek Duplicate internal dalam file Excel (In-Memory deduplication)
-        $cleanKey = strtolower(preg_replace('/[^a-z0-9]/i', '', $companyName));
-        if (isset($this->seenNames[$cleanKey])) {
-            return null;
-        }
-        $this->seenNames[$cleanKey] = true;
-
-        // Cek Duplicate Company Name di Database
-        if (Customer::where('company_name', $companyName)->exists()) {
-            return null;
+        // Cek Duplicate Company Name (In-Memory + Database deduplication menggunakan smart normalization)
+        $cleanKey = Customer::normalizeCompanyName($companyName);
+        if ($cleanKey !== '') {
+            if (isset($this->seenNames[$cleanKey]) || isset($this->existingNames[$cleanKey])) {
+                return null;
+            }
+            $this->seenNames[$cleanKey] = true;
         }
 
         // 2. Flexible Aliases untuk Field Lain
         $email = trim((string)($row['email'] ?? $row['alamat_email'] ?? $row['e_mail'] ?? ''));
-        if (!empty($email) && Customer::where('email', $email)->exists()) {
-            return null; // Skip if email exists
+        $cleanEmail = strtolower($email);
+        if (!empty($cleanEmail)) {
+            if (isset($this->existingEmails[$cleanEmail])) {
+                return null; // Skip if email exists
+            }
+            $this->existingEmails[$cleanEmail] = true;
         }
 
         $region = $row['kawasan'] ?? $row['region'] ?? $row['area'] ?? $row['wilayah'] ?? $row['lokasi'] ?? $row['kawasan_industri'] ?? $row['kota'] ?? $row['provinsi'] ?? null;

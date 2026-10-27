@@ -677,22 +677,29 @@
     document.addEventListener('DOMContentLoaded', function () {
         const nameInput = document.querySelector('input[name="company_name"]');
         const emailInput = document.querySelector('input[name="email"]');
+        const submitBtn = document.getElementById('btnSubmitCustomer') || document.querySelector('button[type="submit"]');
         let debounceTimer;
+
+        let isNameDuplicate = false;
+        let isEmailDuplicate = false;
+
+        function updateSubmitButtonState() {
+            if (!submitBtn) return;
+            const isBlocked = isNameDuplicate || isEmailDuplicate;
+            submitBtn.disabled = isBlocked;
+            submitBtn.style.opacity = isBlocked ? '0.5' : '';
+            submitBtn.style.pointerEvents = isBlocked ? 'none' : '';
+            submitBtn.title = isBlocked ? 'Data duplikat terdeteksi. Silakan periksa nama atau email perusahaan.' : '';
+        }
 
         function checkDuplicate(type, value) {
             const existingMsg = document.getElementById(`duplicate-${type}-msg`);
             if (existingMsg) existingMsg.remove();
 
-            const submitBtn = document.getElementById('btnSubmitCustomer') || document.querySelector('button[type="submit"]');
-
             if (!value || value.trim().length < 3) {
-                const currentMsg = document.getElementById(`duplicate-${type}-msg`);
-                if (currentMsg) currentMsg.remove();
-                if (submitBtn) {
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '';
-                    submitBtn.style.pointerEvents = '';
-                }
+                if (type === 'name') isNameDuplicate = false;
+                if (type === 'email') isEmailDuplicate = false;
+                updateSubmitButtonState();
                 return;
             }
 
@@ -707,19 +714,9 @@
 
                     const hasExact = data && data.some(d => d.is_exact);
 
-                    if (submitBtn) {
-                        if (hasExact) {
-                            submitBtn.disabled = true;
-                            submitBtn.style.opacity = '0.5';
-                            submitBtn.style.pointerEvents = 'none';
-                            submitBtn.title = 'Perusahaan ini sudah terdaftar di sistem. Tidak dapat mendaftarkan duplikat.';
-                        } else {
-                            submitBtn.disabled = false;
-                            submitBtn.style.opacity = '';
-                            submitBtn.style.pointerEvents = '';
-                            submitBtn.title = '';
-                        }
-                    }
+                    if (type === 'name') isNameDuplicate = hasExact;
+                    if (type === 'email') isEmailDuplicate = hasExact;
+                    updateSubmitButtonState();
 
                     if (data && data.length > 0) {
                         const targetInput = type === 'name' ? nameInput : emailInput;

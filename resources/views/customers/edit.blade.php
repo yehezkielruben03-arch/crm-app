@@ -561,6 +561,7 @@
                                 'Prospect' => 'Prospect',
                                 'Active' => 'Active (Aktif)',
                                 'Inactive' => 'Inactive',
+                                'Rejected' => 'Rejected',
                                 'Blacklist' => 'Blacklist',
                             ]" />
                         </div>
@@ -572,6 +573,7 @@
                                     'Active' => 'status-active',
                                     'Prospect' => 'status-pending',
                                     'Inactive' => 'status-inactive',
+                                    'Rejected' => 'status-rejected',
                                     'Blacklist' => 'status-rejected',
                                     default => 'status-inactive'
                                 };

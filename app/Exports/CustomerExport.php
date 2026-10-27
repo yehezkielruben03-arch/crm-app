@@ -210,7 +210,7 @@ class CustomerExport implements FromCollection, WithHeadings, WithMapping, WithS
                         'font' => ['color' => ['argb' => 'FFB45309'], 'bold' => true],
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFEF3C7']],
                     ]);
-                } elseif (in_array($statusVal, ['Inactive', 'Blacklist'])) {
+                } elseif (in_array($statusVal, ['Inactive', 'Blacklist', 'Rejected'])) {
                     $sheet->getStyle('P' . $row)->applyFromArray([
                         'font' => ['color' => ['argb' => 'FFB91C1C'], 'bold' => true],
                         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFFEE2E2']],

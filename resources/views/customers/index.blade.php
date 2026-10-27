@@ -115,6 +115,7 @@
                     'Active' => 'Active',
                     'Inactive' => 'Inactive',
                     'Blacklist' => 'Blacklist',
+                    'Rejected' => 'Rejected',
                 ]" />
             </div>
             <div class="flex items-end gap-2">
@@ -152,7 +153,7 @@
 
     <!-- Table Section -->
 
-        @if(auth()->user()->isAdminOrAbove() && $customers->whereIn('status', ['Prospect', 'Pending'])->count() > 0)
+        @if(auth()->user()->isAdminOrAbove() && $customers->whereIn('status', \App\Models\Customer::pendingApprovalStatuses())->count() > 0)
         <div class="mb-3 flex justify-end">
             <button type="button" onclick="confirmBulkApprove()"
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5"
@@ -190,7 +191,7 @@
                         <tr>
                             @if(auth()->user()->isAdminOrAbove())
                             <td>
-                                @if(in_array($customer->status, ['Prospect', 'Pending']))
+                                @if(in_array($customer->status, \App\Models\Customer::pendingApprovalStatuses()))
                                 <input type="checkbox" name="customer_ids[]" value="{{ $customer->id }}"
                                     class="customer-checkbox rounded cursor-pointer"
                                     style="accent-color: var(--accent-blue);">
@@ -256,6 +257,9 @@
                                     $badgeClass = match($customer->status) {
                                         'Active'   => 'approved',
                                         'Prospect' => 'pending',
+                                        'Rejected' => 'rejected',
+                                        'Blacklist'=> 'rejected',
+                                        'Inactive' => 'inactive',
                                         default    => 'pending',
                                     };
                                 @endphp
@@ -279,10 +283,10 @@
                                         </svg>
                                     </a>
 
-                                    @if(in_array($customer->status, ['Prospect', 'Pending']) && auth()->user()->isAdminOrAbove())
+                                    @if(in_array($customer->status, array_merge(\App\Models\Customer::pendingApprovalStatuses(), [\App\Models\Customer::STATUS_REJECTED])) && auth()->user()->isAdminOrAbove())
                                     <!-- Approve -->
                                     <form action="{{ route('customers.approve', $customer) }}" method="POST" class="inline"
-                                        onsubmit="return confirm('Approve customer ini menjadi Active?')">
+                                        onsubmit="if(!confirm('Approve customer ini menjadi Active?')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
                                         @csrf
                                         <button type="submit" title="Approve"
                                             class="p-1.5 rounded-lg transition-colors"
