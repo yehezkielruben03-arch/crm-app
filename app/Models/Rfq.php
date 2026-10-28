@@ -417,13 +417,8 @@ class Rfq extends Model
                     return "- " . $prefix . $c->product_name;
                 })->implode("\n");
 
-                if (!empty($it->description)) {
-                    $firstPart = trim($comps->first()?->product_name ?? '');
-                    if ($firstPart !== '' && str_contains($it->description, $firstPart)) {
-                        $desc = $it->description;
-                    } else {
-                        $desc = $it->description . "\n" . $compList;
-                    }
+                if (!empty(trim($it->description ?? ''))) {
+                    $desc = $it->description;
                 } else {
                     $desc = $compList;
                 }
