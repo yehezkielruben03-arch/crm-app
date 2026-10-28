@@ -999,6 +999,7 @@ class RfqController extends Controller
 
                         $comp->parent_id = $item->id;
                         $comp->is_bundle = false;
+                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
                         $comp->category = $item->category;
                         $comp->product_name = $cName;
                         $comp->qty = (float) ($cData['qty'] ?? 1);
@@ -1462,6 +1463,8 @@ class RfqController extends Controller
                         $comp->id = rand(800000, 899999);
                         $comp->rfq_id = $rfq->id;
                         $comp->parent_id = $item->id;
+                        $comp->is_bundle = false;
+                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
                         $comp->product_name = $cData['product_name'] ?? 'Komponen';
                         $comp->qty = (float) ($cData['qty'] ?? 1);
                         $comp->unit = $cData['unit'] ?? 'Unit';

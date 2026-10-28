@@ -857,7 +857,7 @@
                                 <table class="min-w-[1520px] w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-{{ $item->id }}">
                                     <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none">
                                         <tr>
-                                            <th class="py-2.5 px-2 text-center w-10 min-w-[40px]">#</th>
+                                            <th class="py-2.5 px-2 text-center w-14 min-w-[55px]" title="Nomor urut & Checklist Tampil di Quotation Klien"><span>#</span><span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Tampil</span></th>
                                             <th class="py-2.5 px-2.5 w-36 min-w-[140px]">Kategori</th>
                                             <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
                                             <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
@@ -875,7 +875,16 @@
                                     <tbody id="bundle-components-tbody-{{ $item->id }}" class="divide-y divide-slate-100">
                                         @foreach($bundleComps as $cIdx => $comp)
                                         <tr class="comp-row-{{ $item->id }} hover:bg-slate-50/80 transition" data-comp-index="{{ $cIdx }}">
-                                            <td class="py-2.5 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">{{ $loop->iteration }}</td>
+                                            <td class="py-2.5 px-2 text-center whitespace-nowrap">
+                                                <div class="flex items-center justify-center gap-1.5">
+                                                    <span class="text-slate-400 font-mono text-[11px] comp-idx">{{ $loop->iteration }}</span>
+                                                    <input type="checkbox" name="items[{{ $item->id }}][components][{{ $cIdx }}][show_in_quotation]" value="1"
+                                                           {{ (!isset($comp->show_in_quotation) || $comp->show_in_quotation) ? 'checked' : '' }}
+                                                           class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5 comp-show-quo-toggle cursor-pointer"
+                                                           title="Centang untuk menampilkan part ini di Quotation klien"
+                                                           onchange="syncPcSpecsToDescription('{{ $item->id }}')">
+                                                </div>
+                                            </td>
                                             <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
                                                 <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
@@ -1771,7 +1780,7 @@
                     <table class="min-w-[1520px] w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-${itemId}">
                         <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none">
                             <tr>
-                                <th class="py-2.5 px-2 text-center w-10 min-w-[40px]">#</th>
+                                <th class="py-2.5 px-2 text-center w-14 min-w-[55px]" title="Nomor urut & Checklist Tampil di Quotation Klien"><span>#</span><span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Tampil</span></th>
                                 <th class="py-2.5 px-2.5 w-36 min-w-[140px]">Kategori</th>
                                 <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
                                 <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
@@ -2780,6 +2789,7 @@
             const biayaKirim = data.biaya_kirim !== undefined ? data.biaya_kirim : (rowIdx === 0 ? (parseRupiah(document.getElementById('bundle-delivery-cost-' + itemId)?.value || '107100')) : 0);
             const margin = data.margin !== undefined ? data.margin : (rowIdx === 0 ? 15 : 13);
             const ceiling = data.ceiling !== undefined ? data.ceiling : 50000;
+            const showInQuo = data.show_in_quotation !== undefined ? Boolean(data.show_in_quotation) : true;
 
             const modalEx = isInc && incPpn > 0 ? Math.round(incPpn / 1.11) : incPpn;
 
@@ -2791,7 +2801,16 @@
             const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
-                <td class="py-2.5 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">${num}</td>
+                <td class="py-2.5 px-2 text-center whitespace-nowrap">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <span class="text-slate-400 font-mono text-[11px] comp-idx">${num}</span>
+                        <input type="checkbox" name="items[${itemId}][components][${rowIdx}][show_in_quotation]" value="1"
+                               ${showInQuo ? 'checked' : ''}
+                               class="rounded border-slate-300 text-indigo-600 focus:ring-0 w-3.5 h-3.5 comp-show-quo-toggle cursor-pointer"
+                               title="Centang untuk menampilkan part ini di Quotation klien"
+                               onchange="syncPcSpecsToDescription('${itemId}')">
+                    </div>
+                </td>
                 <td class="py-2.5 px-2.5">
                     <select name="items[${itemId}][components][${rowIdx}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
                         ${selectOptions}
@@ -3066,6 +3085,9 @@
 
             const lines = [];
             tbody.querySelectorAll('tr').forEach(row => {
+                const isShow = row.querySelector('.comp-show-quo-toggle') ? row.querySelector('.comp-show-quo-toggle').checked : true;
+                if (!isShow) return; // Lewati part yang tidak dicentang
+
                 const name = row.querySelector('.comp-name-input')?.value?.trim();
                 const cat = row.querySelector('select')?.value?.trim();
                 const qty = parseFloat(row.querySelector('.comp-qty-input')?.value || '1') || 1;

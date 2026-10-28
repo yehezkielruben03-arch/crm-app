@@ -411,14 +411,21 @@ class Rfq extends Model
                     return $cPrice * $cQty;
                 });
                 $unitPrice = $compSellingTotal;
-                $compList = $comps->map(function ($c) {
+
+                // Filter hanya komponen yang dicentang tampil di penawaran klien
+                $visibleComps = $comps->filter(function ($c) {
+                    return $c->show_in_quotation !== false && $c->show_in_quotation !== 0 && $c->show_in_quotation !== '0';
+                });
+
+                $compList = $visibleComps->map(function ($c) {
                     $cQty = (int) $c->qty;
                     $prefix = $cQty > 1 ? "({$cQty}x) " : "";
                     return "- " . $prefix . $c->product_name;
                 })->implode("\n");
 
+                // Jika user sudah menulis deskripsi custom di textarea, hormati teks user sepenuhnya
                 if (!empty(trim($it->description ?? ''))) {
-                    $desc = $it->description;
+                    $desc = trim($it->description);
                 } else {
                     $desc = $compList;
                 }

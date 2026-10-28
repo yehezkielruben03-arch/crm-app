@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class RfqItem extends Model
 {
     protected $fillable = [
-        'rfq_id', 'parent_id', 'is_bundle', 'category', 'product_name', 'qty', 'unit', 'detail_item', 'description',
+        'rfq_id', 'parent_id', 'is_bundle', 'show_in_quotation', 'category', 'product_name', 'qty', 'unit', 'detail_item', 'description',
         'hpp', 'ongkir_pedia', 'ongkir_pelanggan', 'margin', 'ceiling', 'validity_days', 'price_after_margin',
         'biaya_kirim', 'fee_eu', 'margin_type', 'margin_value', 'custom_ceiling', 'vendor_id', 'link_referensi'
     ];
@@ -132,6 +132,7 @@ class RfqItem extends Model
         'margin' => 'decimal:2',
         'price_after_margin' => 'decimal:2',
         'is_bundle' => 'boolean',
+        'show_in_quotation' => 'boolean',
     ];
 
     public function rfq(): BelongsTo
