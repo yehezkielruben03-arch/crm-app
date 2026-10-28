@@ -1,3 +1,19 @@
+<style>
+    .custom-scrollbar::-webkit-scrollbar {
+        height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
 <x-app-layout>
     <div class="space-y-6">
 
@@ -434,7 +450,11 @@
                                     </span>
                                 </label>
                                 <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
-                                    Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-{{ $item->id }}">{{ (int)$item->qty }}</span> <span id="badge-unit-{{ $item->id }}">{{ $item->unit ?? ($categoryName === 'Material Support' ? 'Lot' : 'Unit') }}</span>
+                                    Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-{{ $item->id }}">{{ (float)$item->qty }}</span> <span id="badge-unit-{{ $item->id }}">{{ $item->unit ?? ($categoryName === 'Material Support' ? 'Lot' : 'Unit') }}</span>
+                                </div>
+                                <div class="px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 shadow-2xs font-mono flex items-center gap-1">
+                                    <span>Total:</span>
+                                    <span id="badge-total-{{ $item->id }}">Rp {{ number_format((float)$item->price_after_margin * ((float)$item->qty ?: 1), 0, ',', '.') }}</span>
                                 </div>
                                 <button type="button" onclick="deletePriceItem('{{ $item->id }}', '{{ $blockKey }}')"
                                     class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition"
@@ -833,57 +853,58 @@
                             </div>
 
                             <!-- Tabel Komponen PC (Identik Lembar2 Excel) -->
-                            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
-                                <table class="w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-{{ $item->id }}">
-                                    <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white custom-scrollbar">
+                                <table class="min-w-[1520px] w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-{{ $item->id }}">
+                                    <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none">
                                         <tr>
-                                            <th class="py-2.5 px-2 text-center w-8">#</th>
-                                            <th class="py-2.5 px-2 w-28">Kategori</th>
-                                            <th class="py-2.5 px-2 min-w-[200px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
-                                            <th class="py-2.5 px-1.5 w-12 text-center">Qty</th>
-                                            <th class="py-2.5 px-2 w-28">Vendor / Toko</th>
-                                            <th class="py-2.5 px-2 w-32 text-right">Harga Beli (Inc PPN)</th>
-                                            <th class="py-2.5 px-2 w-28 text-right bg-slate-50/80">Modal Ex PPN</th>
-                                            <th class="py-2.5 px-2 w-24 text-right">Ongkir Vendor</th>
-                                            <th class="py-2.5 px-2 w-24 text-right">Biaya Kirim</th>
-                                            <th class="py-2.5 px-1.5 w-16 text-center">Margin %</th>
-                                            <th class="py-2.5 px-2 w-20 text-center">Ceiling</th>
-                                            <th class="py-2.5 px-2.5 w-32 text-right bg-indigo-50/60 text-indigo-900 font-extrabold">Harga Jual Part</th>
-                                            <th class="py-2.5 px-1.5 text-center w-10">Aksi</th>
+                                            <th class="py-2.5 px-2 text-center w-10 min-w-[40px]">#</th>
+                                            <th class="py-2.5 px-2.5 w-36 min-w-[140px]">Kategori</th>
+                                            <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
+                                            <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
+                                            <th class="py-2.5 px-2.5 w-40 min-w-[150px]">Vendor / Toko</th>
+                                            <th class="py-2.5 px-2.5 w-36 min-w-[145px] text-right">Harga Beli (Inc PPN)</th>
+                                            <th class="py-2.5 px-2.5 w-36 min-w-[140px] text-right bg-slate-50/80 whitespace-nowrap">Modal Ex PPN</th>
+                                            <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Ongkir Vendor</th>
+                                            <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Biaya Kirim</th>
+                                            <th class="py-2.5 px-1.5 w-20 min-w-[80px] text-center">Margin %</th>
+                                            <th class="py-2.5 px-2 w-24 min-w-[95px] text-center">Ceiling</th>
+                                            <th class="py-2.5 px-3 w-40 min-w-[150px] text-right bg-indigo-50/60 text-indigo-900 font-extrabold whitespace-nowrap">Harga Jual Part</th>
+                                            <th class="py-2.5 px-1.5 text-center w-12 min-w-[48px]">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="bundle-components-tbody-{{ $item->id }}" class="divide-y divide-slate-100">
                                         @foreach($bundleComps as $cIdx => $comp)
                                         <tr class="comp-row-{{ $item->id }} hover:bg-slate-50/80 transition" data-comp-index="{{ $cIdx }}">
-                                            <td class="py-2 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">{{ $loop->iteration }}</td>
-                                            <td class="py-2 px-1.5">
+                                            <td class="py-2.5 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">{{ $loop->iteration }}</td>
+                                            <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
-                                                <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-[11px] font-semibold text-slate-700 border-slate-200 rounded-lg py-1 px-1.5 focus:ring-1 focus:ring-indigo-500">
+                                                <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
                                                     @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Jasa', 'Lainnya'] as $catOption)
                                                         <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
-                                            <td class="py-2 px-1.5">
+                                            <td class="py-2.5 px-3">
                                                 <input type="text" name="items[{{ $item->id }}][components][{{ $cIdx }}][product_name]"
                                                        value="{{ $comp->product_name }}"
-                                                       class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1 px-2 focus:ring-1 focus:ring-indigo-500 comp-name-input"
-                                                       placeholder="Nama part..." required oninput="calculateBundle('{{ $item->id }}')">
+                                                       class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1.5 px-2.5 focus:ring-1 focus:ring-indigo-500 comp-name-input"
+                                                       placeholder="Nama / spesifikasi part..." required oninput="calculateBundle('{{ $item->id }}')">
                                             </td>
-                                            <td class="py-2 px-1 text-center">
+                                            <td class="py-2.5 px-2 text-center">
                                                 <input type="number" name="items[{{ $item->id }}][components][{{ $cIdx }}][qty]" min="0.1" step="any"
                                                        value="{{ (float) $comp->qty ?: 1 }}"
-                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-qty-input"
+                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1.5 px-1 comp-qty-input"
                                                        oninput="calculateBundle('{{ $item->id }}')">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][unit]" value="{{ $comp->unit ?: 'Unit' }}">
+                                                <div class="comp-procurement-badge mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/90 rounded px-1.5 py-0.5 whitespace-nowrap shadow-2xs" style="display: none;"></div>
                                             </td>
-                                            <td class="py-2 px-1">
+                                            <td class="py-2.5 px-2.5">
                                                 <input type="text" name="items[{{ $item->id }}][components][{{ $cIdx }}][vendor_name]"
                                                        value="{{ $comp->vendor->nama_vendor ?? '' }}"
-                                                       class="w-full text-[11px] text-slate-700 border-slate-200 rounded-lg py-1 px-1.5"
-                                                       placeholder="Tokopedia / Offline">
+                                                       class="w-full text-xs text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500"
+                                                       placeholder="Nama Vendor / Toko">
                                             </td>
-                                            <td class="py-2 px-1">
+                                            <td class="py-2.5 px-2.5">
                                                 @php
                                                     $modalEx = (float) $comp->hpp;
                                                     $estInc = round($modalEx * 1.11);
@@ -891,7 +912,7 @@
                                                 <div class="relative">
                                                     <input type="text" inputmode="numeric"
                                                            value="{{ number_format($estInc > 0 ? $estInc : $modalEx, 0, ',', '.') }}"
-                                                           class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-inc-ppn-input"
+                                                           class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-inc-ppn-input"
                                                            placeholder="0" oninput="onCompIncPpnChange(this, '{{ $item->id }}')">
                                                 </div>
                                                 <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
@@ -899,39 +920,53 @@
                                                     <span>/ 1.11</span>
                                                 </label>
                                             </td>
-                                            <td class="py-2 px-1 text-right bg-slate-50/80 font-mono font-semibold text-slate-700">
+                                            <td class="py-2.5 px-2.5 text-right bg-slate-50/80 font-mono font-semibold text-slate-700 whitespace-nowrap">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][hpp]" value="{{ $modalEx }}" class="comp-hpp-raw">
-                                                <span class="comp-hpp-display">Rp {{ number_format($modalEx, 0, ',', '.') }}</span>
+                                                <span class="comp-hpp-display">
+                                                    @if((float)$comp->qty > 1)
+                                                        <span>Rp {{ number_format($modalEx * (float)$comp->qty, 0, ',', '.') }}</span>
+                                                        <span class="block text-[10px] text-slate-400 font-normal">@ Rp {{ number_format($modalEx, 0, ',', '.') }} &times; {{ (float)$comp->qty }}</span>
+                                                    @else
+                                                        Rp {{ number_format($modalEx, 0, ',', '.') }}
+                                                    @endif
+                                                </span>
                                             </td>
-                                            <td class="py-2 px-1">
+                                            <td class="py-2.5 px-2.5">
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][ongkir_pedia]"
                                                        value="{{ number_format((float)$comp->ongkir_pedia, 0, ',', '.') }}"
-                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-ongkir-input"
+                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-ongkir-input"
                                                        placeholder="0" oninput="calculateBundle('{{ $item->id }}')">
                                             </td>
-                                            <td class="py-2 px-1">
+                                            <td class="py-2.5 px-2.5">
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][biaya_kirim]"
                                                        value="{{ number_format((float)$comp->biaya_kirim, 0, ',', '.') }}"
-                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-biaya-kirim-input"
+                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-biaya-kirim-input"
                                                        placeholder="0" oninput="calculateBundle('{{ $item->id }}')">
                                             </td>
-                                            <td class="py-2 px-1 text-center">
+                                            <td class="py-2.5 px-1.5 text-center">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][margin_type]" value="percentage">
                                                 <input type="number" step="0.1" name="items[{{ $item->id }}][components][{{ $cIdx }}][margin_value]"
                                                        value="{{ (float) $comp->margin_value ?: 13 }}"
-                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-margin-input"
+                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1.5 px-1 comp-margin-input"
                                                        oninput="calculateBundle('{{ $item->id }}')">
                                             </td>
-                                            <td class="py-2 px-1 text-center">
+                                            <td class="py-2.5 px-2 text-center">
                                                 <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][custom_ceiling]"
                                                        value="{{ number_format((float)($comp->custom_ceiling ?: 50000), 0, ',', '.') }}"
-                                                       class="w-full text-[11px] text-center border-slate-200 rounded-lg py-1 px-1 rupiah-input comp-ceiling-input"
+                                                       class="w-full text-xs text-center border-slate-200 rounded-lg py-1.5 px-1 rupiah-input comp-ceiling-input"
                                                        oninput="calculateBundle('{{ $item->id }}')">
                                             </td>
-                                            <td class="py-2 px-2 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs">
-                                                <span class="comp-selling-display">Rp {{ number_format((float)$comp->price_after_margin, 0, ',', '.') }}</span>
+                                            <td class="py-2.5 px-3 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs whitespace-nowrap">
+                                                <span class="comp-selling-display">
+                                                    @if((float)$comp->qty > 1)
+                                                        <span>Rp {{ number_format((float)$comp->price_after_margin * (float)$comp->qty, 0, ',', '.') }}</span>
+                                                        <span class="block text-[10px] text-indigo-600 font-normal">@ Rp {{ number_format((float)$comp->price_after_margin, 0, ',', '.') }} &times; {{ (float)$comp->qty }}</span>
+                                                    @else
+                                                        Rp {{ number_format((float)$comp->price_after_margin, 0, ',', '.') }}
+                                                    @endif
+                                                </span>
                                             </td>
-                                            <td class="py-2 px-1 text-center">
+                                            <td class="py-2.5 px-1.5 text-center">
                                                 <button type="button" onclick="removePcComponentRow(this, '{{ $item->id }}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Hapus Part">
                                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                                 </button>
@@ -974,27 +1009,48 @@
                             </div>
 
                             <!-- Rollup Footer Summary (Persis Excel Lembar2 Baris 26) -->
-                            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700">
+                            <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700 space-y-4">
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                                     <div>
-                                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal Riil (Ex PPN)</span>
+                                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal / Unit (Ex PPN)</span>
                                         <span class="text-lg font-bold font-mono text-slate-200" id="bundle-rollup-modal-{{ $item->id }}">Rp 0</span>
-                                        <span class="text-[10px] text-slate-400 block mt-0.5">Include Modal, Ongkir &amp; Antar</span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5">Modal 1 Unit PC (Include Antar)</span>
                                     </div>
                                     <div>
-                                        <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Total Harga Jual / Unit (Saler)</span>
+                                        <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Harga Jual / Unit (Saler)</span>
                                         <span class="text-xl font-extrabold font-mono text-emerald-400" id="bundle-rollup-selling-{{ $item->id }}">Rp 0</span>
                                         <span class="text-[10px] text-slate-400 block mt-0.5">Rollup Ceiling 50k per part</span>
                                     </div>
                                     <div>
-                                        <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Keuntungan</span>
+                                        <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Laba / Unit</span>
                                         <span class="text-lg font-bold font-mono text-indigo-200" id="bundle-rollup-profit-{{ $item->id }}">Rp 0</span>
-                                        <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per unit PC</span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per 1 unit PC</span>
                                     </div>
-                                    <div class="border-l border-slate-700/80 pl-4">
-                                        <span class="text-[10px] text-amber-300 uppercase tracking-wider block font-bold">Komisi Sales (1%)</span>
-                                        <span class="text-lg font-bold font-mono text-amber-300" id="bundle-rollup-commission-{{ $item->id }}">Rp 0</span>
-                                        <span class="text-[10px] text-amber-400/80 block mt-0.5">1% dari estimasi laba</span>
+
+                                </div>
+
+                                <!-- Sub-panel Subtotal Total Pesanan (Perkalian Qty PC) -->
+                                <div class="pt-3.5 border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-indigo-900/40">
+                                    <div class="flex items-center gap-3">
+                                        <span class="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono tracking-tight">
+                                            TOTAL PESANAN (<span id="bundle-qty-label-{{ $item->id }}">{{ (float)$item->qty ?: 1 }}</span> UNIT)
+                                        </span>
+                                        <span class="text-xs text-slate-400 hidden sm:inline">Total nilai penawaran paket untuk dokumen klien:</span>
+                                    </div>
+                                    <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-right">
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 block">Total Modal Keseluruhan:</span>
+                                            <span class="text-sm font-bold font-mono text-slate-300" id="bundle-rollup-grand-modal-{{ $item->id }}">Rp 0</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-indigo-300 block">Total Laba Bersih:</span>
+                                            <span class="text-sm font-bold font-mono text-indigo-300" id="bundle-rollup-grand-profit-{{ $item->id }}">Rp 0</span>
+                                        </div>
+
+                                        <div class="pl-4 border-l border-slate-700">
+                                            <span class="text-[10px] text-emerald-300 block uppercase font-bold tracking-wider">Subtotal Penjualan</span>
+                                            <span class="text-xl font-black font-mono text-emerald-300" id="bundle-rollup-grand-selling-{{ $item->id }}">Rp 0</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1711,23 +1767,23 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
-                    <table class="w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-${itemId}">
-                        <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white custom-scrollbar">
+                    <table class="min-w-[1520px] w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-${itemId}">
+                        <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200 select-none">
                             <tr>
-                                <th class="py-2.5 px-2 text-center w-8">#</th>
-                                <th class="py-2.5 px-2 w-28">Kategori</th>
-                                <th class="py-2.5 px-2 min-w-[200px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
-                                <th class="py-2.5 px-1.5 w-12 text-center">Qty</th>
-                                <th class="py-2.5 px-2 w-28">Vendor / Toko</th>
-                                <th class="py-2.5 px-2 w-32 text-right">Harga Beli (Inc PPN)</th>
-                                <th class="py-2.5 px-2 w-28 text-right bg-slate-50/80">Modal Ex PPN</th>
-                                <th class="py-2.5 px-2 w-24 text-right">Ongkir Vendor</th>
-                                <th class="py-2.5 px-2 w-24 text-right">Biaya Kirim</th>
-                                <th class="py-2.5 px-1.5 w-16 text-center">Margin %</th>
-                                <th class="py-2.5 px-2 w-20 text-center">Ceiling</th>
-                                <th class="py-2.5 px-2.5 w-32 text-right bg-indigo-50/60 text-indigo-900 font-extrabold">Harga Jual Part</th>
-                                <th class="py-2.5 px-1.5 text-center w-10">Aksi</th>
+                                <th class="py-2.5 px-2 text-center w-10 min-w-[40px]">#</th>
+                                <th class="py-2.5 px-2.5 w-36 min-w-[140px]">Kategori</th>
+                                <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
+                                <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
+                                <th class="py-2.5 px-2.5 w-40 min-w-[150px]">Vendor / Toko</th>
+                                <th class="py-2.5 px-2.5 w-36 min-w-[145px] text-right">Harga Beli (Inc PPN)</th>
+                                <th class="py-2.5 px-2.5 w-36 min-w-[140px] text-right bg-slate-50/80 whitespace-nowrap">Modal Ex PPN</th>
+                                <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Ongkir Vendor</th>
+                                <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Biaya Kirim</th>
+                                <th class="py-2.5 px-1.5 w-20 min-w-[80px] text-center">Margin %</th>
+                                <th class="py-2.5 px-2 w-24 min-w-[95px] text-center">Ceiling</th>
+                                <th class="py-2.5 px-3 w-40 min-w-[150px] text-right bg-indigo-50/60 text-indigo-900 font-extrabold whitespace-nowrap">Harga Jual Part</th>
+                                <th class="py-2.5 px-1.5 text-center w-12 min-w-[48px]">Aksi</th>
                             </tr>
                         </thead>
                         <tbody id="bundle-components-tbody-${itemId}" class="divide-y divide-slate-100">
@@ -1764,27 +1820,48 @@
                               oninput="syncBundleDescription('${itemId}', this.value)">${desc || ''}</textarea>
                 </div>
 
-                <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700">
+                <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700 space-y-4">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
                         <div>
-                            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal Riil (Ex PPN)</span>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal / Unit (Ex PPN)</span>
                             <span class="text-lg font-bold font-mono text-slate-200" id="bundle-rollup-modal-${itemId}">Rp 0</span>
-                            <span class="text-[10px] text-slate-400 block mt-0.5">Include Modal, Ongkir &amp; Antar</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Modal 1 Unit PC (Include Antar)</span>
                         </div>
                         <div>
-                            <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Total Harga Jual / Unit (Saler)</span>
+                            <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Harga Jual / Unit (Saler)</span>
                             <span class="text-xl font-extrabold font-mono text-emerald-400" id="bundle-rollup-selling-${itemId}">Rp 0</span>
                             <span class="text-[10px] text-slate-400 block mt-0.5">Rollup Ceiling 50k per part</span>
                         </div>
                         <div>
-                            <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Keuntungan</span>
+                            <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Laba / Unit</span>
                             <span class="text-lg font-bold font-mono text-indigo-200" id="bundle-rollup-profit-${itemId}">Rp 0</span>
-                            <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per unit PC</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per 1 unit PC</span>
                         </div>
-                        <div class="border-l border-slate-700/80 pl-4">
-                            <span class="text-[10px] text-amber-300 uppercase tracking-wider block font-bold">Komisi Sales (1%)</span>
-                            <span class="text-lg font-bold font-mono text-amber-300" id="bundle-rollup-commission-${itemId}">Rp 0</span>
-                            <span class="text-[10px] text-amber-400/80 block mt-0.5">1% dari estimasi laba</span>
+
+                    </div>
+
+                    <!-- Sub-panel Subtotal Total Pesanan (Perkalian Qty PC) -->
+                    <div class="pt-3.5 border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-4 bg-slate-950/60 p-3.5 rounded-xl border border-indigo-900/40">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-mono tracking-tight">
+                                TOTAL PESANAN (<span id="bundle-qty-label-${itemId}">${qty || 1}</span> UNIT)
+                            </span>
+                            <span class="text-xs text-slate-400 hidden sm:inline">Total nilai penawaran paket untuk dokumen klien:</span>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-right">
+                            <div>
+                                <span class="text-[10px] text-slate-400 block">Total Modal Keseluruhan:</span>
+                                <span class="text-sm font-bold font-mono text-slate-300" id="bundle-rollup-grand-modal-${itemId}">Rp 0</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] text-indigo-300 block">Total Laba Bersih:</span>
+                                <span class="text-sm font-bold font-mono text-indigo-300" id="bundle-rollup-grand-profit-${itemId}">Rp 0</span>
+                            </div>
+
+                            <div class="pl-4 border-l border-slate-700">
+                                <span class="text-[10px] text-emerald-300 block uppercase font-bold tracking-wider">Subtotal Penjualan</span>
+                                <span class="text-xl font-black font-mono text-emerald-300" id="bundle-rollup-grand-selling-${itemId}">Rp 0</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1839,6 +1916,10 @@
                         </label>
                         <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
                             Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-${tempId}">${initQty}</span> <span id="badge-unit-${tempId}">${initUnit}</span>
+                        </div>
+                        <div class="px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-xs font-bold text-emerald-800 shadow-2xs font-mono flex items-center gap-1">
+                            <span>Total:</span>
+                            <span id="badge-total-${tempId}">Rp 0</span>
                         </div>
                         <button type="button" onclick="deletePriceItem('${tempId}', '${blockKey}')"
                             class="p-1.5 rounded-lg text-rose-500 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 transition"
@@ -2710,36 +2791,37 @@
             const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
-                <td class="py-2 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">${num}</td>
-                <td class="py-2 px-1.5">
-                    <select name="items[${itemId}][components][${rowIdx}][description]" class="w-full text-[11px] font-semibold text-slate-700 border-slate-200 rounded-lg py-1 px-1.5 focus:ring-1 focus:ring-indigo-500">
+                <td class="py-2.5 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">${num}</td>
+                <td class="py-2.5 px-2.5">
+                    <select name="items[${itemId}][components][${rowIdx}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
                         ${selectOptions}
                     </select>
                 </td>
-                <td class="py-2 px-1.5">
+                <td class="py-2.5 px-3">
                     <input type="text" name="items[${itemId}][components][${rowIdx}][product_name]"
                            value="${name.replace(/"/g, '&quot;')}"
-                           class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1 px-2 focus:ring-1 focus:ring-indigo-500 comp-name-input"
-                           placeholder="Nama / tipe komponen..." required oninput="calculateBundle('${itemId}')">
+                           class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1.5 px-2.5 focus:ring-1 focus:ring-indigo-500 comp-name-input"
+                           placeholder="Nama / spesifikasi part..." required oninput="calculateBundle('${itemId}')">
                 </td>
-                <td class="py-2 px-1 text-center">
+                <td class="py-2.5 px-2 text-center">
                     <input type="number" name="items[${itemId}][components][${rowIdx}][qty]" min="0.1" step="any"
                            value="${qty}"
-                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-qty-input"
+                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1.5 px-1 comp-qty-input"
                            oninput="calculateBundle('${itemId}')">
                     <input type="hidden" name="items[${itemId}][components][${rowIdx}][unit]" value="${unit}">
+                    <div class="comp-procurement-badge mt-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/90 rounded px-1.5 py-0.5 whitespace-nowrap shadow-2xs" style="display: none;"></div>
                 </td>
-                <td class="py-2 px-1">
+                <td class="py-2.5 px-2.5">
                     <input type="text" name="items[${itemId}][components][${rowIdx}][vendor_name]"
                            value="${vendor.replace(/"/g, '&quot;')}"
-                           class="w-full text-[11px] text-slate-700 border-slate-200 rounded-lg py-1 px-1.5"
-                           placeholder="Tokopedia / Offline">
+                           class="w-full text-xs text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500"
+                           placeholder="Nama Vendor / Toko">
                 </td>
-                <td class="py-2 px-1">
+                <td class="py-2.5 px-2.5">
                     <div class="relative">
                         <input type="text" inputmode="numeric"
                                value="${formatRupiah(incPpn)}"
-                               class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-inc-ppn-input"
+                               class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-inc-ppn-input"
                                placeholder="0" oninput="onCompIncPpnChange(this, '${itemId}')">
                     </div>
                     <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
@@ -2747,39 +2829,39 @@
                         <span>/ 1.11</span>
                     </label>
                 </td>
-                <td class="py-2 px-1 text-right bg-slate-50/80 font-mono font-semibold text-slate-700">
+                <td class="py-2.5 px-2.5 text-right bg-slate-50/80 font-mono font-semibold text-slate-700 whitespace-nowrap">
                     <input type="hidden" name="items[${itemId}][components][${rowIdx}][hpp]" value="${modalEx}" class="comp-hpp-raw">
                     <span class="comp-hpp-display">Rp ${formatRupiah(modalEx)}</span>
                 </td>
-                <td class="py-2 px-1">
+                <td class="py-2.5 px-2.5">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][ongkir_pedia]"
                            value="${formatRupiah(ongkir)}"
-                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-ongkir-input"
+                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-ongkir-input"
                            placeholder="0" oninput="calculateBundle('${itemId}')">
                 </td>
-                <td class="py-2 px-1">
+                <td class="py-2.5 px-2.5">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][biaya_kirim]"
                            value="${formatRupiah(biayaKirim)}"
-                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-biaya-kirim-input"
+                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-biaya-kirim-input"
                            placeholder="0" oninput="calculateBundle('${itemId}')">
                 </td>
-                <td class="py-2 px-1 text-center">
+                <td class="py-2.5 px-1.5 text-center">
                     <input type="hidden" name="items[${itemId}][components][${rowIdx}][margin_type]" value="percentage">
                     <input type="number" step="0.1" name="items[${itemId}][components][${rowIdx}][margin_value]"
                            value="${margin}"
-                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-margin-input"
+                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1.5 px-1 comp-margin-input"
                            oninput="calculateBundle('${itemId}')">
                 </td>
-                <td class="py-2 px-1 text-center">
+                <td class="py-2.5 px-2 text-center">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][custom_ceiling]"
                            value="${formatRupiah(ceiling)}"
-                           class="w-full text-[11px] text-center border-slate-200 rounded-lg py-1 px-1 rupiah-input comp-ceiling-input"
+                           class="w-full text-xs text-center border-slate-200 rounded-lg py-1.5 px-1 rupiah-input comp-ceiling-input"
                            oninput="calculateBundle('${itemId}')">
                 </td>
-                <td class="py-2 px-2 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs">
+                <td class="py-2.5 px-3 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs whitespace-nowrap">
                     <span class="comp-selling-display">Rp 0</span>
                 </td>
-                <td class="py-2 px-1 text-center">
+                <td class="py-2.5 px-1.5 text-center">
                     <button type="button" onclick="removePcComponentRow(this, '${itemId}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Hapus Part">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
@@ -2851,6 +2933,8 @@
             const tbody = document.getElementById('bundle-components-tbody-' + itemId);
             if (!tbody) return;
 
+            const parentQty = parseFloat(document.getElementById('bundle-qty-' + itemId)?.value || document.getElementById('qty-' + itemId)?.value || '1') || 1;
+
             let totalCost = 0;
             let totalSelling = 0;
 
@@ -2868,10 +2952,52 @@
                 // Formula identik Excel: CEILING((BaseCost) * (1 + Margin/100), Ceiling)
                 const priceBeforeCeil = baseCost * (1 + marginPct / 100);
                 const sellingUnit = Math.ceil(priceBeforeCeil / ceiling) * ceiling;
+                const partSellingTotal = sellingUnit * qty;
+                const partModalTotal = baseCost * qty;
 
+                // Visual Helper: Kebutuhan Belanja Pengadaan Riil jika Qty PC > 1
+
+                const procureBadge = row.querySelector('.comp-procurement-badge');
+
+                if (procureBadge) {
+
+                    if (parentQty > 1) {
+
+                        const totalProcure = qty * parentQty;
+
+                        procureBadge.innerHTML = `<span class="text-indigo-900 font-extrabold">📦 ${totalProcure} Pcs</span><span class="block text-[9px] text-indigo-600 font-normal">(${qty} &times; ${parentQty} PC)</span>`;
+
+                        procureBadge.style.display = 'block';
+
+                    } else {
+
+                        procureBadge.style.display = 'none';
+
+                        procureBadge.innerHTML = '';
+
+                    }
+
+                }
+
+
+
+                // Transparansi Lapisan 1: Update display baris komponen jika Qty > 1
                 const compSellingDisp = row.querySelector('.comp-selling-display');
                 if (compSellingDisp) {
-                    compSellingDisp.innerText = 'Rp ' + formatRupiah(sellingUnit);
+                    if (qty > 1) {
+                        compSellingDisp.innerHTML = `<span>Rp ${formatRupiah(partSellingTotal)}</span><span class="block text-[10px] text-indigo-600 font-normal">@ Rp ${formatRupiah(sellingUnit)} &times; ${qty}</span>`;
+                    } else {
+                        compSellingDisp.innerText = 'Rp ' + formatRupiah(sellingUnit);
+                    }
+                }
+
+                const compHppDisp = row.querySelector('.comp-hpp-display');
+                if (compHppDisp) {
+                    if (qty > 1) {
+                        compHppDisp.innerHTML = `<span>Rp ${formatRupiah(partModalTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(baseCost)} &times; ${qty}</span>`;
+                    } else {
+                        compHppDisp.innerText = 'Rp ' + formatRupiah(baseCost);
+                    }
                 }
 
                 totalCost += baseCost * qty;
@@ -2879,9 +3005,8 @@
             });
 
             const totalProfit = totalSelling - totalCost;
-            const commission = Math.round(totalProfit * 0.01);
 
-            // Update Rollup Footer
+            // Transparansi Lapisan 2: Rollup Footer (Per 1 Unit PC)
             const modalEl = document.getElementById('bundle-rollup-modal-' + itemId);
             if (modalEl) modalEl.innerText = 'Rp ' + formatRupiah(totalCost);
 
@@ -2891,8 +3016,33 @@
             const profitEl = document.getElementById('bundle-rollup-profit-' + itemId);
             if (profitEl) profitEl.innerText = 'Rp ' + formatRupiah(totalProfit);
 
-            const commEl = document.getElementById('bundle-rollup-commission-' + itemId);
-            if (commEl) commEl.innerText = 'Rp ' + formatRupiah(commission);
+
+
+            // Transparansi Lapisan 2 (Subtotal Pesanan Paket PC x Qty Unit PC)
+            const grandBundleModal = totalCost * parentQty;
+            const grandBundleSelling = totalSelling * parentQty;
+            const grandBundleProfit = totalProfit * parentQty;
+
+            const qtyLabelEl = document.getElementById('bundle-qty-label-' + itemId);
+            if (qtyLabelEl) qtyLabelEl.innerText = parentQty;
+
+            const grandModalEl = document.getElementById('bundle-rollup-grand-modal-' + itemId);
+            if (grandModalEl) grandModalEl.innerText = 'Rp ' + formatRupiah(grandBundleModal);
+
+            const grandSellEl = document.getElementById('bundle-rollup-grand-selling-' + itemId);
+            if (grandSellEl) grandSellEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
+
+            const grandProfitEl = document.getElementById('bundle-rollup-grand-profit-' + itemId);
+            if (grandProfitEl) grandProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
+
+
+
+            // Transparansi Lapisan 3: Header Card Badge Total
+            const badgeTotalEl = document.getElementById('badge-total-' + itemId);
+            if (badgeTotalEl) badgeTotalEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
+
+            const badgeQtyEl = document.getElementById('badge-qty-' + itemId);
+            if (badgeQtyEl) badgeQtyEl.innerText = parentQty;
 
             // Sync with parent regular fields for form submit & grand totals
             const parentHppInput = document.getElementById('hpp-' + itemId);
@@ -2901,15 +3051,11 @@
             const parentPriceEl = document.getElementById('final-price-' + itemId);
             if (parentPriceEl) parentPriceEl.innerText = formatRupiah(totalSelling);
 
-            const parentQty = parseFloat(document.getElementById('qty-' + itemId)?.value || '1') || 1;
-            const parentTotalSelling = totalSelling * parentQty;
-            const parentTotalProfit = totalProfit * parentQty;
-
             const finalTotalEl = document.getElementById('final-total-' + itemId);
-            if (finalTotalEl) finalTotalEl.innerText = formatRupiah(parentTotalSelling);
+            if (finalTotalEl) finalTotalEl.innerText = formatRupiah(grandBundleSelling);
 
             const finalProfitEl = document.getElementById('final-profit-row-' + itemId);
-            if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(parentTotalProfit);
+            if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
 
             updateGrandTotals();
         }

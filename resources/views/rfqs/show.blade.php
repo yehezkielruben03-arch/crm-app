@@ -395,12 +395,10 @@
                                                     </div>
                                                     @php
                                                         $bundleLaba = $item->bundle_selling_price - $item->bundle_total_cost;
-                                                        $komisiSales = round($bundleLaba * 0.01);
                                                     @endphp
                                                     <div class="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-600">
                                                         <span>Total Modal: <strong class="text-slate-800 font-mono">Rp {{ number_format($item->bundle_total_cost, 0, ',', '.') }}</strong></span>
                                                         <span>Estimasi Laba: <strong class="text-emerald-700 font-mono">Rp {{ number_format($bundleLaba, 0, ',', '.') }}</strong></span>
-                                                        <span>Komisi Sales (1%): <strong class="text-amber-700 font-mono">Rp {{ number_format($komisiSales, 0, ',', '.') }}</strong></span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -545,12 +543,10 @@
                                                 </div>
                                                 @php
                                                     $bundleLaba = $item->bundle_selling_price - $item->bundle_total_cost;
-                                                    $komisiSales = round($bundleLaba * 0.01);
                                                 @endphp
                                                 <div class="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-600">
                                                     <span>Total Modal: <strong class="text-slate-800 font-mono">Rp {{ number_format($item->bundle_total_cost, 0, ',', '.') }}</strong></span>
                                                     <span>Estimasi Laba: <strong class="text-emerald-700 font-mono">Rp {{ number_format($bundleLaba, 0, ',', '.') }}</strong></span>
-                                                    <span>Komisi Sales (1%): <strong class="text-amber-700 font-mono">Rp {{ number_format($komisiSales, 0, ',', '.') }}</strong></span>
                                                 </div>
                                             </div>
                                         </div>
