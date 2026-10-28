@@ -334,6 +334,11 @@
                                     <span class="rfq-grid__cell rfq-grid__desc-block">
                                         <div class="flex items-center gap-2 flex-wrap">
                                             <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
+                                            @if($item->isBundle())
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                    🖥️ PC Rakitan / Bundling
+                                                </span>
+                                            @endif
                                             @if($item->isHiddenFromQuotation())
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                     Internal HPP (Dilebur di Penawaran)
@@ -341,7 +346,65 @@
                                             @endif
                                         </div>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
+                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500 whitespace-pre-line">{{ $itemSpec }}</span>@endif
+                                        @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
+                                            <div x-data="{ open: false }" class="mt-2">
+                                                <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
+                                                    <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                                    <span x-text="open ? 'Tutup Rincian Komponen PC' : 'Lihat Rincian Komponen PC ({{ $item->components->count() }} Part)'"></span>
+                                                </button>
+                                                <div x-show="open" x-cloak class="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                                    <div class="font-bold text-slate-700 mb-2 flex items-center justify-between">
+                                                        <span>Breakdown Part (Lembar2 Excel)</span>
+                                                        <span class="text-indigo-600 font-mono font-bold">Total Saler: Rp {{ number_format($item->bundle_selling_price, 0, ',', '.') }}</span>
+                                                    </div>
+                                                    <div class="overflow-x-auto">
+                                                        <table class="w-full text-left border-collapse text-[11px]">
+                                                            <thead>
+                                                                <tr class="border-b border-slate-200 text-slate-500 font-bold">
+                                                                    <th class="py-1 px-1.5 w-6">#</th>
+                                                                    <th class="py-1 px-1.5">Komponen</th>
+                                                                    <th class="py-1 px-1.5 text-center w-10">Qty</th>
+                                                                    <th class="py-1 px-1.5 w-24">Vendor</th>
+                                                                    <th class="py-1 px-1.5 text-right w-24">Modal Ex PPN</th>
+                                                                    <th class="py-1 px-1.5 text-right w-20">Ongkir/Antar</th>
+                                                                    <th class="py-1 px-1.5 text-center w-16">Margin</th>
+                                                                    <th class="py-1 px-1.5 text-right w-24 text-indigo-900 font-bold">Harga Jual</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="divide-y divide-slate-100">
+                                                                @foreach($item->components as $c)
+                                                                <tr class="hover:bg-white">
+                                                                    <td class="py-1 px-1.5 text-slate-400 font-mono">{{ $loop->iteration }}</td>
+                                                                    <td class="py-1 px-1.5 font-medium text-slate-800">
+                                                                        {{ $c->product_name }}
+                                                                        @if(!empty($c->link_referensi))
+                                                                            <a href="{{ $c->link_referensi }}" target="_blank" class="text-indigo-500 hover:underline ml-1" title="Link Toko">🔗</a>
+                                                                        @endif
+                                                                    </td>
+                                                                    <td class="py-1 px-1.5 text-center font-bold">{{ (int)$c->qty }}</td>
+                                                                    <td class="py-1 px-1.5 text-slate-600">{{ $c->vendor->nama_vendor ?? '-' }}</td>
+                                                                    <td class="py-1 px-1.5 text-right font-mono">Rp {{ number_format($c->hpp, 0, ',', '.') }}</td>
+                                                                    <td class="py-1 px-1.5 text-right font-mono">Rp {{ number_format($c->biaya_kirim + $c->ongkir_pedia, 0, ',', '.') }}</td>
+                                                                    <td class="py-1 px-1.5 text-center font-bold text-slate-600">{{ rtrim(rtrim(number_format((float) ($c->margin_value ?: $c->margin), 1, '.', ''), '0'), '.') }}%</td>
+                                                                    <td class="py-1 px-1.5 text-right font-mono font-bold text-indigo-700">Rp {{ number_format($c->price_after_margin, 0, ',', '.') }}</td>
+                                                                </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    @php
+                                                        $bundleLaba = $item->bundle_selling_price - $item->bundle_total_cost;
+                                                        $komisiSales = round($bundleLaba * 0.01);
+                                                    @endphp
+                                                    <div class="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-600">
+                                                        <span>Total Modal: <strong class="text-slate-800 font-mono">Rp {{ number_format($item->bundle_total_cost, 0, ',', '.') }}</strong></span>
+                                                        <span>Estimasi Laba: <strong class="text-emerald-700 font-mono">Rp {{ number_format($bundleLaba, 0, ',', '.') }}</strong></span>
+                                                        <span>Komisi Sales (1%): <strong class="text-amber-700 font-mono">Rp {{ number_format($komisiSales, 0, ',', '.') }}</strong></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
                                     </span>
                                     <span class="rfq-grid__cell text-center">
                                         <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>
@@ -421,6 +484,11 @@
                                 <span class="rfq-grid__cell rfq-grid__desc-block">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <span class="rfq-grid__name font-semibold text-slate-800">{{ $item->product_name }}</span>
+                                        @if($item->isBundle())
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                                🖥️ PC Rakitan / Bundling
+                                            </span>
+                                        @endif
                                         @if($item->isHiddenFromQuotation())
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">
                                                 Internal HPP (Dilebur di Penawaran)
@@ -428,7 +496,65 @@
                                         @endif
                                     </div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{{ $itemSpec }}</span>@endif
+                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500 whitespace-pre-line">{{ $itemSpec }}</span>@endif
+                                    @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
+                                        <div x-data="{ open: false }" class="mt-2">
+                                            <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
+                                                <svg class="w-3.5 h-3.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                                <span x-text="open ? 'Tutup Rincian Komponen PC' : 'Lihat Rincian Komponen PC ({{ $item->components->count() }} Part)'"></span>
+                                            </button>
+                                            <div x-show="open" x-cloak class="mt-2 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
+                                                <div class="font-bold text-slate-700 mb-2 flex items-center justify-between">
+                                                    <span>Breakdown Part (Lembar2 Excel)</span>
+                                                    <span class="text-indigo-600 font-mono font-bold">Total Saler: Rp {{ number_format($item->bundle_selling_price, 0, ',', '.') }}</span>
+                                                </div>
+                                                <div class="overflow-x-auto">
+                                                    <table class="w-full text-left border-collapse text-[11px]">
+                                                        <thead>
+                                                            <tr class="border-b border-slate-200 text-slate-500 font-bold">
+                                                                <th class="py-1 px-1.5 w-6">#</th>
+                                                                <th class="py-1 px-1.5">Komponen</th>
+                                                                <th class="py-1 px-1.5 text-center w-10">Qty</th>
+                                                                <th class="py-1 px-1.5 w-24">Vendor</th>
+                                                                <th class="py-1 px-1.5 text-right w-24">Modal Ex PPN</th>
+                                                                <th class="py-1 px-1.5 text-right w-20">Ongkir/Antar</th>
+                                                                <th class="py-1 px-1.5 text-center w-16">Margin</th>
+                                                                <th class="py-1 px-1.5 text-right w-24 text-indigo-900 font-bold">Harga Jual</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody class="divide-y divide-slate-100">
+                                                            @foreach($item->components as $c)
+                                                            <tr class="hover:bg-white">
+                                                                <td class="py-1 px-1.5 text-slate-400 font-mono">{{ $loop->iteration }}</td>
+                                                                <td class="py-1 px-1.5 font-medium text-slate-800">
+                                                                    {{ $c->product_name }}
+                                                                    @if(!empty($c->link_referensi))
+                                                                        <a href="{{ $c->link_referensi }}" target="_blank" class="text-indigo-500 hover:underline ml-1" title="Link Toko">🔗</a>
+                                                                    @endif
+                                                                </td>
+                                                                <td class="py-1 px-1.5 text-center font-bold">{{ (int)$c->qty }}</td>
+                                                                <td class="py-1 px-1.5 text-slate-600">{{ $c->vendor->nama_vendor ?? '-' }}</td>
+                                                                <td class="py-1 px-1.5 text-right font-mono">Rp {{ number_format($c->hpp, 0, ',', '.') }}</td>
+                                                                <td class="py-1 px-1.5 text-right font-mono">Rp {{ number_format($c->biaya_kirim + $c->ongkir_pedia, 0, ',', '.') }}</td>
+                                                                <td class="py-1 px-1.5 text-center font-bold text-slate-600">{{ rtrim(rtrim(number_format((float) ($c->margin_value ?: $c->margin), 1, '.', ''), '0'), '.') }}%</td>
+                                                                <td class="py-1 px-1.5 text-right font-mono font-bold text-indigo-700">Rp {{ number_format($c->price_after_margin, 0, ',', '.') }}</td>
+                                                            </tr>
+                                                            @endforeach
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                @php
+                                                    $bundleLaba = $item->bundle_selling_price - $item->bundle_total_cost;
+                                                    $komisiSales = round($bundleLaba * 0.01);
+                                                @endphp
+                                                <div class="mt-2 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-[11px] text-slate-600">
+                                                    <span>Total Modal: <strong class="text-slate-800 font-mono">Rp {{ number_format($item->bundle_total_cost, 0, ',', '.') }}</strong></span>
+                                                    <span>Estimasi Laba: <strong class="text-emerald-700 font-mono">Rp {{ number_format($bundleLaba, 0, ',', '.') }}</strong></span>
+                                                    <span>Komisi Sales (1%): <strong class="text-amber-700 font-mono">Rp {{ number_format($komisiSales, 0, ',', '.') }}</strong></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
                                 </span>
                                 <span class="rfq-grid__cell text-center">
                                     <span class="font-bold text-slate-800 text-sm block leading-none">{{ number_format($item->qty, 0, ',', '.') }}</span>

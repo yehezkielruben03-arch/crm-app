@@ -1,4 +1,4 @@
-﻿<x-app-layout>
+<x-app-layout>
     <div class="space-y-6">
 
         {{-- Header Breadcrumb & Actions --}}
@@ -422,6 +422,17 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
+                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
+                                    <input type="checkbox" name="items[{{ $item->id }}][is_bundle]" value="1"
+                                           id="toggle-bundle-{{ $item->id }}"
+                                           class="sr-only peer"
+                                           onchange="toggleBundleMode('{{ $item->id }}')"
+                                           {{ $item->isBundle() ? 'checked' : '' }}>
+                                    <div class="w-7 h-3.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                                    <span class="flex items-center gap-1 peer-checked:text-indigo-700">
+                                        <span>🖥️</span> <span>Mode PC Rakitan</span>
+                                    </span>
+                                </label>
                                 <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
                                     Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-{{ $item->id }}">{{ (int)$item->qty }}</span> <span id="badge-unit-{{ $item->id }}">{{ $item->unit ?? ($categoryName === 'Material Support' ? 'Lot' : 'Unit') }}</span>
                                 </div>
@@ -434,7 +445,7 @@
                         </div>
 
                         {{-- Card Body Reguler: 3 Clean Balanced Columns Grid --}}
-                        <div id="regular-body-{{ $item->id }}" class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div id="regular-body-{{ $item->id }}" class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6" style="{{ $item->isBundle() ? 'display: none;' : '' }}">
                             
                             {{-- COL 1: Info Barang & Vendor --}}
                             <div class="space-y-3 flex flex-col justify-between h-full">
@@ -724,6 +735,269 @@
 
                             </div>
 
+                        </div>
+
+                        {{-- Card Body PC Rakitan / Bundling (Identik Excel Lembar2 & Q1) --}}
+                        <div id="bundle-body-{{ $item->id }}" class="p-5 lg:p-6 space-y-5" style="{{ $item->isBundle() ? 'display: block;' : 'display: none;' }}">
+                            @php
+                                $bundleComps = $item->relationLoaded('components') ? $item->components : $item->components()->get();
+                                $firstCompDelivery = (float) ($bundleComps->first()?->biaya_kirim ?? 107100);
+                            @endphp
+
+                            <!-- Top Bar: Info Paket PC & Template Presets -->
+                            <div class="bg-gradient-to-r from-indigo-50/90 via-blue-50/60 to-slate-50 p-4 rounded-2xl border border-indigo-200 shadow-2xs">
+                                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                                    <div class="flex items-center gap-2.5">
+                                        <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">🖥️</span>
+                                        <div>
+                                            <h4 class="font-extrabold text-sm text-slate-800 flex items-center gap-2">
+                                                <span>Paket PC Rakitan / Item Bundling</span>
+                                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">Format Excel Lembar2</span>
+                                            </h4>
+                                            <p class="text-[11px] text-slate-500">Kalkulasi 10 komponen otomatis di-rollup menjadi 1 baris di penawaran klien (Q1) dengan spek berbutir.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Tombol Preset Templates -->
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-[11px] font-bold text-slate-600 mr-1 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                            Template Cepat:
+                                        </span>
+                                        <button type="button" onclick="applyPcTemplate('{{ $item->id }}', 'bisnis_i5')"
+                                                class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                            ⚡ Bisnis i5 (Excel)
+                                        </button>
+                                        <button type="button" onclick="applyPcTemplate('{{ $item->id }}', 'office_i3')"
+                                                class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                            ⚡ Office i3
+                                        </button>
+                                        <button type="button" onclick="applyPcTemplate('{{ $item->id }}', 'workstation_i7')"
+                                                class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                            ⚡ Workstation i7
+                                        </button>
+                                        <button type="button" onclick="applyPcTemplate('{{ $item->id }}', 'mini_pc')"
+                                                class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-teal-50 text-teal-700 border border-teal-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                            ⚡ Mini PC NUC
+                                        </button>
+                                        <button type="button" onclick="clearPcComponents('{{ $item->id }}')"
+                                                class="px-2 py-1 text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg transition shadow-2xs active:scale-95 cursor-pointer"
+                                                title="Kosongkan seluruh baris komponen">
+                                            🧹 Kosongkan
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Inputs Utama Paket: Nama Paket, Qty, Satuan, Biaya Kirim Antar -->
+                                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 pt-3 border-t border-indigo-100">
+                                    <div class="md:col-span-6">
+                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">
+                                            Nama Paket PC (Tampil di Quotation Klien) <span class="text-rose-500">*</span>
+                                        </label>
+                                        <input type="text" id="bundle-product-name-{{ $item->id }}"
+                                               value="{{ old('items.'.$item->id.'.product_name', $item->product_name) }}"
+                                               class="w-full text-xs font-bold text-slate-800 border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs uppercase tracking-tight bg-white"
+                                               placeholder="Contoh: PC RAKITAN INTEL CORE i5-12400 | 16GB | 1TB SSD | MONITOR 24''"
+                                               oninput="syncBundleItemName('{{ $item->id }}', this.value)">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">Qty Unit PC <span class="text-rose-500">*</span></label>
+                                        <input type="number" id="bundle-qty-{{ $item->id }}" min="1"
+                                               value="{{ old('items.'.$item->id.'.qty', (int) $item->qty ?: 1) }}"
+                                               class="w-full text-xs font-bold text-center border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs bg-white"
+                                               oninput="syncBundleQty('{{ $item->id }}', this.value)">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
+                                        <input type="text" id="bundle-unit-{{ $item->id }}"
+                                               value="{{ old('items.'.$item->id.'.unit', $item->unit ?: 'Unit') }}"
+                                               class="w-full text-xs text-center border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs bg-white"
+                                               placeholder="Unit"
+                                               oninput="syncBundleUnit('{{ $item->id }}', this.value)">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="text-[11px] font-semibold text-indigo-900 mb-1 flex items-center justify-between" title="Biaya bensin, toll, kurir antar ke klien (di Excel Rp 107.100). Otomatis dibebankan ke Part #1">
+                                            <span>Biaya Antar Lokal</span>
+                                            <span class="text-[10px] text-indigo-600 font-mono">Part #1</span>
+                                        </label>
+                                        <div class="relative rounded-xl shadow-2xs">
+                                            <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
+                                            <input type="text" inputmode="numeric" id="bundle-delivery-cost-{{ $item->id }}"
+                                                   value="{{ number_format($firstCompDelivery > 0 ? $firstCompDelivery : 107100, 0, ',', '.') }}"
+                                                   class="w-full pl-8 pr-2.5 py-1.5 text-xs font-bold text-slate-800 border-indigo-200 rounded-xl rupiah-input text-right focus:border-indigo-500 focus:ring-indigo-500 bg-white"
+                                                   placeholder="107.100"
+                                                   oninput="updateBundleDeliveryCost('{{ $item->id }}')">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabel Komponen PC (Identik Lembar2 Excel) -->
+                            <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
+                                <table class="w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-{{ $item->id }}">
+                                    <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                                        <tr>
+                                            <th class="py-2.5 px-2 text-center w-8">#</th>
+                                            <th class="py-2.5 px-2 w-28">Kategori</th>
+                                            <th class="py-2.5 px-2 min-w-[200px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
+                                            <th class="py-2.5 px-1.5 w-12 text-center">Qty</th>
+                                            <th class="py-2.5 px-2 w-28">Vendor / Toko</th>
+                                            <th class="py-2.5 px-2 w-32 text-right">Harga Beli (Inc PPN)</th>
+                                            <th class="py-2.5 px-2 w-28 text-right bg-slate-50/80">Modal Ex PPN</th>
+                                            <th class="py-2.5 px-2 w-24 text-right">Ongkir Vendor</th>
+                                            <th class="py-2.5 px-2 w-24 text-right">Biaya Kirim</th>
+                                            <th class="py-2.5 px-1.5 w-16 text-center">Margin %</th>
+                                            <th class="py-2.5 px-2 w-20 text-center">Ceiling</th>
+                                            <th class="py-2.5 px-2.5 w-32 text-right bg-indigo-50/60 text-indigo-900 font-extrabold">Harga Jual Part</th>
+                                            <th class="py-2.5 px-1.5 text-center w-10">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bundle-components-tbody-{{ $item->id }}" class="divide-y divide-slate-100">
+                                        @foreach($bundleComps as $cIdx => $comp)
+                                        <tr class="comp-row-{{ $item->id }} hover:bg-slate-50/80 transition" data-comp-index="{{ $cIdx }}">
+                                            <td class="py-2 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">{{ $loop->iteration }}</td>
+                                            <td class="py-2 px-1.5">
+                                                <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
+                                                <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-[11px] font-semibold text-slate-700 border-slate-200 rounded-lg py-1 px-1.5 focus:ring-1 focus:ring-indigo-500">
+                                                    @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Jasa', 'Lainnya'] as $catOption)
+                                                        <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td class="py-2 px-1.5">
+                                                <input type="text" name="items[{{ $item->id }}][components][{{ $cIdx }}][product_name]"
+                                                       value="{{ $comp->product_name }}"
+                                                       class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1 px-2 focus:ring-1 focus:ring-indigo-500 comp-name-input"
+                                                       placeholder="Nama part..." required oninput="calculateBundle('{{ $item->id }}')">
+                                            </td>
+                                            <td class="py-2 px-1 text-center">
+                                                <input type="number" name="items[{{ $item->id }}][components][{{ $cIdx }}][qty]" min="0.1" step="any"
+                                                       value="{{ (float) $comp->qty ?: 1 }}"
+                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-qty-input"
+                                                       oninput="calculateBundle('{{ $item->id }}')">
+                                                <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][unit]" value="{{ $comp->unit ?: 'Unit' }}">
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                <input type="text" name="items[{{ $item->id }}][components][{{ $cIdx }}][vendor_name]"
+                                                       value="{{ $comp->vendor->nama_vendor ?? '' }}"
+                                                       class="w-full text-[11px] text-slate-700 border-slate-200 rounded-lg py-1 px-1.5"
+                                                       placeholder="Tokopedia / Offline">
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                @php
+                                                    $modalEx = (float) $comp->hpp;
+                                                    $estInc = round($modalEx * 1.11);
+                                                @endphp
+                                                <div class="relative">
+                                                    <input type="text" inputmode="numeric"
+                                                           value="{{ number_format($estInc > 0 ? $estInc : $modalEx, 0, ',', '.') }}"
+                                                           class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-inc-ppn-input"
+                                                           placeholder="0" oninput="onCompIncPpnChange(this, '{{ $item->id }}')">
+                                                </div>
+                                                <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
+                                                    <input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-0 comp-ppn-toggle" onchange="onCompIncPpnChange(this, '{{ $item->id }}')">
+                                                    <span>/ 1.11</span>
+                                                </label>
+                                            </td>
+                                            <td class="py-2 px-1 text-right bg-slate-50/80 font-mono font-semibold text-slate-700">
+                                                <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][hpp]" value="{{ $modalEx }}" class="comp-hpp-raw">
+                                                <span class="comp-hpp-display">Rp {{ number_format($modalEx, 0, ',', '.') }}</span>
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][ongkir_pedia]"
+                                                       value="{{ number_format((float)$comp->ongkir_pedia, 0, ',', '.') }}"
+                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-ongkir-input"
+                                                       placeholder="0" oninput="calculateBundle('{{ $item->id }}')">
+                                            </td>
+                                            <td class="py-2 px-1">
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][biaya_kirim]"
+                                                       value="{{ number_format((float)$comp->biaya_kirim, 0, ',', '.') }}"
+                                                       class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-biaya-kirim-input"
+                                                       placeholder="0" oninput="calculateBundle('{{ $item->id }}')">
+                                            </td>
+                                            <td class="py-2 px-1 text-center">
+                                                <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][margin_type]" value="percentage">
+                                                <input type="number" step="0.1" name="items[{{ $item->id }}][components][{{ $cIdx }}][margin_value]"
+                                                       value="{{ (float) $comp->margin_value ?: 13 }}"
+                                                       class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-margin-input"
+                                                       oninput="calculateBundle('{{ $item->id }}')">
+                                            </td>
+                                            <td class="py-2 px-1 text-center">
+                                                <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][custom_ceiling]"
+                                                       value="{{ number_format((float)($comp->custom_ceiling ?: 50000), 0, ',', '.') }}"
+                                                       class="w-full text-[11px] text-center border-slate-200 rounded-lg py-1 px-1 rupiah-input comp-ceiling-input"
+                                                       oninput="calculateBundle('{{ $item->id }}')">
+                                            </td>
+                                            <td class="py-2 px-2 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs">
+                                                <span class="comp-selling-display">Rp {{ number_format((float)$comp->price_after_margin, 0, ',', '.') }}</span>
+                                            </td>
+                                            <td class="py-2 px-1 text-center">
+                                                <button type="button" onclick="removePcComponentRow(this, '{{ $item->id }}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Hapus Part">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Tombol Tambah Komponen & Sinkronisasi Spek -->
+                            <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                                <button type="button" onclick="addPcComponentRow('{{ $item->id }}')"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                    <span>Tambah Baris Komponen</span>
+                                </button>
+
+                                <button type="button" onclick="syncPcSpecsToDescription('{{ $item->id }}')"
+                                        id="btn-sync-specs-{{ $item->id }}"
+                                        class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                    <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    <span>🔄 Sinkronkan Spek ke Deskripsi Penawaran</span>
+                                </button>
+                            </div>
+
+                            <!-- Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1) -->
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1)
+                                    </label>
+                                    <span class="text-[11px] text-slate-500">Bisa diedit atau ditambah catatan garansi</span>
+                                </div>
+                                <textarea id="bundle-description-{{ $item->id }}" rows="6"
+                                          class="w-full text-xs font-mono border-slate-200 rounded-xl resize-y focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white"
+                                          placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'..."
+                                          oninput="syncBundleDescription('{{ $item->id }}', this.value)">{{ old('items.'.$item->id.'.description', $item->description ?: $item->detail_item) }}</textarea>
+                            </div>
+
+                            <!-- Rollup Footer Summary (Persis Excel Lembar2 Baris 26) -->
+                            <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                                    <div>
+                                        <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal Riil (Ex PPN)</span>
+                                        <span class="text-lg font-bold font-mono text-slate-200" id="bundle-rollup-modal-{{ $item->id }}">Rp 0</span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5">Include Modal, Ongkir &amp; Antar</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Total Harga Jual / Unit (Saler)</span>
+                                        <span class="text-xl font-extrabold font-mono text-emerald-400" id="bundle-rollup-selling-{{ $item->id }}">Rp 0</span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5">Rollup Ceiling 50k per part</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Keuntungan</span>
+                                        <span class="text-lg font-bold font-mono text-indigo-200" id="bundle-rollup-profit-{{ $item->id }}">Rp 0</span>
+                                        <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per unit PC</span>
+                                    </div>
+                                    <div class="border-l border-slate-700/80 pl-4">
+                                        <span class="text-[10px] text-amber-300 uppercase tracking-wider block font-bold">Komisi Sales (1%)</span>
+                                        <span class="text-lg font-bold font-mono text-amber-300" id="bundle-rollup-commission-{{ $item->id }}">Rp 0</span>
+                                        <span class="text-[10px] text-amber-400/80 block mt-0.5">1% dari estimasi laba</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
 
@@ -1349,6 +1623,175 @@
             triggerAutoSave();
         }
 
+        function renderBundleBodyTemplate(itemId, name, qty, unit, desc, delivery) {
+            return `
+            <div id="bundle-body-${itemId}" class="p-5 lg:p-6 space-y-5" style="display: none;">
+                <div class="bg-gradient-to-r from-indigo-50/90 via-blue-50/60 to-slate-50 p-4 rounded-2xl border border-indigo-200 shadow-2xs">
+                    <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-xs">🖥️</span>
+                            <div>
+                                <h4 class="font-extrabold text-sm text-slate-800 flex items-center gap-2">
+                                    <span>Paket PC Rakitan / Item Bundling</span>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">Format Excel Lembar2</span>
+                                </h4>
+                                <p class="text-[11px] text-slate-500">Kalkulasi 10 komponen otomatis di-rollup menjadi 1 baris di penawaran klien (Q1) dengan spek berbutir.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[11px] font-bold text-slate-600 mr-1 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                Template:
+                            </span>
+                            <button type="button" onclick="applyPcTemplate('${itemId}', 'bisnis_i5')"
+                                    class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                ⚡ Bisnis i5 (Excel)
+                            </button>
+                            <button type="button" onclick="applyPcTemplate('${itemId}', 'office_i3')"
+                                    class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-blue-50 text-blue-700 border border-blue-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                ⚡ Office i3
+                            </button>
+                            <button type="button" onclick="applyPcTemplate('${itemId}', 'workstation_i7')"
+                                    class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-purple-50 text-purple-700 border border-purple-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                ⚡ Workstation i7
+                            </button>
+                            <button type="button" onclick="applyPcTemplate('${itemId}', 'mini_pc')"
+                                    class="px-2.5 py-1 text-xs font-bold bg-white hover:bg-teal-50 text-teal-700 border border-teal-300 rounded-lg transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                                ⚡ Mini PC NUC
+                            </button>
+                            <button type="button" onclick="clearPcComponents('${itemId}')"
+                                    class="px-2 py-1 text-xs font-semibold bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-lg transition shadow-2xs active:scale-95 cursor-pointer"
+                                    title="Kosongkan seluruh baris komponen">
+                                🧹 Kosongkan
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-3 pt-3 border-t border-indigo-100">
+                        <div class="md:col-span-6">
+                            <label class="text-[11px] font-bold text-slate-700 mb-1 block">
+                                Nama Paket PC (Tampil di Quotation Klien) <span class="text-rose-500">*</span>
+                            </label>
+                            <input type="text" id="bundle-product-name-${itemId}"
+                                   value="${name || ''}"
+                                   class="w-full text-xs font-bold text-slate-800 border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs uppercase tracking-tight bg-white"
+                                   placeholder="Contoh: PC RAKITAN INTEL CORE i5-12400 | 16GB | 1TB SSD | MONITOR 24''"
+                                   oninput="syncBundleItemName('${itemId}', this.value)">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[11px] font-bold text-slate-700 mb-1 block">Qty Unit PC <span class="text-rose-500">*</span></label>
+                            <input type="number" id="bundle-qty-${itemId}" min="1"
+                                   value="${qty || 1}"
+                                   class="w-full text-xs font-bold text-center border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs bg-white"
+                                   oninput="syncBundleQty('${itemId}', this.value)">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[11px] font-semibold text-slate-600 mb-1 block">Satuan</label>
+                            <input type="text" id="bundle-unit-${itemId}"
+                                   value="${unit || 'Unit'}"
+                                   class="w-full text-xs text-center border-indigo-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs bg-white"
+                                   placeholder="Unit"
+                                   oninput="syncBundleUnit('${itemId}', this.value)">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[11px] font-semibold text-indigo-900 mb-1 flex items-center justify-between" title="Biaya bensin, toll, kurir antar ke klien (di Excel Rp 107.100). Otomatis dibebankan ke Part #1">
+                                <span>Biaya Antar Lokal</span>
+                                <span class="text-[10px] text-indigo-600 font-mono">Part #1</span>
+                            </label>
+                            <div class="relative rounded-xl shadow-2xs">
+                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-xs font-medium text-slate-400">Rp</span>
+                                <input type="text" inputmode="numeric" id="bundle-delivery-cost-${itemId}"
+                                       value="${formatRupiah(delivery || 107100)}"
+                                       class="w-full pl-8 pr-2.5 py-1.5 text-xs font-bold text-slate-800 border-indigo-200 rounded-xl rupiah-input text-right focus:border-indigo-500 focus:ring-indigo-500 bg-white"
+                                       placeholder="107.100"
+                                       oninput="updateBundleDeliveryCost('${itemId}')">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-slate-200 shadow-sm bg-white">
+                    <table class="w-full text-left text-xs text-slate-700 border-collapse" id="bundle-table-${itemId}">
+                        <thead class="bg-slate-100/90 text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+                            <tr>
+                                <th class="py-2.5 px-2 text-center w-8">#</th>
+                                <th class="py-2.5 px-2 w-28">Kategori</th>
+                                <th class="py-2.5 px-2 min-w-[200px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
+                                <th class="py-2.5 px-1.5 w-12 text-center">Qty</th>
+                                <th class="py-2.5 px-2 w-28">Vendor / Toko</th>
+                                <th class="py-2.5 px-2 w-32 text-right">Harga Beli (Inc PPN)</th>
+                                <th class="py-2.5 px-2 w-28 text-right bg-slate-50/80">Modal Ex PPN</th>
+                                <th class="py-2.5 px-2 w-24 text-right">Ongkir Vendor</th>
+                                <th class="py-2.5 px-2 w-24 text-right">Biaya Kirim</th>
+                                <th class="py-2.5 px-1.5 w-16 text-center">Margin %</th>
+                                <th class="py-2.5 px-2 w-20 text-center">Ceiling</th>
+                                <th class="py-2.5 px-2.5 w-32 text-right bg-indigo-50/60 text-indigo-900 font-extrabold">Harga Jual Part</th>
+                                <th class="py-2.5 px-1.5 text-center w-10">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bundle-components-tbody-${itemId}" class="divide-y divide-slate-100">
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+                    <button type="button" onclick="addPcComponentRow('${itemId}')"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        <span>Tambah Baris Komponen</span>
+                    </button>
+
+                    <button type="button" onclick="syncPcSpecsToDescription('${itemId}')"
+                            id="btn-sync-specs-${itemId}"
+                            class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-xl transition shadow-2xs hover:shadow active:scale-95 cursor-pointer">
+                        <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>🔄 Sinkronkan Spek ke Deskripsi Penawaran</span>
+                    </button>
+                </div>
+
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1)
+                        </label>
+                        <span class="text-[11px] text-slate-500">Bisa diedit atau ditambah catatan garansi</span>
+                    </div>
+                    <textarea id="bundle-description-${itemId}" rows="6"
+                              class="w-full text-xs font-mono border-slate-200 rounded-xl resize-y focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white"
+                              placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'..."
+                              oninput="syncBundleDescription('${itemId}', this.value)">${desc || ''}</textarea>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                        <div>
+                            <span class="text-[10px] text-slate-400 uppercase tracking-wider block font-semibold">Total Modal Riil (Ex PPN)</span>
+                            <span class="text-lg font-bold font-mono text-slate-200" id="bundle-rollup-modal-${itemId}">Rp 0</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Include Modal, Ongkir &amp; Antar</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-emerald-400 uppercase tracking-wider block font-bold">Total Harga Jual / Unit (Saler)</span>
+                            <span class="text-xl font-extrabold font-mono text-emerald-400" id="bundle-rollup-selling-${itemId}">Rp 0</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Rollup Ceiling 50k per part</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-indigo-300 uppercase tracking-wider block font-semibold">Estimasi Keuntungan</span>
+                            <span class="text-lg font-bold font-mono text-indigo-200" id="bundle-rollup-profit-${itemId}">Rp 0</span>
+                            <span class="text-[10px] text-slate-400 block mt-0.5">Laba bersih per unit PC</span>
+                        </div>
+                        <div class="border-l border-slate-700/80 pl-4">
+                            <span class="text-[10px] text-amber-300 uppercase tracking-wider block font-bold">Komisi Sales (1%)</span>
+                            <span class="text-lg font-bold font-mono text-amber-300" id="bundle-rollup-commission-${itemId}">Rp 0</span>
+                            <span class="text-[10px] text-amber-400/80 block mt-0.5">1% dari estimasi laba</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
         function addNewPriceItem(categoryName, blockKey, initialData = {}) {
             const tempId = 'new_' + Date.now() + '_' + (tempItemSeq++);
             const container = document.getElementById('items-container-' + blockKey);
@@ -1384,6 +1827,16 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
+                        <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
+                            <input type="checkbox" name="items[${tempId}][is_bundle]" value="1"
+                                   id="toggle-bundle-${tempId}"
+                                   class="sr-only peer"
+                                   onchange="toggleBundleMode('${tempId}')">
+                            <div class="w-7 h-3.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
+                            <span class="flex items-center gap-1 peer-checked:text-indigo-700">
+                                <span>🖥️</span> <span>Mode PC Rakitan</span>
+                            </span>
+                        </label>
                         <div class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 shadow-2xs">
                             Qty Target: <span class="text-blue-600 font-bold" id="badge-qty-${tempId}">${initQty}</span> <span id="badge-unit-${tempId}">${initUnit}</span>
                         </div>
@@ -1395,7 +1848,7 @@
                     </div>
                 </div>
 
-                <div class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div id="regular-body-${tempId}" class="p-5 lg:p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="space-y-3 flex flex-col justify-between h-full">
                         <div class="space-y-3 flex-1 flex flex-col">
                             <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
@@ -1621,6 +2074,7 @@
                             </div>
                         </div>
                 </div>
+                ${renderBundleBodyTemplate(tempId, initName, initQty, initUnit, initDesc, 107100)}
             </div>
             `;
 
@@ -2080,7 +2534,454 @@
             });
         }
 
+        // ─── PC Rakitan & Item Bundling Engine (Identik Excel Lembar2 & Q1) ───
+        const PC_TEMPLATES = {
+            bisnis_i5: {
+                name: 'PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS',
+                delivery_cost: 107100,
+                components: [
+                    { category: 'Processor', name: 'Intel Core i5-12400 2.5GHz Up To 4.4GHz - Cache 18MB Socket LGA1700', inc_ppn: 3529000, is_inc: true, ongkir: 150000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Motherboard', name: 'MSI PRO B760M-A WIFI DDR4 (LGA1700, B760, DDR4, USB3.2 Type-C, SATA3)', inc_ppn: 2490000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'RAM', name: 'Team Elite Plus Black DDR4 PC25600 3200MHz 16GB (2x8GB)', inc_ppn: 2209000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Storage', name: 'Samsung SSD 990 EVO PLUS M.2 PCIe Gen 5.0 1TB', inc_ppn: 4379000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'Deepcool XFAN 12CM Black (Hydro Bearing)', inc_ppn: 49000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Cooler', name: 'Deepcool AK400 - Fan 12CM - LGA1700 Support', inc_ppn: 395000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Power Supply', name: 'Antec ATOM B750 - 750W 80+ Bronze', inc_ppn: 850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'GameMax Spark Air Black Tempered Glass M-ATX', inc_ppn: 615000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Monitor', name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', inc_ppn: 1195000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Aksesoris', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
+                ]
+            },
+            mini_pc: {
+                name: 'MINI PC ASUS INTEL NUC13ANH',
+                delivery_cost: 107100,
+                components: [
+                    { category: 'Processor', name: 'MINI PC ASUS INTEL NUC13ANHH5 INTEL i5-13420H', inc_ppn: 6650000, is_inc: true, ongkir: 100000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'RAM', name: 'V-GeN Platinum DDR4 16GB 3200Mhz', inc_ppn: 2488000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Storage', name: 'V-GeN SSD NVMe 1TB', inc_ppn: 3288000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Software', name: 'Windows 11 Pro - OEM', inc_ppn: 2715000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Aksesoris', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
+                ]
+            },
+            office_i3: {
+                name: 'PC RAKITAN INTEL CORE i3-12100 | 8GB | 512GB SSD | MONITOR 22"',
+                delivery_cost: 100000,
+                components: [
+                    { category: 'Processor', name: 'Intel Core i3-12100 Box Socket LGA1700', inc_ppn: 1750000, is_inc: true, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Motherboard', name: 'Asrock H610M-HDV/M.2 DDR4', inc_ppn: 1150000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'RAM', name: 'Team Elite Plus 8GB DDR4 3200MHz', inc_ppn: 320000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Storage', name: 'Kingston NV2 500GB M.2 PCIe NVMe', inc_ppn: 650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Casing', name: 'VenomRX mATX Case + PSU 450W', inc_ppn: 450000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Monitor', name: 'Philips 221V8L 21.5" FHD 75Hz', inc_ppn: 1050000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Aksesoris', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Jasa', name: 'Rakit + Cable Management + Testing', inc_ppn: 150000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
+                ]
+            },
+            workstation_i7: {
+                name: 'PC WORKSTATION INTEL CORE i7-13700 | RTX 4060 | 32GB DDR5 | 1TB NVMe',
+                delivery_cost: 150000,
+                components: [
+                    { category: 'Processor', name: 'Intel Core i7-13700 Box Socket LGA1700', inc_ppn: 5800000, is_inc: true, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Motherboard', name: 'MSI MAG B760 TOMAHAWK WIFI DDR5', inc_ppn: 3600000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'RAM', name: 'Corsair Vengeance 32GB (2x16GB) DDR5 5600MHz', inc_ppn: 1950000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Storage', name: 'Samsung 980 Pro 1TB M.2 PCIe Gen 4', inc_ppn: 1850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'VGA / GPU', name: 'GeForce RTX 4060 8GB GDDR6', inc_ppn: 5250000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Power Supply', name: 'Corsair RM650e 650W 80+ Gold Modular', inc_ppn: 1650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'Cooler Master MasterBox TD500 Mesh V2', inc_ppn: 1350000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Cooler', name: 'Deepcool AK620 High Performance Air Cooler', inc_ppn: 950000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Monitor', name: 'Dell UltraSharp / LG 27" 2K QHD IPS', inc_ppn: 4200000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Jasa', name: 'Rakit Profesional + Stress Test 24 Jam', inc_ppn: 250000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
+                ]
+            }
+        };
+
+        function toggleBundleMode(itemId) {
+            const toggle = document.getElementById('toggle-bundle-' + itemId);
+            const isChecked = toggle ? toggle.checked : false;
+            const regularBody = document.getElementById('regular-body-' + itemId);
+            const bundleBody = document.getElementById('bundle-body-' + itemId);
+
+            if (isChecked) {
+                if (regularBody) regularBody.style.display = 'none';
+                if (bundleBody) bundleBody.style.display = 'block';
+
+                // Sync current values from regular inputs to bundle header inputs
+                const regName = document.querySelector('input[name="items[' + itemId + '][product_name]"]')?.value;
+                const regQty = document.getElementById('qty-' + itemId)?.value;
+                const regUnit = document.querySelector('input[name="items[' + itemId + '][unit]"]')?.value;
+                const regDesc = document.querySelector('textarea[name="items[' + itemId + '][description]"]')?.value;
+
+                const bundleNameInput = document.getElementById('bundle-product-name-' + itemId);
+                if (bundleNameInput && regName) bundleNameInput.value = regName;
+                const bundleQtyInput = document.getElementById('bundle-qty-' + itemId);
+                if (bundleQtyInput && regQty) bundleQtyInput.value = regQty;
+                const bundleUnitInput = document.getElementById('bundle-unit-' + itemId);
+                if (bundleUnitInput && regUnit) bundleUnitInput.value = regUnit;
+                const bundleDescInput = document.getElementById('bundle-description-' + itemId);
+                if (bundleDescInput && regDesc) bundleDescInput.value = regDesc;
+
+                // Check if table is empty, if empty apply default 'bisnis_i5'
+                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                if (tbody && tbody.children.length === 0) {
+                    applyPcTemplate(itemId, 'bisnis_i5');
+                } else {
+                    calculateBundle(itemId);
+                }
+            } else {
+                if (confirm('Nonaktifkan Mode PC Rakitan? Komponen rincian akan diabaikan dan kembali ke perhitungan item biasa.')) {
+                    if (regularBody) regularBody.style.display = 'grid';
+                    if (bundleBody) bundleBody.style.display = 'none';
+                    calculateRow(itemId);
+                } else {
+                    if (toggle) toggle.checked = true;
+                }
+            }
+        }
+
+        function applyPcTemplate(itemId, templateKey) {
+            const template = PC_TEMPLATES[templateKey];
+            if (!template) return;
+
+            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+            if (!tbody) return;
+
+            tbody.innerHTML = '';
+
+            // Set delivery cost
+            const deliveryCostInput = document.getElementById('bundle-delivery-cost-' + itemId);
+            if (deliveryCostInput) {
+                deliveryCostInput.value = formatRupiah(template.delivery_cost);
+            }
+
+            // Set package title
+            const nameInput = document.getElementById('bundle-product-name-' + itemId);
+            if (nameInput) {
+                nameInput.value = template.name;
+                syncBundleItemName(itemId, template.name);
+            }
+
+            template.components.forEach((comp, idx) => {
+                const delivery = (idx === 0) ? template.delivery_cost : 0;
+                addPcComponentRow(itemId, {
+                    category: comp.category,
+                    name: comp.name,
+                    inc_ppn: comp.inc_ppn,
+                    is_inc: comp.is_inc,
+                    ongkir: comp.ongkir,
+                    biaya_kirim: delivery,
+                    margin: comp.margin,
+                    ceiling: comp.ceiling,
+                    qty: comp.qty || 1,
+                    unit: comp.unit || 'Unit',
+                    vendor: comp.vendor || ''
+                });
+            });
+
+            calculateBundle(itemId);
+            syncPcSpecsToDescription(itemId);
+        }
+
+        function addPcComponentRow(itemId, data = {}) {
+            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+            if (!tbody) return;
+
+            const rowIdx = tbody.children.length;
+            const num = rowIdx + 1;
+
+            const cat = data.category || 'Processor';
+            const name = data.name || '';
+            const qty = data.qty !== undefined ? data.qty : 1;
+            const unit = data.unit || 'Unit';
+            const vendor = data.vendor || '';
+            const incPpn = data.inc_ppn !== undefined ? data.inc_ppn : 0;
+            const isInc = data.is_inc !== undefined ? data.is_inc : true;
+            const ongkir = data.ongkir !== undefined ? data.ongkir : 0;
+            const biayaKirim = data.biaya_kirim !== undefined ? data.biaya_kirim : (rowIdx === 0 ? (parseRupiah(document.getElementById('bundle-delivery-cost-' + itemId)?.value || '107100')) : 0);
+            const margin = data.margin !== undefined ? data.margin : (rowIdx === 0 ? 15 : 13);
+            const ceiling = data.ceiling !== undefined ? data.ceiling : 50000;
+
+            const modalEx = isInc && incPpn > 0 ? Math.round(incPpn / 1.11) : incPpn;
+
+            const tr = document.createElement('tr');
+            tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
+            tr.dataset.compIndex = rowIdx;
+
+            const catOptions = ['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
+            const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
+
+            tr.innerHTML = `
+                <td class="py-2 px-2 text-center text-slate-400 font-mono text-[11px] comp-idx">${num}</td>
+                <td class="py-2 px-1.5">
+                    <select name="items[${itemId}][components][${rowIdx}][description]" class="w-full text-[11px] font-semibold text-slate-700 border-slate-200 rounded-lg py-1 px-1.5 focus:ring-1 focus:ring-indigo-500">
+                        ${selectOptions}
+                    </select>
+                </td>
+                <td class="py-2 px-1.5">
+                    <input type="text" name="items[${itemId}][components][${rowIdx}][product_name]"
+                           value="${name.replace(/"/g, '&quot;')}"
+                           class="w-full text-xs font-semibold text-slate-800 border-slate-200 rounded-lg py-1 px-2 focus:ring-1 focus:ring-indigo-500 comp-name-input"
+                           placeholder="Nama / tipe komponen..." required oninput="calculateBundle('${itemId}')">
+                </td>
+                <td class="py-2 px-1 text-center">
+                    <input type="number" name="items[${itemId}][components][${rowIdx}][qty]" min="0.1" step="any"
+                           value="${qty}"
+                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-qty-input"
+                           oninput="calculateBundle('${itemId}')">
+                    <input type="hidden" name="items[${itemId}][components][${rowIdx}][unit]" value="${unit}">
+                </td>
+                <td class="py-2 px-1">
+                    <input type="text" name="items[${itemId}][components][${rowIdx}][vendor_name]"
+                           value="${vendor.replace(/"/g, '&quot;')}"
+                           class="w-full text-[11px] text-slate-700 border-slate-200 rounded-lg py-1 px-1.5"
+                           placeholder="Tokopedia / Offline">
+                </td>
+                <td class="py-2 px-1">
+                    <div class="relative">
+                        <input type="text" inputmode="numeric"
+                               value="${formatRupiah(incPpn)}"
+                               class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-inc-ppn-input"
+                               placeholder="0" oninput="onCompIncPpnChange(this, '${itemId}')">
+                    </div>
+                    <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
+                        <input type="checkbox" ${isInc ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-0 comp-ppn-toggle" onchange="onCompIncPpnChange(this, '${itemId}')">
+                        <span>/ 1.11</span>
+                    </label>
+                </td>
+                <td class="py-2 px-1 text-right bg-slate-50/80 font-mono font-semibold text-slate-700">
+                    <input type="hidden" name="items[${itemId}][components][${rowIdx}][hpp]" value="${modalEx}" class="comp-hpp-raw">
+                    <span class="comp-hpp-display">Rp ${formatRupiah(modalEx)}</span>
+                </td>
+                <td class="py-2 px-1">
+                    <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][ongkir_pedia]"
+                           value="${formatRupiah(ongkir)}"
+                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-ongkir-input"
+                           placeholder="0" oninput="calculateBundle('${itemId}')">
+                </td>
+                <td class="py-2 px-1">
+                    <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][biaya_kirim]"
+                           value="${formatRupiah(biayaKirim)}"
+                           class="w-full text-xs text-right border-slate-200 rounded-lg py-1 px-1.5 rupiah-input comp-biaya-kirim-input"
+                           placeholder="0" oninput="calculateBundle('${itemId}')">
+                </td>
+                <td class="py-2 px-1 text-center">
+                    <input type="hidden" name="items[${itemId}][components][${rowIdx}][margin_type]" value="percentage">
+                    <input type="number" step="0.1" name="items[${itemId}][components][${rowIdx}][margin_value]"
+                           value="${margin}"
+                           class="w-full text-xs font-bold text-center border-slate-200 rounded-lg py-1 px-1 comp-margin-input"
+                           oninput="calculateBundle('${itemId}')">
+                </td>
+                <td class="py-2 px-1 text-center">
+                    <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][custom_ceiling]"
+                           value="${formatRupiah(ceiling)}"
+                           class="w-full text-[11px] text-center border-slate-200 rounded-lg py-1 px-1 rupiah-input comp-ceiling-input"
+                           oninput="calculateBundle('${itemId}')">
+                </td>
+                <td class="py-2 px-2 text-right bg-indigo-50/60 font-mono font-bold text-indigo-900 text-xs">
+                    <span class="comp-selling-display">Rp 0</span>
+                </td>
+                <td class="py-2 px-1 text-center">
+                    <button type="button" onclick="removePcComponentRow(this, '${itemId}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Hapus Part">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+            attachRupiahListeners(tr);
+            calculateBundle(itemId);
+        }
+
+        function removePcComponentRow(btn, itemId) {
+            const tr = btn.closest('tr');
+            if (tr) {
+                tr.remove();
+                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                if (tbody) {
+                    tbody.querySelectorAll('tr').forEach((row, i) => {
+                        const idxCell = row.querySelector('.comp-idx');
+                        if (idxCell) idxCell.innerText = i + 1;
+                    });
+                }
+                calculateBundle(itemId);
+            }
+        }
+
+        function clearPcComponents(itemId) {
+            if (confirm('Yakin ingin mengosongkan seluruh komponen PC?')) {
+                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                if (tbody) tbody.innerHTML = '';
+                calculateBundle(itemId);
+            }
+        }
+
+        function onCompIncPpnChange(el, itemId) {
+            const row = el.closest('tr');
+            if (!row) return;
+
+            const incInput = row.querySelector('.comp-inc-ppn-input');
+            const toggle = row.querySelector('.comp-ppn-toggle');
+            const hppRaw = row.querySelector('.comp-hpp-raw');
+            const hppDisp = row.querySelector('.comp-hpp-display');
+
+            const incVal = parseRupiah(incInput?.value || '0');
+            const isInc = toggle ? toggle.checked : true;
+
+            const exVal = (isInc && incVal > 0) ? Math.round(incVal / 1.11) : incVal;
+
+            if (hppRaw) hppRaw.value = exVal;
+            if (hppDisp) hppDisp.innerText = 'Rp ' + formatRupiah(exVal);
+
+            calculateBundle(itemId);
+        }
+
+        function updateBundleDeliveryCost(itemId) {
+            const deliveryVal = parseRupiah(document.getElementById('bundle-delivery-cost-' + itemId)?.value || '0');
+            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+            if (tbody && tbody.children.length > 0) {
+                const firstRow = tbody.children[0];
+                const biayaInput = firstRow.querySelector('.comp-biaya-kirim-input');
+                if (biayaInput) {
+                    biayaInput.value = formatRupiah(deliveryVal);
+                }
+            }
+            calculateBundle(itemId);
+        }
+
+        function calculateBundle(itemId) {
+            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+            if (!tbody) return;
+
+            let totalCost = 0;
+            let totalSelling = 0;
+
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach((row, idx) => {
+                const hppRaw = parseRupiah(row.querySelector('.comp-hpp-raw')?.value || '0');
+                const ongkir = parseRupiah(row.querySelector('.comp-ongkir-input')?.value || '0');
+                const biayaKirim = parseRupiah(row.querySelector('.comp-biaya-kirim-input')?.value || '0');
+                const baseCost = hppRaw + ongkir + biayaKirim;
+
+                const marginPct = parseFloat(row.querySelector('.comp-margin-input')?.value || '0') || 0;
+                const ceiling = parseRupiah(row.querySelector('.comp-ceiling-input')?.value || '50000') || 1;
+                const qty = parseFloat(row.querySelector('.comp-qty-input')?.value || '1') || 1;
+
+                // Formula identik Excel: CEILING((BaseCost) * (1 + Margin/100), Ceiling)
+                const priceBeforeCeil = baseCost * (1 + marginPct / 100);
+                const sellingUnit = Math.ceil(priceBeforeCeil / ceiling) * ceiling;
+
+                const compSellingDisp = row.querySelector('.comp-selling-display');
+                if (compSellingDisp) {
+                    compSellingDisp.innerText = 'Rp ' + formatRupiah(sellingUnit);
+                }
+
+                totalCost += baseCost * qty;
+                totalSelling += sellingUnit * qty;
+            });
+
+            const totalProfit = totalSelling - totalCost;
+            const commission = Math.round(totalProfit * 0.01);
+
+            // Update Rollup Footer
+            const modalEl = document.getElementById('bundle-rollup-modal-' + itemId);
+            if (modalEl) modalEl.innerText = 'Rp ' + formatRupiah(totalCost);
+
+            const sellEl = document.getElementById('bundle-rollup-selling-' + itemId);
+            if (sellEl) sellEl.innerText = 'Rp ' + formatRupiah(totalSelling);
+
+            const profitEl = document.getElementById('bundle-rollup-profit-' + itemId);
+            if (profitEl) profitEl.innerText = 'Rp ' + formatRupiah(totalProfit);
+
+            const commEl = document.getElementById('bundle-rollup-commission-' + itemId);
+            if (commEl) commEl.innerText = 'Rp ' + formatRupiah(commission);
+
+            // Sync with parent regular fields for form submit & grand totals
+            const parentHppInput = document.getElementById('hpp-' + itemId);
+            if (parentHppInput) parentHppInput.value = formatRupiah(totalCost);
+
+            const parentPriceEl = document.getElementById('final-price-' + itemId);
+            if (parentPriceEl) parentPriceEl.innerText = formatRupiah(totalSelling);
+
+            const parentQty = parseFloat(document.getElementById('qty-' + itemId)?.value || '1') || 1;
+            const parentTotalSelling = totalSelling * parentQty;
+            const parentTotalProfit = totalProfit * parentQty;
+
+            const finalTotalEl = document.getElementById('final-total-' + itemId);
+            if (finalTotalEl) finalTotalEl.innerText = formatRupiah(parentTotalSelling);
+
+            const finalProfitEl = document.getElementById('final-profit-row-' + itemId);
+            if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(parentTotalProfit);
+
+            updateGrandTotals();
+        }
+
+        function syncPcSpecsToDescription(itemId) {
+            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+            if (!tbody) return;
+
+            const lines = [];
+            tbody.querySelectorAll('tr').forEach(row => {
+                const name = row.querySelector('.comp-name-input')?.value?.trim();
+                const cat = row.querySelector('select')?.value?.trim();
+                const qty = parseFloat(row.querySelector('.comp-qty-input')?.value || '1') || 1;
+                if (name) {
+                    const qtyPrefix = qty > 1 ? `(${qty}x) ` : '';
+                    const catPrefix = cat ? `${cat}: ` : '';
+                    lines.push(`- ${catPrefix}${qtyPrefix}${name}`);
+                }
+            });
+
+            const specText = lines.join('\n');
+            const descArea = document.getElementById('bundle-description-' + itemId);
+            if (descArea) {
+                descArea.value = specText;
+                syncBundleDescription(itemId, specText);
+            }
+
+            const btn = document.getElementById('btn-sync-specs-' + itemId);
+            if (btn) {
+                const oldHtml = btn.innerHTML;
+                btn.innerHTML = `<span>✅ Spek Berhasil Disinkronkan!</span>`;
+                btn.classList.add('bg-emerald-600', 'text-white');
+                setTimeout(() => {
+                    btn.innerHTML = oldHtml;
+                    btn.classList.remove('bg-emerald-600', 'text-white');
+                }, 2000);
+            }
+        }
+
+        function syncBundleItemName(itemId, val) {
+            const regInput = document.querySelector('input[name="items[' + itemId + '][product_name]"]');
+            if (regInput) regInput.value = val;
+            const disp = document.getElementById('display-name-' + itemId);
+            if (disp) disp.innerText = val || 'PC Rakitan';
+        }
+
+        function syncBundleQty(itemId, val) {
+            const regQty = document.getElementById('qty-' + itemId);
+            if (regQty) regQty.value = val;
+            const badge = document.getElementById('badge-qty-' + itemId);
+            if (badge) badge.innerText = val;
+            calculateBundle(itemId);
+        }
+
+        function syncBundleUnit(itemId, val) {
+            const regUnit = document.querySelector('input[name="items[' + itemId + '][unit]"]');
+            if (regUnit) regUnit.value = val;
+            const badge = document.getElementById('badge-unit-' + itemId);
+            if (badge) badge.innerText = val;
+        }
+
+        function syncBundleDescription(itemId, val) {
+            const regDesc = document.querySelector('textarea[name="items[' + itemId + '][description]"]');
+            if (regDesc) regDesc.value = val;
+        }
+
         function calculateRow(itemId) {
+            const toggleBundle = document.getElementById('toggle-bundle-' + itemId);
+            if (toggleBundle && toggleBundle.checked) {
+                calculateBundle(itemId);
+                return;
+            }
             const hpp = parseRupiah(document.getElementById('hpp-' + itemId)?.value);
             const ongkirPedia = parseRupiah(document.getElementById('ongkir-pedia-' + itemId)?.value);
             const biayaKirim = parseRupiah(document.getElementById('biaya-kirim-' + itemId)?.value);
@@ -2481,6 +3382,11 @@
             document.querySelectorAll('input[id^="hpp-"]').forEach(function(el) {
                 const itemId = el.dataset.itemId || el.id.replace('hpp-', '');
                 calculateRow(itemId);
+            });
+
+            document.querySelectorAll('input[id^="toggle-bundle-"]:checked').forEach(function(el) {
+                const itemId = el.id.replace('toggle-bundle-', '');
+                calculateBundle(itemId);
             });
 
             document.querySelectorAll('.calc-trigger').forEach(function(el) {

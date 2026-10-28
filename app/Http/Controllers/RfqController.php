@@ -868,6 +868,7 @@ class RfqController extends Controller
             'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
             'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
             'items.*.components.*.description'   => 'nullable|string',
+            'items.*.components.*.link_referensi'=> 'nullable|string|max:500',
             'items.*.link_referensi'             => 'nullable|url|max:500',
         ]);
 
@@ -1014,6 +1015,7 @@ class RfqController extends Controller
                         $comp->custom_ceiling = (float) ($cData['custom_ceiling'] ?? 50000);
                         $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
                         $comp->validity_days = $item->validity_days;
+                        $comp->link_referensi = $cData['link_referensi'] ?? null;
 
                         $cTypedVendor = trim($cData['vendor_name'] ?? '');
                         if ($cTypedVendor !== '') {

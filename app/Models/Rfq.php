@@ -417,7 +417,16 @@ class Rfq extends Model
                     return "- " . $prefix . $c->product_name;
                 })->implode("\n");
 
-                $desc = !empty($it->description) ? ($it->description . "\n" . $compList) : $compList;
+                if (!empty($it->description)) {
+                    $firstPart = trim($comps->first()?->product_name ?? '');
+                    if ($firstPart !== '' && str_contains($it->description, $firstPart)) {
+                        $desc = $it->description;
+                    } else {
+                        $desc = $it->description . "\n" . $compList;
+                    }
+                } else {
+                    $desc = $compList;
+                }
             } else {
                 $unitPrice = (float) $it->price_after_margin;
                 $desc = $it->description ?: $it->detail_item;
