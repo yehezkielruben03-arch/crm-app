@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>CRM Portal - Login</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Tailwind CSS (utility classes) -->
     <script src="https://cdn.tailwindcss.com"></script>

@@ -592,7 +592,13 @@
                         @if(auth()->user()->isAdminOrAbove())
                         <div>
                             <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">Assign ke Sales Marketing</label>
-                            <x-custom-select name="sales_id" :value="old('sales_id', $customer->sales_id)" placeholder="Belum diassign" :options="collect(['' => 'Belum diassign'])->merge($salesList->pluck('name', 'id')->toArray())" />
+                            @php
+                                $salesOptions = ['' => 'Belum diassign'];
+                                foreach ($salesList as $s) {
+                                    $salesOptions[(string)$s->id] = $s->name;
+                                }
+                            @endphp
+                            <x-custom-select name="sales_id" :value="old('sales_id', $customer->sales_id)" placeholder="Belum diassign" :options="$salesOptions" />
                         </div>
                         @endif
 
