@@ -15,4 +15,24 @@ class CustomerBillingAddress extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function getProvinceAttribute($value): ?string
+    {
+        return \App\Helpers\IndonesiaRegion::formatTitleCase($value);
+    }
+
+    public function setProvinceAttribute($value): void
+    {
+        $this->attributes['province'] = \App\Helpers\IndonesiaRegion::formatTitleCase($value);
+    }
+
+    public function getCityAttribute($value): ?string
+    {
+        return \App\Helpers\IndonesiaRegion::formatTitleCase($value);
+    }
+
+    public function setCityAttribute($value): void
+    {
+        $this->attributes['city'] = \App\Helpers\IndonesiaRegion::formatTitleCase($value);
+    }
 }

@@ -247,7 +247,7 @@
 
             async onVillageChange() {
                 if (!this.village) { this.postalCode = ''; this.postalCodeOptions = []; return; }
-                const found = this.villages.find(v => v.name === this.village);
+                const found = this.villages.find(v => (v.name || '').toLowerCase() === (this.village || '').toLowerCase());
                 if (found && found.postal_code) {
                     this.postalCode = found.postal_code;
                     this.postalCodeOptions = [found.postal_code];

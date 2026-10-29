@@ -110,10 +110,10 @@
                 {{-- Untuk Edit, nilai lama sudah tersedia di $customer, --}}
                 {{-- kita tampilkan sebagai "nilai awal" lalu user bisa ganti --}}
                 <div class="card p-6" x-data="regionSelector()" x-init="
-                    province   = '{{ old('province',   $customer->province)   }}';
-                    city       = '{{ old('city',       $customer->city)       }}';
-                    district   = '{{ old('district',   $customer->district)   }}';
-                    village    = '{{ old('village',    $customer->village)    }}';
+                    province   = '{{ old('province',   \App\Helpers\IndonesiaRegion::formatTitleCase($customer->province))   }}';
+                    city       = '{{ old('city',       \App\Helpers\IndonesiaRegion::formatTitleCase($customer->city))       }}';
+                    district   = '{{ old('district',   \App\Helpers\IndonesiaRegion::formatTitleCase($customer->district))   }}';
+                    village    = '{{ old('village',    \App\Helpers\IndonesiaRegion::formatTitleCase($customer->village))    }}';
                     postalCode = '{{ old('postal_code',$customer->postal_code) }}';
                 ">
                     <h2 class="text-sm font-semibold mb-4 pb-3" style="color: var(--text-secondary); border-bottom: 1px solid var(--border-color);">
@@ -128,7 +128,7 @@
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">
                                 <option value="">-- Pilih Provinsi --</option>
                                 @foreach(\App\Helpers\IndonesiaRegion::provinces() as $prov)
-                                    <option value="{{ $prov }}" {{ old('province', $customer->province) == $prov ? 'selected' : '' }}>{{ $prov }}</option>
+                                    <option value="{{ $prov }}" {{ strcasecmp(old('province', $customer->province), $prov) === 0 ? 'selected' : '' }}>{{ $prov }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -140,7 +140,8 @@
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">
                                 <option value="">-- Pilih Kota/Kabupaten --</option>
                                 @if(old('city', $customer->city))
-                                    <option value="{{ old('city', $customer->city) }}" selected>{{ old('city', $customer->city) }}</option>
+                                    @php $initCity = \App\Helpers\IndonesiaRegion::formatTitleCase(old('city', $customer->city)); @endphp
+                                    <option value="{{ $initCity }}" selected>{{ $initCity }}</option>
                                 @endif
                                 <template x-for="c in cities" :key="c">
                                     <option :value="c" x-text="c" :selected="c === city"></option>
@@ -155,7 +156,8 @@
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">
                                 <option value="">-- Pilih Kecamatan --</option>
                                 @if(old('district', $customer->district))
-                                    <option value="{{ old('district', $customer->district) }}" selected>{{ old('district', $customer->district) }}</option>
+                                    @php $initDist = \App\Helpers\IndonesiaRegion::formatTitleCase(old('district', $customer->district)); @endphp
+                                    <option value="{{ $initDist }}" selected>{{ $initDist }}</option>
                                 @endif
                                 <template x-for="d in districts" :key="d">
                                     <option :value="d" x-text="d" :selected="d === district"></option>
@@ -170,7 +172,8 @@
                                 style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); cursor: pointer;">
                                 <option value="">-- Pilih Kelurahan/Desa --</option>
                                 @if(old('village', $customer->village))
-                                    <option value="{{ old('village', $customer->village) }}" selected>{{ old('village', $customer->village) }}</option>
+                                    @php $initVill = \App\Helpers\IndonesiaRegion::formatTitleCase(old('village', $customer->village)); @endphp
+                                    <option value="{{ $initVill }}" selected>{{ $initVill }}</option>
                                 @endif
                                 <template x-for="v in villages" :key="v.name">
                                     <option :value="v.name" x-text="v.name" :selected="v.name === village"></option>

@@ -227,14 +227,7 @@ class Customer extends Model
 
     public static function formatTitleCase(?string $string): ?string
     {
-        $trimmed = trim($string ?? '');
-        if ($trimmed === '') {
-            return null;
-        }
-
-        $normalized = preg_replace('/\s+/', ' ', $trimmed);
-
-        return mb_convert_case(mb_strtolower($normalized, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
+        return \App\Helpers\IndonesiaRegion::formatTitleCase($string);
     }
 
     public function setCompanyNameAttribute($value): void
@@ -257,6 +250,56 @@ class Customer extends Model
     public function setCpNameAttribute($value): void
     {
         $this->attributes['cp_name'] = self::formatTitleCase($value);
+    }
+
+    public function getProvinceAttribute($value): ?string
+    {
+        return self::formatTitleCase($value);
+    }
+
+    public function setProvinceAttribute($value): void
+    {
+        $this->attributes['province'] = self::formatTitleCase($value);
+    }
+
+    public function getCityAttribute($value): ?string
+    {
+        return self::formatTitleCase($value);
+    }
+
+    public function setCityAttribute($value): void
+    {
+        $this->attributes['city'] = self::formatTitleCase($value);
+    }
+
+    public function getDistrictAttribute($value): ?string
+    {
+        return self::formatTitleCase($value);
+    }
+
+    public function setDistrictAttribute($value): void
+    {
+        $this->attributes['district'] = self::formatTitleCase($value);
+    }
+
+    public function getVillageAttribute($value): ?string
+    {
+        return self::formatTitleCase($value);
+    }
+
+    public function setVillageAttribute($value): void
+    {
+        $this->attributes['village'] = self::formatTitleCase($value);
+    }
+
+    public function getRegionAttribute($value): ?string
+    {
+        return self::formatTitleCase($value);
+    }
+
+    public function setRegionAttribute($value): void
+    {
+        $this->attributes['region'] = self::formatTitleCase($value);
     }
 
     public function getFormalCompanyNameAttribute(): string

@@ -196,6 +196,11 @@ class CustomerController extends Controller
         if (!empty($validated['cp_name'])) {
             $validated['cp_name'] = Customer::formatTitleCase($validated['cp_name']);
         }
+        foreach (['province', 'city', 'district', 'village', 'region'] as $field) {
+            if (!empty($validated[$field])) {
+                $validated[$field] = Customer::formatTitleCase($validated[$field]);
+            }
+        }
         $validated['status'] = $validated['status'] ?? Customer::STATUS_PROSPECT;
 
         // ============================================================
@@ -479,6 +484,11 @@ class CustomerController extends Controller
 
         if (!empty($validated['cp_name'])) {
             $validated['cp_name'] = Customer::formatTitleCase($validated['cp_name']);
+        }
+        foreach (['province', 'city', 'district', 'village', 'region'] as $field) {
+            if (!empty($validated[$field])) {
+                $validated[$field] = Customer::formatTitleCase($validated[$field]);
+            }
         }
 
         if (empty($validated['status'])) {
