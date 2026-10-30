@@ -760,7 +760,7 @@
                         {{-- Card Body PC Rakitan / Bundling (Identik Excel Lembar2 & Q1) --}}
                         <div id="bundle-body-{{ $item->id }}" class="p-5 lg:p-6 space-y-5 w-full max-w-full overflow-hidden" style="{{ $item->isBundle() ? 'display: block;' : 'display: none;' }}">
                             @php
-                                $bundleComps = $item->relationLoaded('components') ? $item->components : $item->components()->get();
+                                $bundleComps = $item->isBundle() ? ($item->relationLoaded('components') ? $item->components : $item->components()->get()) : collect();
                                 $firstCompDelivery = (float) ($bundleComps->first()?->biaya_kirim ?? 107100);
                             @endphp
 
@@ -2754,10 +2754,10 @@
                     const bundleDescInput = document.getElementById('bundle-description-' + itemId);
                     if (bundleDescInput && regDesc) bundleDescInput.value = regDesc;
 
-                    // Check if table is empty or has no component rows, if empty apply default 'bisnis_i5'
+                    // Cek apakah tabel sudah berisi komponen valid dengan nama produk
                     const tbody = document.getElementById('bundle-components-tbody-' + itemId);
-                    const hasRows = tbody && tbody.querySelectorAll('tr').length > 0;
-                    if (!hasRows) {
+                    const hasValidRows = tbody && Array.from(tbody.querySelectorAll('.comp-name-input')).some(el => el.value && el.value.trim().length > 0);
+                    if (!hasValidRows) {
                         applyPcTemplate(itemId, 'bisnis_i5');
                     } else {
                         calculateBundle(itemId);
