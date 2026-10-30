@@ -301,6 +301,7 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     z-index: 10;
     overflow: hidden;   /* biar children yang scroll, bukan dirinya */
+    overflow: clip;
 }
 
 /* ──────────────────────────────────────
@@ -420,6 +421,7 @@ h1, h2, h3, h4, h5, h6 {
     min-width: 0;
     height: 100%;
     overflow: hidden;       /* Don't scroll main content */
+    overflow: clip;
     display: flex;
     flex-direction: column;
     transition: none;
@@ -428,6 +430,7 @@ h1, h2, h3, h4, h5, h6 {
 /* ── Dashboard Scroll Area ── */
 .dashboard-scroll-area {
     flex: 1;
+    position: relative;
     overflow-y: auto;
     overflow-x: hidden;
 }

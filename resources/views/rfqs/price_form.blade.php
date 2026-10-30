@@ -1,4 +1,11 @@
 <style>
+    .layout-root,
+    .main-content {
+        overflow: clip !important;
+    }
+    .dashboard-scroll-area {
+        position: relative;
+    }
     .custom-scrollbar::-webkit-scrollbar {
         height: 8px;
     }
@@ -438,10 +445,10 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
+                                <label class="relative inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
                                     <input type="checkbox" name="items[{{ $item->id }}][is_bundle]" value="1"
                                            id="toggle-bundle-{{ $item->id }}"
-                                           class="sr-only peer"
+                                           class="sr-only peer top-0 left-0"
                                            onchange="toggleBundleMode('{{ $item->id }}')"
                                            {{ $item->isBundle() ? 'checked' : '' }}>
                                     <div class="w-7 h-3.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
@@ -760,7 +767,7 @@
                         {{-- Card Body PC Rakitan / Bundling (Identik Excel Lembar2 & Q1) --}}
                         <div id="bundle-body-{{ $item->id }}" class="p-5 lg:p-6 space-y-5 w-full max-w-full overflow-hidden" style="{{ $item->isBundle() ? 'display: block;' : 'display: none;' }}">
                             @php
-                                $bundleComps = $item->isBundle() ? ($item->relationLoaded('components') ? $item->components : $item->components()->get()) : collect();
+                                $bundleComps = $item->relationLoaded('components') ? $item->components : $item->components()->get();
                                 $firstCompDelivery = (float) ($bundleComps->first()?->biaya_kirim ?? 107100);
                             @endphp
 
@@ -1914,10 +1921,10 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <label class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
+                        <label class="relative inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 hover:bg-indigo-50 border border-slate-300 hover:border-indigo-300 rounded-xl cursor-pointer transition select-none shadow-2xs text-xs font-bold text-slate-700">
                             <input type="checkbox" name="items[${tempId}][is_bundle]" value="1"
                                    id="toggle-bundle-${tempId}"
-                                   class="sr-only peer"
+                                   class="sr-only peer top-0 left-0"
                                    onchange="toggleBundleMode('${tempId}')">
                             <div class="w-7 h-3.5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
                             <span class="flex items-center gap-1 peer-checked:text-indigo-700">
@@ -2728,8 +2735,25 @@
             }
         };
 
+        function resetOuterLayoutScroll() {
+            const lr = document.querySelector('.layout-root');
+            if (lr && (lr.scrollTop !== 0 || lr.scrollLeft !== 0)) {
+                lr.scrollTop = 0;
+                lr.scrollLeft = 0;
+            }
+            const mc = document.getElementById('mainContent');
+            if (mc && (mc.scrollTop !== 0 || mc.scrollLeft !== 0)) {
+                mc.scrollTop = 0;
+                mc.scrollLeft = 0;
+            }
+            if (window.scrollY !== 0 || window.scrollX !== 0) {
+                window.scrollTo(0, 0);
+            }
+        }
+
         function toggleBundleMode(itemId) {
             try {
+                resetOuterLayoutScroll();
                 const toggle = document.getElementById('toggle-bundle-' + itemId);
                 const isChecked = toggle ? toggle.checked : false;
                 const regularBody = document.getElementById('regular-body-' + itemId);
@@ -2771,6 +2795,8 @@
                         if (toggle) toggle.checked = true;
                     }
                 }
+                resetOuterLayoutScroll();
+                requestAnimationFrame(resetOuterLayoutScroll);
             } catch (err) {
                 console.error('Error saat toggleBundleMode untuk item ' + itemId + ':', err);
             }
@@ -3586,6 +3612,16 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            const lr = document.querySelector('.layout-root');
+            if (lr) {
+                lr.addEventListener('scroll', resetOuterLayoutScroll, { passive: true });
+            }
+            const mc = document.getElementById('mainContent');
+            if (mc) {
+                mc.addEventListener('scroll', resetOuterLayoutScroll, { passive: true });
+            }
+            window.addEventListener('scroll', resetOuterLayoutScroll, { passive: true });
+
             attachRupiahListeners(document);
 
             const presetSelect = document.getElementById('payment_term_preset');
