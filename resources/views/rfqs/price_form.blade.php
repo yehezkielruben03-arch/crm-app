@@ -758,7 +758,7 @@
                         </div>
 
                         {{-- Card Body PC Rakitan / Bundling (Identik Excel Lembar2 & Q1) --}}
-                        <div id="bundle-body-{{ $item->id }}" class="p-5 lg:p-6 space-y-5" style="{{ $item->isBundle() ? 'display: block;' : 'display: none;' }}">
+                        <div id="bundle-body-{{ $item->id }}" class="p-5 lg:p-6 space-y-5 w-full max-w-full overflow-hidden" style="{{ $item->isBundle() ? 'display: block;' : 'display: none;' }}">
                             @php
                                 $bundleComps = $item->relationLoaded('components') ? $item->components : $item->components()->get();
                                 $firstCompDelivery = (float) ($bundleComps->first()?->biaya_kirim ?? 107100);
@@ -1690,7 +1690,7 @@
 
         function renderBundleBodyTemplate(itemId, name, qty, unit, desc, delivery) {
             return `
-            <div id="bundle-body-${itemId}" class="p-5 lg:p-6 space-y-5" style="display: none;">
+            <div id="bundle-body-${itemId}" class="p-5 lg:p-6 space-y-5 w-full max-w-full overflow-hidden" style="display: none;">
                 <div class="bg-gradient-to-r from-indigo-50/90 via-blue-50/60 to-slate-50 p-4 rounded-2xl border border-indigo-200 shadow-2xs">
                     <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
                         <div class="flex items-center gap-2.5">
@@ -2729,89 +2729,98 @@
         };
 
         function toggleBundleMode(itemId) {
-            const toggle = document.getElementById('toggle-bundle-' + itemId);
-            const isChecked = toggle ? toggle.checked : false;
-            const regularBody = document.getElementById('regular-body-' + itemId);
-            const bundleBody = document.getElementById('bundle-body-' + itemId);
+            try {
+                const toggle = document.getElementById('toggle-bundle-' + itemId);
+                const isChecked = toggle ? toggle.checked : false;
+                const regularBody = document.getElementById('regular-body-' + itemId);
+                const bundleBody = document.getElementById('bundle-body-' + itemId);
 
-            if (isChecked) {
-                if (regularBody) regularBody.style.display = 'none';
-                if (bundleBody) bundleBody.style.display = 'block';
+                if (isChecked) {
+                    if (regularBody) regularBody.style.display = 'none';
+                    if (bundleBody) bundleBody.style.display = 'block';
 
-                // Sync current values from regular inputs to bundle header inputs
-                const regName = document.querySelector('input[name="items[' + itemId + '][product_name]"]')?.value;
-                const regQty = document.getElementById('qty-' + itemId)?.value;
-                const regUnit = document.querySelector('input[name="items[' + itemId + '][unit]"]')?.value;
-                const regDesc = document.querySelector('textarea[name="items[' + itemId + '][description]"]')?.value;
+                    // Sync current values from regular inputs to bundle header inputs
+                    const regName = document.querySelector('input[name="items[' + itemId + '][product_name]"]')?.value;
+                    const regQty = document.getElementById('qty-' + itemId)?.value;
+                    const regUnit = document.querySelector('input[name="items[' + itemId + '][unit]"]')?.value;
+                    const regDesc = document.querySelector('textarea[name="items[' + itemId + '][description]"]')?.value;
 
-                const bundleNameInput = document.getElementById('bundle-product-name-' + itemId);
-                if (bundleNameInput && regName) bundleNameInput.value = regName;
-                const bundleQtyInput = document.getElementById('bundle-qty-' + itemId);
-                if (bundleQtyInput && regQty) bundleQtyInput.value = regQty;
-                const bundleUnitInput = document.getElementById('bundle-unit-' + itemId);
-                if (bundleUnitInput && regUnit) bundleUnitInput.value = regUnit;
-                const bundleDescInput = document.getElementById('bundle-description-' + itemId);
-                if (bundleDescInput && regDesc) bundleDescInput.value = regDesc;
+                    const bundleNameInput = document.getElementById('bundle-product-name-' + itemId);
+                    if (bundleNameInput && regName) bundleNameInput.value = regName;
+                    const bundleQtyInput = document.getElementById('bundle-qty-' + itemId);
+                    if (bundleQtyInput && regQty) bundleQtyInput.value = regQty;
+                    const bundleUnitInput = document.getElementById('bundle-unit-' + itemId);
+                    if (bundleUnitInput && regUnit) bundleUnitInput.value = regUnit;
+                    const bundleDescInput = document.getElementById('bundle-description-' + itemId);
+                    if (bundleDescInput && regDesc) bundleDescInput.value = regDesc;
 
-                // Check if table is empty, if empty apply default 'bisnis_i5'
-                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
-                if (tbody && tbody.children.length === 0) {
-                    applyPcTemplate(itemId, 'bisnis_i5');
+                    // Check if table is empty or has no component rows, if empty apply default 'bisnis_i5'
+                    const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                    const hasRows = tbody && tbody.querySelectorAll('tr').length > 0;
+                    if (!hasRows) {
+                        applyPcTemplate(itemId, 'bisnis_i5');
+                    } else {
+                        calculateBundle(itemId);
+                    }
                 } else {
-                    calculateBundle(itemId);
+                    if (confirm('Nonaktifkan Mode PC Rakitan? Komponen rincian akan diabaikan dan kembali ke perhitungan item biasa.')) {
+                        if (regularBody) regularBody.style.display = 'grid';
+                        if (bundleBody) bundleBody.style.display = 'none';
+                        calculateRow(itemId);
+                    } else {
+                        if (toggle) toggle.checked = true;
+                    }
                 }
-            } else {
-                if (confirm('Nonaktifkan Mode PC Rakitan? Komponen rincian akan diabaikan dan kembali ke perhitungan item biasa.')) {
-                    if (regularBody) regularBody.style.display = 'grid';
-                    if (bundleBody) bundleBody.style.display = 'none';
-                    calculateRow(itemId);
-                } else {
-                    if (toggle) toggle.checked = true;
-                }
+            } catch (err) {
+                console.error('Error saat toggleBundleMode untuk item ' + itemId + ':', err);
             }
         }
 
         function applyPcTemplate(itemId, templateKey) {
-            const template = PC_TEMPLATES[templateKey];
-            if (!template) return;
+            try {
+                const template = PC_TEMPLATES[templateKey];
+                if (!template) return;
 
-            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
-            if (!tbody) return;
+                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                if (!tbody) return;
 
-            tbody.innerHTML = '';
+                tbody.innerHTML = '';
 
-            // Set delivery cost
-            const deliveryCostInput = document.getElementById('bundle-delivery-cost-' + itemId);
-            if (deliveryCostInput) {
-                deliveryCostInput.value = formatRupiah(template.delivery_cost);
-            }
+                // Set delivery cost
+                const deliveryCostInput = document.getElementById('bundle-delivery-cost-' + itemId);
+                if (deliveryCostInput) {
+                    deliveryCostInput.value = formatRupiah(template.delivery_cost);
+                }
 
-            // Set package title
-            const nameInput = document.getElementById('bundle-product-name-' + itemId);
-            if (nameInput) {
-                nameInput.value = template.name;
-                syncBundleItemName(itemId, template.name);
-            }
+                // Set package title
+                const nameInput = document.getElementById('bundle-product-name-' + itemId);
+                if (nameInput) {
+                    nameInput.value = template.name;
+                    syncBundleItemName(itemId, template.name);
+                }
 
-            template.components.forEach((comp, idx) => {
-                const delivery = (idx === 0) ? template.delivery_cost : 0;
-                addPcComponentRow(itemId, {
-                    category: comp.category,
-                    name: comp.name,
-                    inc_ppn: comp.inc_ppn,
-                    is_inc: comp.is_inc,
-                    ongkir: comp.ongkir,
-                    biaya_kirim: delivery,
-                    margin: comp.margin,
-                    ceiling: comp.ceiling,
-                    qty: comp.qty || 1,
-                    unit: comp.unit || 'Unit',
-                    vendor: comp.vendor || ''
+                template.components.forEach((comp, idx) => {
+                    const delivery = (idx === 0) ? template.delivery_cost : 0;
+                    addPcComponentRow(itemId, {
+                        category: comp.category,
+                        name: comp.name,
+                        inc_ppn: comp.inc_ppn,
+                        is_inc: comp.is_inc,
+                        ongkir: comp.ongkir,
+                        biaya_kirim: delivery,
+                        margin: comp.margin,
+                        ceiling: comp.ceiling,
+                        qty: comp.qty || 1,
+                        unit: comp.unit || 'Unit',
+                        vendor: comp.vendor || ''
+                    });
                 });
-            });
 
-            calculateBundle(itemId);
-            syncPcSpecsToDescription(itemId);
+                calculateBundle(itemId);
+                syncPcSpecsToDescription(itemId);
+            } catch (err) {
+                console.error('Error saat applyPcTemplate untuk item ' + itemId + ':', err);
+            }
         }
 
         function addPcComponentRow(itemId, data = {}) {
@@ -2992,134 +3001,138 @@
         }
 
         function calculateBundle(itemId) {
-            const tbody = document.getElementById('bundle-components-tbody-' + itemId);
-            if (!tbody) return;
+            try {
+                const tbody = document.getElementById('bundle-components-tbody-' + itemId);
+                if (!tbody) return;
 
-            const parentQty = parseFloat(document.getElementById('bundle-qty-' + itemId)?.value || document.getElementById('qty-' + itemId)?.value || '1') || 1;
+                const parentQty = parseFloat(document.getElementById('bundle-qty-' + itemId)?.value || document.getElementById('qty-' + itemId)?.value || '1') || 1;
 
-            let totalCost = 0;
-            let totalSelling = 0;
+                let totalCost = 0;
+                let totalSelling = 0;
 
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach((row, idx) => {
-                const hppRaw = parseRupiah(row.querySelector('.comp-hpp-raw')?.value || '0');
-                const ongkir = parseRupiah(row.querySelector('.comp-ongkir-input')?.value || '0');
-                const biayaKirim = parseRupiah(row.querySelector('.comp-biaya-kirim-input')?.value || '0');
-                const baseCost = hppRaw + ongkir + biayaKirim;
+                const rows = tbody.querySelectorAll('tr');
+                rows.forEach((row, idx) => {
+                    const hppRaw = parseRupiah(row.querySelector('.comp-hpp-raw')?.value || '0');
+                    const ongkir = parseRupiah(row.querySelector('.comp-ongkir-input')?.value || '0');
+                    const biayaKirim = parseRupiah(row.querySelector('.comp-biaya-kirim-input')?.value || '0');
+                    const baseCost = hppRaw + ongkir + biayaKirim;
 
-                const marginPct = parseFloat(row.querySelector('.comp-margin-input')?.value || '0') || 0;
-                const ceiling = parseRupiah(row.querySelector('.comp-ceiling-input')?.value || '50000') || 1;
-                const qty = parseFloat(row.querySelector('.comp-qty-input')?.value || '1') || 1;
+                    const marginPct = parseFloat(row.querySelector('.comp-margin-input')?.value || '0') || 0;
+                    const ceiling = parseRupiah(row.querySelector('.comp-ceiling-input')?.value || '50000') || 1;
+                    const qty = parseFloat(row.querySelector('.comp-qty-input')?.value || '1') || 1;
 
-                // Formula identik Excel: CEILING((BaseCost) * (1 + Margin/100), Ceiling)
-                const priceBeforeCeil = baseCost * (1 + marginPct / 100);
-                const sellingUnit = Math.ceil(priceBeforeCeil / ceiling) * ceiling;
-                const partSellingTotal = sellingUnit * qty;
-                const partModalTotal = baseCost * qty;
+                    // Formula identik Excel: CEILING((BaseCost) * (1 + Margin/100), Ceiling)
+                    const priceBeforeCeil = baseCost * (1 + marginPct / 100);
+                    const sellingUnit = Math.ceil(priceBeforeCeil / ceiling) * ceiling;
+                    const partSellingTotal = sellingUnit * qty;
+                    const partModalTotal = baseCost * qty;
 
-                // Visual Helper: Kebutuhan Belanja Pengadaan Riil jika Qty PC > 1
+                    // Visual Helper: Kebutuhan Belanja Pengadaan Riil jika Qty PC > 1
 
-                const procureBadge = row.querySelector('.comp-procurement-badge');
+                    const procureBadge = row.querySelector('.comp-procurement-badge');
 
-                if (procureBadge) {
+                    if (procureBadge) {
 
-                    if (parentQty > 1) {
+                        if (parentQty > 1) {
 
-                        const totalProcure = qty * parentQty;
+                            const totalProcure = qty * parentQty;
 
-                        procureBadge.innerHTML = `<span class="text-indigo-900 font-extrabold">📦 ${totalProcure} Pcs</span><span class="block text-[9px] text-indigo-600 font-normal">(${qty} &times; ${parentQty} PC)</span>`;
+                            procureBadge.innerHTML = `<span class="text-indigo-900 font-extrabold">📦 ${totalProcure} Pcs</span><span class="block text-[9px] text-indigo-600 font-normal">(${qty} &times; ${parentQty} PC)</span>`;
 
-                        procureBadge.style.display = 'block';
+                            procureBadge.style.display = 'block';
 
-                    } else {
+                        } else {
 
-                        procureBadge.style.display = 'none';
+                            procureBadge.style.display = 'none';
 
-                        procureBadge.innerHTML = '';
+                            procureBadge.innerHTML = '';
+
+                        }
 
                     }
 
-                }
 
 
-
-                // Transparansi Lapisan 1: Update display baris komponen jika Qty > 1
-                const compSellingDisp = row.querySelector('.comp-selling-display');
-                if (compSellingDisp) {
-                    if (qty > 1) {
-                        compSellingDisp.innerHTML = `<span>Rp ${formatRupiah(partSellingTotal)}</span><span class="block text-[10px] text-indigo-600 font-normal">@ Rp ${formatRupiah(sellingUnit)} &times; ${qty}</span>`;
-                    } else {
-                        compSellingDisp.innerText = 'Rp ' + formatRupiah(sellingUnit);
+                    // Transparansi Lapisan 1: Update display baris komponen jika Qty > 1
+                    const compSellingDisp = row.querySelector('.comp-selling-display');
+                    if (compSellingDisp) {
+                        if (qty > 1) {
+                            compSellingDisp.innerHTML = `<span>Rp ${formatRupiah(partSellingTotal)}</span><span class="block text-[10px] text-indigo-600 font-normal">@ Rp ${formatRupiah(sellingUnit)} &times; ${qty}</span>`;
+                        } else {
+                            compSellingDisp.innerText = 'Rp ' + formatRupiah(sellingUnit);
+                        }
                     }
-                }
 
-                const compHppDisp = row.querySelector('.comp-hpp-display');
-                if (compHppDisp) {
-                    if (qty > 1) {
-                        compHppDisp.innerHTML = `<span>Rp ${formatRupiah(partModalTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(baseCost)} &times; ${qty}</span>`;
-                    } else {
-                        compHppDisp.innerText = 'Rp ' + formatRupiah(baseCost);
+                    const compHppDisp = row.querySelector('.comp-hpp-display');
+                    if (compHppDisp) {
+                        if (qty > 1) {
+                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(partModalTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(baseCost)} &times; ${qty}</span>`;
+                        } else {
+                            compHppDisp.innerText = 'Rp ' + formatRupiah(baseCost);
+                        }
                     }
-                }
 
-                totalCost += baseCost * qty;
-                totalSelling += sellingUnit * qty;
-            });
+                    totalCost += baseCost * qty;
+                    totalSelling += sellingUnit * qty;
+                });
 
-            const totalProfit = totalSelling - totalCost;
+                const totalProfit = totalSelling - totalCost;
 
-            // Transparansi Lapisan 2: Rollup Footer (Per 1 Unit PC)
-            const modalEl = document.getElementById('bundle-rollup-modal-' + itemId);
-            if (modalEl) modalEl.innerText = 'Rp ' + formatRupiah(totalCost);
+                // Transparansi Lapisan 2: Rollup Footer (Per 1 Unit PC)
+                const modalEl = document.getElementById('bundle-rollup-modal-' + itemId);
+                if (modalEl) modalEl.innerText = 'Rp ' + formatRupiah(totalCost);
 
-            const sellEl = document.getElementById('bundle-rollup-selling-' + itemId);
-            if (sellEl) sellEl.innerText = 'Rp ' + formatRupiah(totalSelling);
+                const sellEl = document.getElementById('bundle-rollup-selling-' + itemId);
+                if (sellEl) sellEl.innerText = 'Rp ' + formatRupiah(totalSelling);
 
-            const profitEl = document.getElementById('bundle-rollup-profit-' + itemId);
-            if (profitEl) profitEl.innerText = 'Rp ' + formatRupiah(totalProfit);
-
-
-
-            // Transparansi Lapisan 2 (Subtotal Pesanan Paket PC x Qty Unit PC)
-            const grandBundleModal = totalCost * parentQty;
-            const grandBundleSelling = totalSelling * parentQty;
-            const grandBundleProfit = totalProfit * parentQty;
-
-            const qtyLabelEl = document.getElementById('bundle-qty-label-' + itemId);
-            if (qtyLabelEl) qtyLabelEl.innerText = parentQty;
-
-            const grandModalEl = document.getElementById('bundle-rollup-grand-modal-' + itemId);
-            if (grandModalEl) grandModalEl.innerText = 'Rp ' + formatRupiah(grandBundleModal);
-
-            const grandSellEl = document.getElementById('bundle-rollup-grand-selling-' + itemId);
-            if (grandSellEl) grandSellEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
-
-            const grandProfitEl = document.getElementById('bundle-rollup-grand-profit-' + itemId);
-            if (grandProfitEl) grandProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
+                const profitEl = document.getElementById('bundle-rollup-profit-' + itemId);
+                if (profitEl) profitEl.innerText = 'Rp ' + formatRupiah(totalProfit);
 
 
 
-            // Transparansi Lapisan 3: Header Card Badge Total
-            const badgeTotalEl = document.getElementById('badge-total-' + itemId);
-            if (badgeTotalEl) badgeTotalEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
+                // Transparansi Lapisan 2 (Subtotal Pesanan Paket PC x Qty Unit PC)
+                const grandBundleModal = totalCost * parentQty;
+                const grandBundleSelling = totalSelling * parentQty;
+                const grandBundleProfit = totalProfit * parentQty;
 
-            const badgeQtyEl = document.getElementById('badge-qty-' + itemId);
-            if (badgeQtyEl) badgeQtyEl.innerText = parentQty;
+                const qtyLabelEl = document.getElementById('bundle-qty-label-' + itemId);
+                if (qtyLabelEl) qtyLabelEl.innerText = parentQty;
 
-            // Sync with parent regular fields for form submit & grand totals
-            const parentHppInput = document.getElementById('hpp-' + itemId);
-            if (parentHppInput) parentHppInput.value = formatRupiah(totalCost);
+                const grandModalEl = document.getElementById('bundle-rollup-grand-modal-' + itemId);
+                if (grandModalEl) grandModalEl.innerText = 'Rp ' + formatRupiah(grandBundleModal);
 
-            const parentPriceEl = document.getElementById('final-price-' + itemId);
-            if (parentPriceEl) parentPriceEl.innerText = formatRupiah(totalSelling);
+                const grandSellEl = document.getElementById('bundle-rollup-grand-selling-' + itemId);
+                if (grandSellEl) grandSellEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
 
-            const finalTotalEl = document.getElementById('final-total-' + itemId);
-            if (finalTotalEl) finalTotalEl.innerText = formatRupiah(grandBundleSelling);
+                const grandProfitEl = document.getElementById('bundle-rollup-grand-profit-' + itemId);
+                if (grandProfitEl) grandProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
 
-            const finalProfitEl = document.getElementById('final-profit-row-' + itemId);
-            if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
 
-            updateGrandTotals();
+
+                // Transparansi Lapisan 3: Header Card Badge Total
+                const badgeTotalEl = document.getElementById('badge-total-' + itemId);
+                if (badgeTotalEl) badgeTotalEl.innerText = 'Rp ' + formatRupiah(grandBundleSelling);
+
+                const badgeQtyEl = document.getElementById('badge-qty-' + itemId);
+                if (badgeQtyEl) badgeQtyEl.innerText = parentQty;
+
+                // Sync with parent regular fields for form submit & grand totals
+                const parentHppInput = document.getElementById('hpp-' + itemId);
+                if (parentHppInput) parentHppInput.value = formatRupiah(totalCost);
+
+                const parentPriceEl = document.getElementById('final-price-' + itemId);
+                if (parentPriceEl) parentPriceEl.innerText = formatRupiah(totalSelling);
+
+                const finalTotalEl = document.getElementById('final-total-' + itemId);
+                if (finalTotalEl) finalTotalEl.innerText = formatRupiah(grandBundleSelling);
+
+                const finalProfitEl = document.getElementById('final-profit-row-' + itemId);
+                if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
+
+                updateGrandTotals();
+            } catch (err) {
+                console.error('Error saat calculateBundle untuk item ' + itemId + ':', err);
+            }
         }
 
         function syncPcSpecsToDescription(itemId) {
