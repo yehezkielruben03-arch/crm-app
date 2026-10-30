@@ -2190,6 +2190,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
                 </div>
                 ${renderBundleBodyTemplate(tempId, initName, initQty, initUnit, initDesc, 107100)}
             </div>
