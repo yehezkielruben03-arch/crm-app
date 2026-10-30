@@ -788,6 +788,14 @@ class RfqController extends Controller
                         $cleanedItems[$key][$field] = $cleanedVal !== '' ? $cleanedVal : 0;
                     }
                 }
+                if (isset($item['link_referensi']) && is_string($item['link_referensi'])) {
+                    $link = trim($item['link_referensi']);
+                    if ($link !== '' && !preg_match('~^https?://~i', $link)) {
+                        $cleanedItems[$key]['link_referensi'] = 'https://' . $link;
+                    } elseif ($link === '') {
+                        $cleanedItems[$key]['link_referensi'] = null;
+                    }
+                }
                 if (isset($item['margin_value']) && is_string($item['margin_value'])) {
                     $mType = $item['margin_type'] ?? 'percentage';
                     if ($mType === 'nominal') {
@@ -869,7 +877,7 @@ class RfqController extends Controller
             'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
             'items.*.components.*.description'   => 'nullable|string',
             'items.*.components.*.link_referensi'=> 'nullable|string|max:500',
-            'items.*.link_referensi'             => 'nullable|url|max:500',
+            'items.*.link_referensi'             => 'nullable|string|max:500',
         ]);
 
         $oldStatus = $rfq->status;
@@ -974,7 +982,7 @@ class RfqController extends Controller
                 $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
                 $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
 
-                $item->link_referensi  = $data['link_referensi'] ?? $item->link_referensi;
+                $item->link_referensi  = !empty($data['link_referensi']) ? $data['link_referensi'] : null;
 
                 $item->price_after_margin = $item->calculatePriceAfterMargin();
                 $item->save();
