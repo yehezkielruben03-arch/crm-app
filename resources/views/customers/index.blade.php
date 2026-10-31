@@ -84,7 +84,7 @@
             <span class="text-xs font-semibold px-2 py-0.5 rounded-lg bg-blue-100/70 text-blue-800">{{ session('filter_label') }}</span>
             <span class="text-xs font-bold" style="color: var(--text-primary);">&bull; Total: {{ $customers->total() }} Customer Terdaftar</span>
         </div>
-        <a href="{{ route('customers.index', array_merge(request()->except(['page']), ['reset_date' => 1])) }}" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1">
+        <a href="{{ route('customers.index', array_merge(request()->except(['page', 'preset', 'start_date', 'end_date', 'reset_date']), ['reset_date' => 1])) }}" class="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1">
             <span>✖ Tampilkan Semua Customer</span>
         </a>
     </div>

@@ -128,11 +128,11 @@
             @endphp
 
             <!-- Interactive Global Date Range Filter Popover -->
-            <div class="relative hidden sm:block" x-data="{
+            <div class="relative" x-data="{
                 open: false,
-                startDate: '{{ $filterStart }}',
-                endDate: '{{ $filterEnd }}',
-                preset: '{{ $activePreset }}',
+                startDate: {{ json_encode($filterStart) }},
+                endDate: {{ json_encode($filterEnd) }},
+                preset: {{ json_encode($activePreset) }},
                 applyPreset(p) {
                     const url = new URL(window.location.href);
                     url.searchParams.set('preset', p);
@@ -178,11 +178,11 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
-                    <span id="currentDate" class="truncate max-w-[210px]">{{ $activeLabel }}</span>
+                    <span id="currentDate" class="hidden md:inline truncate max-w-[210px]">{{ $activeLabel }}</span>
                     @if($isFiltered)
                         <span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 animate-pulse" title="Filter tanggal sedang aktif"></span>
                     @endif
-                    <svg class="w-3.5 h-3.5 transition-transform duration-200 ml-0.5"
+                    <svg class="w-3.5 h-3.5 transition-transform duration-200 ml-0.5 hidden sm:block"
                          :class="open ? 'rotate-180' : ''"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -199,7 +199,7 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                     x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                    class="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl z-50 p-4 border"
+                    class="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-2xl shadow-2xl z-50 p-4 border"
                     style="background: #ffffff; border-color: var(--border-color); box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);"
                 >
                     <!-- Header Popover -->

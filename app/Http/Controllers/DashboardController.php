@@ -527,7 +527,7 @@ class DashboardController extends Controller
         });
 
         // Conversion rate pada periode terpilih
-        $conversionRatePeriod = $periodNewRFQ > 0 ? round(($goalCountThisMonth / $periodNewRFQ) * 100, 1) : 0;
+        $conversionRatePeriod = $periodNewRFQ > 0 ? min(round(($goalCountThisMonth / $periodNewRFQ) * 100, 1), 100) : 0;
         $conversionRateAllTime = Cache::remember('dash:admin:conversion', 120, function () {
             $total = Rfq::whereNotIn('status', [Rfq::STATUS_CANCELLED])->count();
             $goal = Rfq::where('status', Rfq::STATUS_GOAL)->count();

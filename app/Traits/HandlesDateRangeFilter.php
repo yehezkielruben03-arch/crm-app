@@ -54,7 +54,23 @@ trait HandlesDateRangeFilter
             }
         }
 
-        if ($preset && in_array($preset, ['today', 'this_workweek', 'this_week', 'this_month', 'last_month'])) {
+        $isValidDate = function ($dateStr): bool {
+            if (!is_string($dateStr) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
+                return false;
+            }
+            $parts = explode('-', $dateStr);
+            $year = (int) $parts[0];
+            $month = (int) $parts[1];
+            $day = (int) $parts[2];
+
+            if ($year < 2020 || $year > 2035) {
+                return false;
+            }
+
+            return checkdate($month, $day, $year);
+        };
+
+        if ($preset && in_array($preset, ['today', 'this_workweek', 'this_week', 'this_month', 'last_month'], true)) {
             switch ($preset) {
                 case 'today':
                     $startDate = $now->copy()->startOfDay();
@@ -90,19 +106,10 @@ trait HandlesDateRangeFilter
                     $preset = 'this_month';
                     break;
             }
-        } else {
-            // Custom Range
-            try {
-                $startDate = $rawStart ? Carbon::parse($rawStart)->startOfDay() : $now->copy()->startOfMonth()->startOfDay();
-            } catch (\Exception $e) {
-                $startDate = $now->copy()->startOfMonth()->startOfDay();
-            }
-
-            try {
-                $endDate = $rawEnd ? Carbon::parse($rawEnd)->endOfDay() : $now->copy()->endOfMonth()->endOfDay();
-            } catch (\Exception $e) {
-                $endDate = $now->copy()->endOfMonth()->endOfDay();
-            }
+        } elseif ($isValidDate($rawStart) && $isValidDate($rawEnd)) {
+            // Valid Custom Range
+            $startDate = Carbon::createFromFormat('Y-m-d', $rawStart)->startOfDay();
+            $endDate = Carbon::createFromFormat('Y-m-d', $rawEnd)->endOfDay();
 
             if ($startDate->gt($endDate)) {
                 $temp = $startDate;
@@ -112,6 +119,12 @@ trait HandlesDateRangeFilter
 
             $preset = 'custom';
             $label = $startDate->format('d M') . ' – ' . $endDate->translatedFormat('d M Y');
+        } else {
+            // Fallback aman jika preset tidak valid atau tanggal kustom tidak sesuai format
+            $startDate = $now->copy()->startOfMonth()->startOfDay();
+            $endDate = $now->copy()->endOfMonth()->endOfDay();
+            $label = $startDate->format('M 1') . ' – ' . $endDate->translatedFormat('M t, Y');
+            $preset = 'this_month';
         }
 
         // Simpan ke session agar konsisten antar navigasi halaman
