@@ -655,6 +655,7 @@ class DashboardController extends Controller
             'highValueOpportunities' => $highValueOpportunities,
             'nextBestActions' => $nextBestActions,
             'isDashboardSales'   => false,
+            'dateFilter'         => $dateFilter,
         ]);
     }
 }

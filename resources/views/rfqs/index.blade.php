@@ -37,14 +37,34 @@
 
     @if(session('filter_preset') && session('filter_preset') !== 'this_month')
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border bg-white shadow-xs transition-all animate-in" style="border-color: rgba(37,99,235,0.25);">
-        <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex flex-wrap items-center gap-3">
             <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
                 <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
                 <span>Periode: {{ session('filter_label') }}</span>
             </div>
-            <span class="text-xs text-slate-500 font-medium">Menampilkan <strong class="text-slate-900 font-semibold">{{ $rfqs->total() }}</strong> penawaran pada rentang waktu ini</span>
+
+            <!-- Quick Status Filters for Date Range -->
+            <div class="inline-flex p-0.5 rounded-lg bg-slate-100 border border-slate-200/60 text-xs">
+                <a href="{{ route('rfq.index', request()->except(['page', 'status'])) }}"
+                   class="px-2.5 py-1 rounded-md font-semibold transition-all {{ !request('status') ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900' }}">
+                    Semua Penawaran
+                </a>
+                <a href="{{ route('rfq.index', array_merge(request()->except('page'), ['status' => 'GOAL'])) }}"
+                   class="px-2.5 py-1 rounded-md font-semibold transition-all flex items-center gap-1 {{ request('status') === 'GOAL' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-emerald-700' }}">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span>Khusus GOAL</span>
+                </a>
+            </div>
+
+            <span class="text-xs text-slate-500 font-medium">
+                @if(request('status') === 'GOAL')
+                    Menampilkan <strong class="text-emerald-700 font-bold">{{ $rfqs->total() }}</strong> penawaran yang berhasil <strong>GOAL</strong> pada rentang ini
+                @else
+                    Menampilkan <strong class="text-slate-900 font-semibold">{{ $rfqs->total() }}</strong> penawaran dibuat pada rentang ini
+                @endif
+            </span>
         </div>
         <a href="{{ route('rfq.index', array_merge(request()->except(['page', 'preset', 'start_date', 'end_date', 'reset_date']), ['reset_date' => 1])) }}"
            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 rounded-lg transition-colors"
