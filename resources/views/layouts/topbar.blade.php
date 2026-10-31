@@ -199,56 +199,73 @@
                     x-transition:leave="transition ease-in duration-100"
                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
                     x-transition:leave-end="opacity-0 translate-y-1 scale-95"
-                    class="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-2xl shadow-2xl z-50 p-4 border"
-                    style="background: #ffffff; border-color: var(--border-color); box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);"
+                    class="absolute right-0 mt-2 w-84 max-w-[92vw] rounded-2xl shadow-xl z-50 p-4 border bg-white"
+                    style="border-color: var(--border-color); box-shadow: 0 15px 35px -5px rgba(15,23,42,0.12), 0 5px 15px -3px rgba(15,23,42,0.06);"
                 >
                     <!-- Header Popover -->
                     <div class="flex items-center justify-between pb-3 mb-3 border-b" style="border-color: var(--border-color);">
                         <div class="flex items-center gap-2">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                            </svg>
-                            <span class="text-xs font-bold text-gray-800 uppercase tracking-wider">Filter Periode</span>
+                            <span class="w-2 h-2 rounded-full" style="background: var(--accent-blue);"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-primary); font-family: 'Space Grotesk', sans-serif;">Rentang Periode</span>
                         </div>
                         @if($isFiltered)
                             <button
                                 type="button"
                                 @click="resetFilter()"
-                                class="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1"
+                                class="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-rose-600 transition-colors"
+                                title="Reset filter ke bulan berjalan"
                             >
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
                                 <span>Reset Default</span>
                             </button>
                         @endif
                     </div>
 
                     <!-- Presets 1-Klik -->
-                    <div class="space-y-1.5 mb-3">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Shortcut Cepat</p>
+                    <div class="space-y-1 mb-3.5">
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5 px-1">Preset Cepat</p>
                         
                         <!-- Senin - Jumat (Requested!) -->
                         <button
                             type="button"
                             @click="applyPreset('this_workweek')"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
-                            :class="preset === 'this_workweek' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border"
+                            :class="preset === 'this_workweek' ? 'bg-blue-50 text-blue-700 font-semibold border-blue-200 shadow-xs' : 'text-slate-700 hover:bg-slate-50 border-transparent'"
                         >
-                            <div class="flex items-center gap-2">
-                                <span class="text-emerald-500 font-bold">⚡</span>
+                            <div class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
                                 <span>Minggu Ini (Senin – Jumat)</span>
                             </div>
-                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">Hari Kerja</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-md font-medium" :class="preset === 'this_workweek' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'">Hari Kerja</span>
+                                <template x-if="preset === 'this_workweek'">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </template>
+                            </div>
                         </button>
 
                         <!-- Minggu Ini (Full: Sen - Min) -->
                         <button
                             type="button"
                             @click="applyPreset('this_week')"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
-                            :class="preset === 'this_week' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border"
+                            :class="preset === 'this_week' ? 'bg-blue-50 text-blue-700 font-semibold border-blue-200 shadow-xs' : 'text-slate-700 hover:bg-slate-50 border-transparent'"
                         >
-                            <div class="flex items-center gap-2">
-                                <span class="text-blue-500">📅</span>
+                            <div class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                </svg>
                                 <span>Minggu Ini (Senin – Minggu)</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] text-slate-400">7 hari</span>
+                                <template x-if="preset === 'this_week'">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </template>
                             </div>
                         </button>
 
@@ -256,70 +273,92 @@
                         <button
                             type="button"
                             @click="applyPreset('this_month')"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
-                            :class="preset === 'this_month' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border"
+                            :class="preset === 'this_month' ? 'bg-blue-50 text-blue-700 font-semibold border-blue-200 shadow-xs' : 'text-slate-700 hover:bg-slate-50 border-transparent'"
                         >
-                            <div class="flex items-center gap-2">
-                                <span class="text-indigo-500">📆</span>
+                            <div class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-indigo-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
+                                </svg>
                                 <span>Bulan Ini (Default)</span>
                             </div>
-                            <span class="text-[10px] text-gray-400">{{ now()->format('M Y') }}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] text-slate-400">{{ now()->format('M Y') }}</span>
+                                <template x-if="preset === 'this_month'">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </template>
+                            </div>
                         </button>
 
                         <!-- Bulan Lalu -->
                         <button
                             type="button"
                             @click="applyPreset('last_month')"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
-                            :class="preset === 'last_month' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border"
+                            :class="preset === 'last_month' ? 'bg-blue-50 text-blue-700 font-semibold border-blue-200 shadow-xs' : 'text-slate-700 hover:bg-slate-50 border-transparent'"
                         >
-                            <div class="flex items-center gap-2">
-                                <span class="text-amber-500">⏪</span>
+                            <div class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
                                 <span>Bulan Lalu</span>
                             </div>
-                            <span class="text-[10px] text-gray-400">{{ now()->subMonthNoOverflow()->format('M Y') }}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] text-slate-400">{{ now()->subMonthNoOverflow()->format('M Y') }}</span>
+                                <template x-if="preset === 'last_month'">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </template>
+                            </div>
                         </button>
 
                         <!-- Hari Ini -->
                         <button
                             type="button"
                             @click="applyPreset('today')"
-                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
-                            :class="preset === 'today' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs transition-all border"
+                            :class="preset === 'today' ? 'bg-blue-50 text-blue-700 font-semibold border-blue-200 shadow-xs' : 'text-slate-700 hover:bg-slate-50 border-transparent'"
                         >
-                            <div class="flex items-center gap-2">
-                                <span class="text-teal-500">📍</span>
+                            <div class="flex items-center gap-2.5">
+                                <svg class="w-4 h-4 text-cyan-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
                                 <span>Hari Ini</span>
                             </div>
-                            <span class="text-[10px] text-gray-400">{{ now()->format('d M') }}</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[10px] text-slate-400">{{ now()->format('d M') }}</span>
+                                <template x-if="preset === 'today'">
+                                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                </template>
+                            </div>
                         </button>
                     </div>
 
                     <!-- Kustom Tanggal -->
                     <div class="pt-3 border-t" style="border-color: var(--border-color);">
-                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Rentang Tanggal Kustom</p>
+                        <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2 px-1">Kustom Rentang Tanggal</p>
                         <div class="grid grid-cols-2 gap-2 mb-3">
                             <div>
-                                <label class="block text-[10px] text-gray-500 mb-1">Dari Tgl</label>
+                                <label class="block text-[10px] font-medium text-slate-500 mb-1">Dari Tanggal</label>
                                 <input
                                     type="date"
                                     x-model="startDate"
-                                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border bg-gray-50 text-gray-800 outline-none focus:ring-1 focus:ring-blue-500"
+                                    class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
                                 >
                             </div>
                             <div>
-                                <label class="block text-[10px] text-gray-500 mb-1">Sampai Tgl</label>
+                                <label class="block text-[10px] font-medium text-slate-500 mb-1">Sampai Tanggal</label>
                                 <input
                                     type="date"
                                     x-model="endDate"
-                                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border bg-gray-50 text-gray-800 outline-none focus:ring-1 focus:ring-blue-500"
+                                    class="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/70 text-slate-800 outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/15 transition-all"
                                 >
                             </div>
                         </div>
                         <button
                             type="button"
                             @click="applyCustom()"
-                            class="w-full py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                            class="w-full py-2 px-3 rounded-xl text-xs font-semibold text-white shadow-xs transition-all hover:opacity-95 active:scale-[0.99] flex items-center justify-center gap-1.5"
+                            style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);"
                         >
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
