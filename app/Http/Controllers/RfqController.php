@@ -8,6 +8,7 @@ use App\Models\Rfq;
 use App\Models\RfqItem;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Traits\HandlesDateRangeFilter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +16,10 @@ use Illuminate\Support\Facades\Storage;
 
 class RfqController extends Controller
 {
+    use HandlesDateRangeFilter;
     public function index(Request $request)
     {
+        $dateFilter = $this->resolveDateRange($request);
         $user = $this->authUser();
         $query = Rfq::with(['customer', 'sales', 'items']);
 
@@ -39,9 +42,17 @@ class RfqController extends Controller
             });
         }
 
+        if ($dateFilter['isFiltered']) {
+            if ($request->status === Rfq::STATUS_GOAL) {
+                $query->whereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+            } else {
+                $query->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+            }
+        }
+
         $rfqs = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
-        return view('rfqs.index', compact('rfqs'));
+        return view('rfqs.index', compact('rfqs', 'dateFilter'));
     }
 
     public function createProject()

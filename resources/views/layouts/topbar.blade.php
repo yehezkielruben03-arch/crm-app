@@ -119,17 +119,218 @@
                 </div>
             </div>
 
-            <!-- Date Range -->
-            <div class="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
-                 style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                </svg>
-                <span id="currentDate">{{ now()->format('M 1 – M t, Y') }}</span>
+            @php
+                $activePreset = session('filter_preset', 'this_month');
+                $activeLabel  = session('filter_label', now()->format('M 1 – M t, Y'));
+                $filterStart  = session('filter_start_date', now()->startOfMonth()->toDateString());
+                $filterEnd    = session('filter_end_date', now()->endOfMonth()->toDateString());
+                $isFiltered   = ($activePreset !== 'this_month');
+            @endphp
+
+            <!-- Interactive Global Date Range Filter Popover -->
+            <div class="relative hidden sm:block" x-data="{
+                open: false,
+                startDate: '{{ $filterStart }}',
+                endDate: '{{ $filterEnd }}',
+                preset: '{{ $activePreset }}',
+                applyPreset(p) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('preset', p);
+                    url.searchParams.delete('start_date');
+                    url.searchParams.delete('end_date');
+                    url.searchParams.delete('reset_date');
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                },
+                applyCustom() {
+                    if (!this.startDate || !this.endDate) return;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('start_date', this.startDate);
+                    url.searchParams.set('end_date', this.endDate);
+                    url.searchParams.delete('preset');
+                    url.searchParams.delete('reset_date');
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                },
+                resetFilter() {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('start_date');
+                    url.searchParams.delete('end_date');
+                    url.searchParams.delete('preset');
+                    url.searchParams.set('reset_date', '1');
+                    url.searchParams.delete('page');
+                    window.location.href = url.toString();
+                }
+            }" @click.outside="open = false">
+                <button
+                    type="button"
+                    @click="open = !open"
+                    class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 border shadow-sm group"
+                    :class="open ? 'ring-2 ring-blue-500/30' : ''"
+                    style="background: {{ $isFiltered ? 'rgba(37,99,235,0.08)' : 'var(--bg-secondary)' }}; 
+                           border-color: {{ $isFiltered ? 'rgba(37,99,235,0.35)' : 'var(--border-color)' }}; 
+                           color: {{ $isFiltered ? 'var(--accent-blue)' : 'var(--text-secondary)' }};"
+                    title="Klik untuk filter periode tanggal sistem"
+                >
+                    <svg class="w-4 h-4 flex-shrink-0 transition-colors"
+                         style="color: {{ $isFiltered ? 'var(--accent-blue)' : 'var(--text-muted)' }};"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span id="currentDate" class="truncate max-w-[210px]">{{ $activeLabel }}</span>
+                    @if($isFiltered)
+                        <span class="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 animate-pulse" title="Filter tanggal sedang aktif"></span>
+                    @endif
+                    <svg class="w-3.5 h-3.5 transition-transform duration-200 ml-0.5"
+                         :class="open ? 'rotate-180' : ''"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+
+                <!-- Popover Dropdown Panel -->
+                <div
+                    x-show="open"
+                    x-cloak
+                    x-transition:enter="transition ease-out duration-150"
+                    x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                    x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave="transition ease-in duration-100"
+                    x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                    x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                    class="absolute right-0 mt-2 w-80 rounded-2xl shadow-2xl z-50 p-4 border"
+                    style="background: #ffffff; border-color: var(--border-color); box-shadow: 0 15px 35px -5px rgba(0,0,0,0.15);"
+                >
+                    <!-- Header Popover -->
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b" style="border-color: var(--border-color);">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            <span class="text-xs font-bold text-gray-800 uppercase tracking-wider">Filter Periode</span>
+                        </div>
+                        @if($isFiltered)
+                            <button
+                                type="button"
+                                @click="resetFilter()"
+                                class="text-[11px] font-semibold text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1"
+                            >
+                                <span>Reset Default</span>
+                            </button>
+                        @endif
+                    </div>
+
+                    <!-- Presets 1-Klik -->
+                    <div class="space-y-1.5 mb-3">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Shortcut Cepat</p>
+                        
+                        <!-- Senin - Jumat (Requested!) -->
+                        <button
+                            type="button"
+                            @click="applyPreset('this_workweek')"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                            :class="preset === 'this_workweek' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-emerald-500 font-bold">⚡</span>
+                                <span>Minggu Ini (Senin – Jumat)</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 font-semibold">Hari Kerja</span>
+                        </button>
+
+                        <!-- Minggu Ini (Full: Sen - Min) -->
+                        <button
+                            type="button"
+                            @click="applyPreset('this_week')"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                            :class="preset === 'this_week' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-blue-500">📅</span>
+                                <span>Minggu Ini (Senin – Minggu)</span>
+                            </div>
+                        </button>
+
+                        <!-- Bulan Ini (Default) -->
+                        <button
+                            type="button"
+                            @click="applyPreset('this_month')"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                            :class="preset === 'this_month' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-indigo-500">📆</span>
+                                <span>Bulan Ini (Default)</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400">{{ now()->format('M Y') }}</span>
+                        </button>
+
+                        <!-- Bulan Lalu -->
+                        <button
+                            type="button"
+                            @click="applyPreset('last_month')"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                            :class="preset === 'last_month' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-amber-500">⏪</span>
+                                <span>Bulan Lalu</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400">{{ now()->subMonthNoOverflow()->format('M Y') }}</span>
+                        </button>
+
+                        <!-- Hari Ini -->
+                        <button
+                            type="button"
+                            @click="applyPreset('today')"
+                            class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-left transition-all"
+                            :class="preset === 'today' ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200' : 'text-gray-700 hover:bg-gray-50 border border-transparent'"
+                        >
+                            <div class="flex items-center gap-2">
+                                <span class="text-teal-500">📍</span>
+                                <span>Hari Ini</span>
+                            </div>
+                            <span class="text-[10px] text-gray-400">{{ now()->format('d M') }}</span>
+                        </button>
+                    </div>
+
+                    <!-- Kustom Tanggal -->
+                    <div class="pt-3 border-t" style="border-color: var(--border-color);">
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Rentang Tanggal Kustom</p>
+                        <div class="grid grid-cols-2 gap-2 mb-3">
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">Dari Tgl</label>
+                                <input
+                                    type="date"
+                                    x-model="startDate"
+                                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border bg-gray-50 text-gray-800 outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-gray-500 mb-1">Sampai Tgl</label>
+                                <input
+                                    type="date"
+                                    x-model="endDate"
+                                    class="w-full px-2.5 py-1.5 text-xs rounded-lg border bg-gray-50 text-gray-800 outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            @click="applyCustom()"
+                            class="w-full py-2 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span>Terapkan Rentang Kustom</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- User Profile Dropdown -->
+<!-- User Profile Dropdown -->
             <div class="relative ml-2" id="userDropdownContainer">
                 <button
                     class="flex items-center gap-3 p-1.5 pr-3 rounded-xl border border-transparent hover:bg-gray-100 transition-colors"

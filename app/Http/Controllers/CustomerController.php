@@ -7,11 +7,13 @@ use App\Models\User;
 use App\Exports\CustomerExport;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
+use App\Traits\HandlesDateRangeFilter;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class CustomerController extends Controller
 {
+    use HandlesDateRangeFilter;
     public function suggestions(Request $request)
     {
         $field = $request->query('field');
@@ -41,6 +43,7 @@ class CustomerController extends Controller
 
     public function index(Request $request)
     {
+        $dateFilter = $this->resolveDateRange($request);
         $user = $this->authUser();
         $isSales = $user->isSales();
 
@@ -81,13 +84,18 @@ class CustomerController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filter periode tanggal pendaftaran customer baru
+        if ($dateFilter['isFiltered']) {
+            $query->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+        }
+
         $customers = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
         $salesList = User::whereIn('role', ['Sales', 'Sales Marketing', 'Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
             ->where('status', 'Active')
             ->orderBy('name')
             ->get();
 
-        return view('customers.index', compact('customers', 'salesList', 'myCount', 'allCount', 'scope', 'isSales'));
+        return view('customers.index', compact('customers', 'salesList', 'myCount', 'allCount', 'scope', 'isSales', 'dateFilter'));
     }
 
     public function show(Customer $customer)

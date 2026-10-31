@@ -7,22 +7,27 @@ use App\Models\PurchaseOrder;
 use App\Models\Quotation;
 use App\Models\Rfq;
 use App\Models\User;
+use App\Traits\HandlesDateRangeFilter;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    use HandlesDateRangeFilter;
+    public function index(Request $request)
     {
+        $dateFilter = $this->resolveDateRange($request);
+
         /** @var User $user */
         $user = Auth::user();
 
         if ($user->isAdminOrAbove()) {
-            return $this->adminDashboard($user);
+            return $this->adminDashboard($user, $dateFilter);
         }
 
-        return $this->salesDashboard($user);
+        return $this->salesDashboard($user, $dateFilter);
     }
 
     private function rawMonth(string $column): \Illuminate\Contracts\Database\Query\Expression
@@ -39,8 +44,12 @@ class DashboardController extends Controller
             : DB::raw("YEAR({$column}) as year");
     }
 
-    private function salesDashboard(User $user)
+    private function salesDashboard(User $user, array $dateFilter = [])
     {
+        $startDate  = $dateFilter['startDate'] ?? now()->startOfMonth()->startOfDay();
+        $endDate    = $dateFilter['endDate'] ?? now()->endOfMonth()->endOfDay();
+        $isFiltered = $dateFilter['isFiltered'] ?? false;
+        $filterKey  = $startDate->format('Ymd') . '_' . $endDate->format('Ymd');
         $now    = now();
         $userId = $user->id;
 
@@ -126,12 +135,11 @@ class DashboardController extends Controller
         // Stats RFQ di-share dari $rfqStats
         $poStats = $rfqStats;
 
-        // Revenue bulan ini (cached 60s)
-        $revenueThisMonth = Cache::remember("dash:rev:{$userId}:{$now->format('Y-m')}", 60, function () use ($userId, $now) {
+        // Revenue pada periode terpilih (cached 60s)
+        $revenueThisMonth = Cache::remember("dash:rev:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
             return Rfq::where('sales_id', $userId)
                 ->where('status', Rfq::STATUS_GOAL)
-                ->whereMonth('rfq_date', $now->month)
-                ->whereYear('rfq_date', $now->year)
+                ->whereBetween('updated_at', [$startDate, $endDate])
                 ->with('items')
                 ->get()
                 ->sum(function($rfq) {
@@ -141,20 +149,18 @@ class DashboardController extends Controller
                 });
         });
 
-        // GOAL count this month
-        $goalCountThisMonth = Cache::remember("dash:goal_cnt:{$userId}:{$now->format('Y-m')}", 60, function () use ($userId, $now) {
+        // GOAL count pada periode terpilih
+        $goalCountThisMonth = Cache::remember("dash:goal_cnt:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
             return Rfq::where('sales_id', $userId)
                 ->where('status', Rfq::STATUS_GOAL)
-                ->whereMonth('rfq_date', $now->month)
-                ->whereYear('rfq_date', $now->year)
+                ->whereBetween('updated_at', [$startDate, $endDate])
                 ->count();
         });
 
-        // RFQ conversion and quotation pipeline metrics for Phase 2
-        $rfqMonthStats = Cache::remember("dash:stats:{$userId}:{$now->format('Y-m')}", 60, function () use ($userId, $now) {
+        // RFQ conversion and quotation pipeline metrics pada periode terpilih
+        $rfqMonthStats = Cache::remember("dash:stats:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
             return Rfq::where('sales_id', $userId)
-                ->whereMonth('rfq_date', $now->month)
-                ->whereYear('rfq_date', $now->year)
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw(
                     'COUNT(*) as total, ' .
                     'SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as goal_count, ' .
@@ -173,13 +179,14 @@ class DashboardController extends Controller
             ? round($revenueThisMonth / $goalCountThisMonth)
             : 0;
 
-        // Today's stats
-        $todayNewCustomers = Customer::where('sales_id', $userId)
-            ->whereDate('created_at', $now->today())
+        // Stats customer & RFQ pada periode terpilih
+        $periodNewCustomers = Customer::where('sales_id', $userId)
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->count();
-        $todayNewRFQ = Rfq::where('sales_id', $userId)
-            ->whereDate('created_at', $now->today())
-            ->count();
+        $periodNewRFQ = $rfqCreatedThisMonth;
+
+        $todayNewCustomers = $periodNewCustomers;
+        $todayNewRFQ = $periodNewRFQ;
 
         // RFQ pipeline breakdown
         $rfqPipeline = Cache::remember("dash:pipeline:{$userId}", 60, function () use ($userId) {
@@ -295,6 +302,9 @@ class DashboardController extends Controller
             'conversionRateThisMonth'=> $conversionRateThisMonth,
             'avgGoalValueThisMonth'  => $avgGoalValueThisMonth,
             'isDashboardSales'       => true,
+            'dateFilter'             => $dateFilter,
+            'periodNewCustomers'     => $periodNewCustomers,
+            'periodNewRFQ'           => $periodNewRFQ,
         ]);
     }
 
@@ -411,8 +421,12 @@ class DashboardController extends Controller
         return array_slice($actions, 0, 3);
     }
 
-    private function adminDashboard(User $user)
+    private function adminDashboard(User $user, array $dateFilter = [])
     {
+        $startDate  = $dateFilter['startDate'] ?? now()->startOfMonth()->startOfDay();
+        $endDate    = $dateFilter['endDate'] ?? now()->endOfMonth()->endOfDay();
+        $isFiltered = $dateFilter['isFiltered'] ?? false;
+        $filterKey  = $startDate->format('Ymd') . '_' . $endDate->format('Ymd');
         $now = now();
 
         // Quotation global stats
@@ -486,17 +500,18 @@ class DashboardController extends Controller
         $highValueOpportunities = $this->buildHighValueOpportunities();
         $nextBestActions = $this->buildNextBestActions($actionQueueSummary);
 
-        // Goal count this month
-        $goalCountThisMonth = Cache::remember("dash:admin:goal_cnt:{$now->format('Y-m')}", 60, function () use ($now) {
+        // Goal count pada periode terpilih
+        $goalCountThisMonth = Cache::remember("dash:admin:goal_cnt:{$filterKey}", 60, function () use ($startDate, $endDate) {
             return Rfq::where('status', Rfq::STATUS_GOAL)
-                ->whereMonth('rfq_date', $now->month)
-                ->whereYear('rfq_date', $now->year)
+                ->whereBetween('updated_at', [$startDate, $endDate])
                 ->count();
         });
 
-        // Today's activity
-        $todayNewCustomers = Customer::whereDate('created_at', $now->today())->count();
-        $todayNewRFQ = Rfq::whereDate('created_at', $now->today())->count();
+        // Activity pada periode terpilih
+        $periodNewCustomers = Customer::whereBetween('created_at', [$startDate, $endDate])->count();
+        $periodNewRFQ = Rfq::whereBetween('created_at', [$startDate, $endDate])->count();
+        $todayNewCustomers = $periodNewCustomers;
+        $todayNewRFQ = $periodNewRFQ;
 
         // RFQ pipeline (admin sees all sales)
         $rfqPipeline = Cache::remember("dash:admin:pipeline", 60, function () {
@@ -511,18 +526,19 @@ class DashboardController extends Controller
             ->first();
         });
 
-        // Conversion rate: GOAL / Total RFQ (non-cancelled)
-        $conversionRate = Cache::remember('dash:admin:conversion', 120, function () {
+        // Conversion rate pada periode terpilih
+        $conversionRatePeriod = $periodNewRFQ > 0 ? round(($goalCountThisMonth / $periodNewRFQ) * 100, 1) : 0;
+        $conversionRateAllTime = Cache::remember('dash:admin:conversion', 120, function () {
             $total = Rfq::whereNotIn('status', [Rfq::STATUS_CANCELLED])->count();
             $goal = Rfq::where('status', Rfq::STATUS_GOAL)->count();
             return $total > 0 ? round(($goal / $total) * 100, 1) : 0;
         });
+        $conversionRate = $isFiltered ? $conversionRatePeriod : $conversionRateAllTime;
 
-        // Revenue bulan ini
-        $revenueThisMonth = Cache::remember("dash:admin:rev:{$now->format('Y-m')}", 60, function () use ($now) {
+        // Revenue pada periode terpilih
+        $revenueThisMonth = Cache::remember("dash:admin:rev:{$filterKey}", 60, function () use ($startDate, $endDate) {
             return Rfq::where('status', Rfq::STATUS_GOAL)
-                ->whereMonth('rfq_date', $now->month)
-                ->whereYear('rfq_date', $now->year)
+                ->whereBetween('updated_at', [$startDate, $endDate])
                 ->with('items')
                 ->get()
                 ->sum(function($rfq) {

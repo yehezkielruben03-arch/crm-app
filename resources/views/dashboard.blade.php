@@ -171,17 +171,21 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
-                Target Bulan Ini
+                {{ ($dateFilter['isFiltered'] ?? false) ? 'Target & Capaian Periode Ini' : 'Target Bulan Ini' }}
             </h2>
 
             <div class="flex-1 space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                     <div class="p-3 rounded-xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                        <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">Lead Baru</p>
+                        <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">
+                            {{ ($dateFilter['isFiltered'] ?? false) ? 'Lead Periode Ini' : 'Lead Baru' }}
+                        </p>
                         <p class="text-lg font-bold" style="color: var(--text-primary);">{{ number_format($todayNewCustomers) }}</p>
                     </div>
                     <div class="p-3 rounded-xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                        <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">RFQ Baru</p>
+                        <p class="text-[10px] uppercase tracking-wide font-semibold mb-1" style="color: var(--text-muted);">
+                            {{ ($dateFilter['isFiltered'] ?? false) ? 'RFQ Periode Ini' : 'RFQ Baru' }}
+                        </p>
                         <p class="text-lg font-bold" style="color: var(--text-primary);">{{ number_format($todayNewRFQ) }}</p>
                     </div>
                 </div>
@@ -348,7 +352,7 @@
 
     <!-- Row 1: Ringkasan Finansial & Bisnis (4 Cards) -->
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 animate-in mb-4" style="animation-delay: 0.1s;">
-        <!-- Revenue Bulan Ini -->
+        <!-- Revenue Periode Ini -->
         <div class="card stat-card emerald p-4">
             <div class="flex items-start justify-between mb-2">
                 <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Revenue</span>
@@ -359,53 +363,67 @@
                 </div>
             </div>
             <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">Rp {{ number_format($revenueThisMonth, 0, ',', '.') }}</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--accent-emerald);">Bulan Ini (GOAL)</div>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--accent-emerald);">
+                {{ ($dateFilter['isFiltered'] ?? false) ? ($dateFilter['label'] ?? 'Periode Terpilih') : 'Bulan Ini' }} (GOAL)
+            </div>
         </div>
 
-        <!-- GOAL & Konversi -->
-        <div class="card stat-card blue p-4">
+        <!-- GOAL & Konversi (Link ke RFQ GOAL) -->
+        <a href="{{ route('rfq.index', ['status' => 'GOAL']) }}" class="card stat-card blue p-4 block hover:-translate-y-0.5 hover:shadow-md transition-all group">
             <div class="flex items-start justify-between mb-2">
                 <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Deal Closing</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(37,99,235,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors group-hover:bg-blue-600 group-hover:text-white" style="background: rgba(37,99,235,0.10); color: var(--accent-blue);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
             </div>
             <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($goalCountThisMonth) }} GOAL</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">Konversi: <span class="font-semibold text-blue-600">{{ $conversionRate }}%</span></div>
-        </div>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">
+                Konversi: <span class="font-semibold text-blue-600">{{ $conversionRate }}%</span> &bull; Klik lihat list
+            </div>
+        </a>
 
-        <!-- Total Customers -->
-        <div class="card stat-card blue p-4">
+        <!-- Total Customers / Customer Baru (Link ke Customer) -->
+        <a href="{{ route('customers.index') }}" class="card stat-card blue p-4 block hover:-translate-y-0.5 hover:shadow-md transition-all group">
             <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Total Klien</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(37,99,235,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">
+                    {{ ($dateFilter['isFiltered'] ?? false) ? 'Customer Baru' : 'Total Klien' }}
+                </span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors group-hover:bg-blue-600 group-hover:text-white" style="background: rgba(37,99,235,0.10); color: var(--accent-blue);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalCustomers) }}</p>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">
+                {{ ($dateFilter['isFiltered'] ?? false) ? number_format($periodNewCustomers ?? 0) : number_format($totalCustomers) }}
+            </p>
             <div class="flex items-center gap-1 text-[11px] growth-positive">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
-                Semua Mitra Perusahaan
+                {{ ($dateFilter['isFiltered'] ?? false) ? 'Terdaftar (' . ($dateFilter['label'] ?? '') . ')' : 'Semua Mitra Perusahaan' }}
             </div>
-        </div>
+        </a>
 
-        <!-- Total RFQ & Request Items -->
-        <div class="card stat-card cyan p-4">
+        <!-- Total RFQ & Request Items (Link ke RFQ) -->
+        <a href="{{ route('rfq.index') }}" class="card stat-card cyan p-4 block hover:-translate-y-0.5 hover:shadow-md transition-all group">
             <div class="flex items-start justify-between mb-2">
-                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">Total Permintaan RFQ</span>
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(13,148,136,0.10);">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #0d9488;">
+                <span class="text-xs font-medium uppercase tracking-wide" style="color: var(--text-muted);">
+                    {{ ($dateFilter['isFiltered'] ?? false) ? 'Penawaran Periode Ini' : 'Total Permintaan RFQ' }}
+                </span>
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors group-hover:bg-teal-600 group-hover:text-white" style="background: rgba(13,148,136,0.10); color: #0d9488;">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">{{ number_format($totalRFQ) }} RFQ</p>
-            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">{{ number_format($totalRfqItems) }} total item penawaran</div>
-        </div>
+            <p class="text-xl font-bold mb-1" style="color: var(--text-primary);">
+                {{ ($dateFilter['isFiltered'] ?? false) ? number_format($periodNewRFQ ?? 0) : number_format($totalRFQ) }} RFQ
+            </p>
+            <div class="flex items-center gap-1 text-[11px]" style="color: var(--text-muted);">
+                {{ ($dateFilter['isFiltered'] ?? false) ? 'Dibuat: ' . ($dateFilter['label'] ?? '') : number_format($totalRfqItems) . ' total item penawaran' }}
+            </div>
+        </a>
     </section>
 
     <!-- Row 2: Antrean Operasional & Approval (4 Cards Clickable) -->
