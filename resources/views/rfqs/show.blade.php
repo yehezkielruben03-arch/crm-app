@@ -492,6 +492,11 @@
                                         + Info Lisensi/Stok
                                     </button>
                                     <button type="button" 
+                                            @click="insertSnippet('· [Nama Barang] > Harga penawaran sudah include komisi [Nominal / Rincian]')"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                                        + Include Komisi
+                                    </button>
+                                    <button type="button" 
                                             @click="insertSnippet('file sudah dimasukan ke folder sales')"
                                             class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
                                         + File dimasukan ke folder sales
