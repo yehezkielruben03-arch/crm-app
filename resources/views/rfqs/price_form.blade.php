@@ -895,8 +895,8 @@
                                             <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
                                                 <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
-                                                    @foreach(['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'] as $catOption)
-                                                        <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
+                                                    @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Hardware', 'Software', 'Jasa', 'Lainnya'] as $catOption)
+                                                        <option value="{{ $catOption }}" {{ ($comp->description === $catOption || ($catOption === 'Hardware' && $comp->description === 'Aksesoris') || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
@@ -2689,7 +2689,7 @@
                     { category: 'Power Supply', name: 'Antec ATOM B750 - 750W 80+ Bronze', inc_ppn: 850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
                     { category: 'Casing', name: 'GameMax Spark Air Black Tempered Glass M-ATX', inc_ppn: 615000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
                     { category: 'Monitor', name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', inc_ppn: 1195000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Aksesoris', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
+                    { category: 'Hardware', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
                 ]
             },
             mini_pc: {
@@ -2700,7 +2700,7 @@
                     { category: 'RAM', name: 'V-GeN Platinum DDR4 16GB 3200Mhz', inc_ppn: 2488000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
                     { category: 'Storage', name: 'V-GeN SSD NVMe 1TB', inc_ppn: 3288000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
                     { category: 'Software', name: 'Windows 11 Pro - OEM', inc_ppn: 2715000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'Aksesoris', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
+                    { category: 'Hardware', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
                 ]
             },
             office_i3: {
@@ -2713,7 +2713,7 @@
                     { category: 'Storage', name: 'Kingston NV2 500GB M.2 PCIe NVMe', inc_ppn: 650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Casing', name: 'VenomRX mATX Case + PSU 450W', inc_ppn: 450000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Monitor', name: 'Philips 221V8L 21.5" FHD 75Hz', inc_ppn: 1050000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Aksesoris', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Hardware', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Jasa', name: 'Rakit + Cable Management + Testing', inc_ppn: 150000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
                 ]
             },
@@ -2875,8 +2875,8 @@
             tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
             tr.dataset.compIndex = rowIdx;
 
-            const catOptions = ['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
-            const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
+            const catOptions = ['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Hardware', 'Software', 'Jasa', 'Lainnya'];
+            const selectOptions = catOptions.map(c => `<option value="${c}" ${(c.toLowerCase() === cat.toLowerCase() || (c === 'Hardware' && cat.toLowerCase() === 'aksesoris')) ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
                 <td class="py-2.5 px-2 text-center whitespace-nowrap">
