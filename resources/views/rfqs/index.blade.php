@@ -134,10 +134,21 @@
                     <tr>
                         <td>
                             <div class="flex flex-col gap-1 items-start">
-                                <code class="text-xs px-2 py-1 rounded font-semibold"
-                                    style="background: var(--bg-secondary); color: var(--text-secondary);">
-                                    {{ $rfq->rfq_number }}
-                                </code>
+                                <div class="flex items-center gap-1.5 flex-wrap">
+                                    <code class="text-xs px-2 py-1 rounded font-semibold"
+                                        style="background: var(--bg-secondary); color: var(--text-secondary);">
+                                        {{ $rfq->rfq_number }}
+                                    </code>
+                                    @if(!empty($rfq->admin_note))
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs cursor-help"
+                                          title="Catatan Admin: {{ \Illuminate\Support\Str::limit($rfq->admin_note, 150) }}">
+                                        <svg class="w-3 h-3 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                                        </svg>
+                                        <span>Note</span>
+                                    </span>
+                                    @endif
+                                </div>
                                 @if($rfq->priority === 'Urgent' || $rfq->priority === 'High Priority')
                                     <span class="px-1.5 py-0.5 text-[9px] font-bold rounded" style="background: rgba(239,68,68,0.1); color: var(--accent-rose); border: 1px solid rgba(239,68,68,0.2);">{{ $rfq->priority }}</span>
                                 @elseif($rfq->priority)

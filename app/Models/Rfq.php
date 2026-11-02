@@ -18,7 +18,8 @@ class Rfq extends Model
         'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days',
         'material_package_unit', 'jasa_package_unit',
         'enable_material_ceiling', 'material_ceiling_step', 'material_custom_total',
-        'enable_jasa_ceiling', 'jasa_ceiling_step', 'jasa_custom_total'
+        'enable_jasa_ceiling', 'jasa_ceiling_step', 'jasa_custom_total',
+        'admin_note', 'admin_note_updated_at', 'admin_note_by',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class Rfq extends Model
         'enable_jasa_ceiling' => 'boolean',
         'jasa_ceiling_step' => 'decimal:2',
         'jasa_custom_total' => 'decimal:2',
+        'admin_note_updated_at' => 'datetime',
     ];
 
     public const STATUS_PENDING_ADMIN = 'Pending Admin';
@@ -249,6 +251,30 @@ class Rfq extends Model
     public function sales(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sales_id')->withTrashed();
+    }
+
+    public function adminNoteAuthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_note_by')->withTrashed();
+    }
+
+    public function getWhatsAppFormattedNote(): string
+    {
+        $customer = $this->customer?->company_name ?? $this->customer?->name ?? $this->customer_name ?? '-';
+        $type = $this->type ?: 'Hardware';
+        $note = trim($this->admin_note ?? '');
+
+        $lines = [];
+        $lines[] = "{$customer}, {$type}";
+        $lines[] = "note:";
+        if (!empty($note)) {
+            $lines[] = $note;
+        }
+        if (!str_contains(strtolower($note), 'file sudah dimasukan ke folder sales')) {
+            $lines[] = "file sudah dimasukan ke folder sales";
+        }
+
+        return implode("\n", $lines);
     }
 
     public static function generateRfqNumber(): string

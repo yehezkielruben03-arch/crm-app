@@ -275,6 +275,272 @@
                 </div>
             </div>
 
+            {{-- Catatan Admin ke Sales (Internal Notice) --}}
+            <div x-data="{
+                openAdminNoteModal: false,
+                copiedToast: false,
+                noteText: {{ json_encode($rfq->admin_note ?? '') }},
+                customerName: {{ json_encode($rfq->customer?->company_name ?? $rfq->customer?->name ?? $rfq->customer_name ?? '-') }},
+                rfqType: {{ json_encode($rfq->type ?: 'Hardware') }},
+                get waText() {
+                    let lines = [];
+                    lines.push(this.customerName + ', ' + this.rfqType);
+                    lines.push('note:');
+                    if (this.noteText && this.noteText.trim()) {
+                        lines.push(this.noteText.trim());
+                    }
+                    if (!this.noteText.toLowerCase().includes('file sudah dimasukan ke folder sales')) {
+                        lines.push('file sudah dimasukan ke folder sales');
+                    }
+                    return lines.join('\n');
+                },
+                copyWhatsApp() {
+                    const text = this.waText;
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            this.showToast();
+                        }).catch(() => {
+                            this.fallbackCopy(text);
+                        });
+                    } else {
+                        this.fallbackCopy(text);
+                    }
+                },
+                fallbackCopy(text) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    try {
+                        document.execCommand('copy');
+                        this.showToast();
+                    } catch (e) {
+                        alert('Gagal menyalin format WhatsApp.');
+                    }
+                    document.body.removeChild(ta);
+                },
+                showToast() {
+                    this.copiedToast = true;
+                    setTimeout(() => { this.copiedToast = false; }, 2500);
+                },
+                insertSnippet(snippet) {
+                    const ta = document.getElementById('admin-note-modal-textarea');
+                    if (!ta) return;
+                    const val = (this.noteText || '').trim();
+                    this.noteText = val === '' ? snippet : val + '\n' + snippet;
+                    this.$nextTick(() => { ta.focus(); });
+                }
+            }">
+
+                @if(!empty($rfq->admin_note))
+                {{-- Prominent Card: Catatan Ada --}}
+                <div class="card p-5 border-2 border-amber-300/80 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/20 shadow-xs animate-in">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-amber-200/80">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">Catatan Admin ke Sales</h3>
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                                        <svg class="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                        Internal Notice
+                                    </span>
+                                </div>
+                                <div class="text-[11px] text-slate-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                                    <span>Ditulis oleh <strong class="text-slate-700">{{ $rfq->adminNoteAuthor?->name ?? 'Admin' }}</strong></span>
+                                    @if($rfq->admin_note_updated_at)
+                                        <span class="text-slate-300">&bull;</span>
+                                        <span>{{ $rfq->admin_note_updated_at->format('d M Y, H:i') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Action Buttons --}}
+                        <div class="flex items-center gap-2 self-start sm:self-center">
+                            {{-- Salin Format WA Button --}}
+                            <button type="button" 
+                                    @click="copyWhatsApp()" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+                                    title="Salin teks lengkap siap kirim ke WhatsApp Sales/Klien">
+                                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                                </svg>
+                                <span>Salin Format WA</span>
+                            </button>
+
+                            {{-- Edit Button (Admin & Leader Only) --}}
+                            @if(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
+                            <button type="button" 
+                                    @click="openAdminNoteModal = true" 
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer"
+                                    title="Edit atau tambahkan catatan internal ini langsung tanpa mengubah harga HPP">
+                                <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                                </svg>
+                                <span>Edit Catatan</span>
+                            </button>
+                            @endif
+                        </div>
+                    </div>
+
+                    {{-- Isi Catatan --}}
+                    <div class="mt-3 p-3.5 rounded-xl bg-white border border-amber-200 text-xs text-slate-800 font-mono leading-relaxed whitespace-pre-line shadow-2xs">
+                        {{ $rfq->admin_note }}
+                    </div>
+                </div>
+                @elseif(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
+                {{-- Prompt Card untuk Admin/Leader jika belum ada note --}}
+                <div class="p-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50/70 hover:bg-slate-50 transition flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl bg-slate-200 text-slate-600 flex items-center justify-center font-bold flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-xs font-semibold text-slate-800 block">Catatan Admin ke Sales (Internal Notice)</span>
+                            <span class="text-[11px] text-slate-500">Belum ada catatan pergantian spek / discontinue untuk Sales.</span>
+                        </div>
+                    </div>
+                    <button type="button" 
+                            @click="openAdminNoteModal = true"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0">
+                        <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>+ Tambah Catatan</span>
+                    </button>
+                </div>
+                @endif
+
+                {{-- Floating Clipboard Toast --}}
+                <div x-show="copiedToast" 
+                     x-cloak
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform translate-y-2"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 transform translate-y-0"
+                     x-transition:leave-end="opacity-0 transform translate-y-2"
+                     class="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl bg-slate-900 text-white text-xs font-semibold shadow-2xl border border-slate-700">
+                    <span class="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xs">✓</span>
+                    <span>Format WhatsApp berhasil disalin ke clipboard!</span>
+                </div>
+
+                {{-- Modal Edit Catatan Admin ke Sales --}}
+                @if(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
+                <div x-show="openAdminNoteModal" 
+                     x-cloak 
+                     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity"
+                     @keydown.escape.window="openAdminNoteModal = false">
+                    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden" 
+                         @click.away="openAdminNoteModal = false">
+                        
+                        {{-- Modal Header --}}
+                        <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                                        <span>Edit Catatan Admin ke Sales</span>
+                                        <span class="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-semibold">Internal Only</span>
+                                    </h3>
+                                    <p class="text-[11px] text-slate-400">{{ $rfq->rfq_number }} &bull; {{ $rfq->customer_name }}</p>
+                                </div>
+                            </div>
+                            <button type="button" 
+                                    @click="openAdminNoteModal = false" 
+                                    class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        {{-- Modal Form --}}
+                        <form action="{{ route('rfq.update_admin_note', $rfq) }}" method="POST" class="p-6 space-y-4">
+                            @csrf
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                Catatan ini hanya terlihat oleh Sales dan Admin di CRM, dan <strong>tidak akan dicetak</strong> pada PDF penawaran klien. Perubahan catatan dapat disimpan langsung tanpa menghitung ulang HPP.
+                            </p>
+
+                            {{-- Quick Snippet Helper Buttons --}}
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-600 mb-1.5 block">Sisipkan Template Cepat:</span>
+                                <div class="flex flex-wrap items-center gap-1.5">
+                                    <button type="button" 
+                                            @click="insertSnippet('· [Nama Barang] > Discontinue / EOL, diganti type [Type Baru]')"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                                        + Discontinue / EOL
+                                    </button>
+                                    <button type="button" 
+                                            @click="insertSnippet('· [Nama Barang] > Spek berbeda: [Rincian perubahan]')"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                                        + Spek Pengganti
+                                    </button>
+                                    <button type="button" 
+                                            @click="insertSnippet('· [Nama Barang] > Info lisensi/stok: [Rincian stok/durasi minimal]')"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                                        + Info Lisensi/Stok
+                                    </button>
+                                    <button type="button" 
+                                            @click="insertSnippet('file sudah dimasukan ke folder sales')"
+                                            class="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                                        + File dimasukan ke folder sales
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Textarea --}}
+                            <div>
+                                <label for="admin-note-modal-textarea" class="text-xs font-bold text-slate-700 mb-1 block">
+                                    Isi Catatan Internal:
+                                </label>
+                                <textarea name="admin_note" 
+                                          id="admin-note-modal-textarea" 
+                                          x-model="noteText"
+                                          rows="5" 
+                                          class="w-full text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-xl p-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y leading-relaxed"
+                                          placeholder="Tulis catatan per butir..."></textarea>
+                            </div>
+
+                            {{-- Live WA Preview Box --}}
+                            <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                                <div class="font-bold text-slate-600 mb-1 flex items-center justify-between">
+                                    <span>Pratinjau Format WhatsApp Siap Salin:</span>
+                                    <span class="text-[10px] text-emerald-600 font-semibold font-sans">Preview Otomatis</span>
+                                </div>
+                                <div class="bg-white p-2.5 rounded-lg border border-slate-200 font-mono text-[11px] text-slate-700 whitespace-pre-line leading-relaxed"
+                                     x-text="waText"></div>
+                            </div>
+
+                            {{-- Modal Footer --}}
+                            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-200">
+                                <button type="button" 
+                                        @click="openAdminNoteModal = false" 
+                                        class="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-xl transition cursor-pointer">
+                                    Batal
+                                </button>
+                                <button type="submit" 
+                                        class="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 active:scale-95 rounded-xl shadow-xs transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Simpan Catatan</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                @endif
+            </div>
+
             {{-- Item RFQ --}}
             <div class="card p-0 overflow-hidden animate-in" style="animation-delay: 0.15s;">
                 <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid #e2e8f0;">

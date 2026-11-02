@@ -895,7 +895,7 @@
                                             <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
                                                 <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
-                                                    @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Jasa', 'Lainnya'] as $catOption)
+                                                    @foreach(['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'] as $catOption)
                                                         <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
                                                     @endforeach
                                                 </select>
@@ -1317,6 +1317,83 @@
                     <div class="italic text-slate-800 font-medium pl-3">- Harga dapat berubah tanpa pemberitahuan <span class="text-[10px] text-slate-400 font-normal">(template tetap hitam)</span></div>
                     <div class="italic text-slate-800 font-medium pl-3">- Mohon tanyakan stok dan warna terlebih dahulu sebelum mengirim PO <span class="text-[10px] text-slate-400 font-normal">(template tetap hitam)</span></div>
                 </div>
+            </div>
+
+            {{-- Catatan Admin ke Sales (Internal Only) --}}
+            <div class="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300/80 p-5 shadow-xs mb-6" x-data="{
+                insertSnippet(snippet) {
+                    const ta = document.getElementById('rfq-admin-note');
+                    if (!ta) return;
+                    const val = ta.value.trim();
+                    if (val === '') {
+                        ta.value = snippet;
+                    } else {
+                        ta.value = val + '\n' + snippet;
+                    }
+                    ta.focus();
+                    if (typeof triggerAutoSave === 'function') {
+                        triggerAutoSave();
+                    }
+                }
+            }">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                    <label for="rfq-admin-note" class="text-sm font-bold text-amber-900 flex items-center gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                        </div>
+                        <span>Catatan Admin ke Sales (Internal Notice)</span>
+                    </label>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300">
+                            <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                            INTERNAL ONLY — Tidak Muncul di PDF Klien
+                        </span>
+                    </div>
+                </div>
+
+                <p class="text-xs text-amber-800/90 mb-3 leading-relaxed">
+                    Gunakan kolom ini untuk menginfokan Sales jika ada tipe barang discontinue/EOL, pergantian part supersession, info minimal lisensi, atau catatan internal lainnya. Sales dapat menyalin format ini ke WhatsApp dalam 1 klik.
+                </p>
+
+                {{-- Quick Snippet Helper Buttons --}}
+                <div class="flex flex-wrap items-center gap-1.5 mb-2.5">
+                    <span class="text-[11px] font-bold text-amber-900 mr-1 flex items-center gap-1">
+                        <svg class="w-3 h-3 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                        Template Cepat:
+                    </span>
+                    <button type="button" @click="insertSnippet('· [Nama Barang] > Discontinue / EOL, diganti type [Type Baru]')"
+                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-amber-100/80 text-amber-900 border border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                        + Discontinue / EOL
+                    </button>
+                    <button type="button" @click="insertSnippet('· [Nama Barang] > Spek berbeda: [Rincian perubahan]')"
+                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-amber-100/80 text-amber-900 border border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                        + Spek Pengganti
+                    </button>
+                    <button type="button" @click="insertSnippet('· [Nama Barang] > Info lisensi/stok: [Rincian stok/durasi minimal]')"
+                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-amber-100/80 text-amber-900 border border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                        + Info Lisensi/Stok
+                    </button>
+                    <button type="button" @click="insertSnippet('file sudah dimasukan ke folder sales')"
+                            class="px-2.5 py-1 text-xs font-semibold bg-white hover:bg-amber-100/80 text-amber-900 border border-amber-300 rounded-lg shadow-2xs transition active:scale-95 cursor-pointer">
+                        + File dimasukan ke folder sales
+                    </button>
+                </div>
+
+                <textarea 
+                    name="admin_note" 
+                    id="rfq-admin-note" 
+                    rows="4" 
+                    class="w-full text-xs text-slate-800 bg-white border border-amber-300 rounded-xl p-3 focus:bg-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y font-mono font-medium leading-relaxed placeholder:font-sans placeholder:text-slate-400"
+                    placeholder="Tulis catatan internal untuk Sales di sini, contoh:&#10;· C9115AXI-X : Cisco Catalyst 9115AX Series > EOL, ganti type C9115AXI-F&#10;· AIR-DNA-E : Cisco Wireless DNA > tidak ada, paling pendek 3 tahun&#10;file sudah dimasukan ke folder sales">{{ old('admin_note', $rfq->admin_note) }}</textarea>
+
+                @if($rfq->admin_note_updated_at)
+                <div class="mt-2 text-[11px] text-amber-800/80 flex items-center gap-1.5 font-medium">
+                    <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Terakhir diperbarui oleh <strong>{{ $rfq->adminNoteAuthor?->name ?? 'Admin' }}</strong> pada {{ $rfq->admin_note_updated_at->format('d/m/Y H:i') }}</span>
+                </div>
+                @endif
             </div>
 
             {{-- Format Pajak & Tampilan Quotation (PPN) --}}
@@ -2875,7 +2952,7 @@
             tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
             tr.dataset.compIndex = rowIdx;
 
-            const catOptions = ['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
+            const catOptions = ['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
             const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
@@ -3725,6 +3802,7 @@
                 });
 
                 const notesEl = document.getElementById('rfq-notes');
+                const adminNoteEl = document.getElementById('rfq-admin-note');
                 const taxTypeChecked = document.querySelector('input[name="tax_type"]:checked');
                 const jasaUnitEl = document.getElementById('jasa_package_unit');
                 const matUnitEl = document.getElementById('material_package_unit');
@@ -3738,6 +3816,7 @@
                     timeStr: timeStr,
                     itemCount: itemsData.length,
                     notes: notesEl ? notesEl.value : '',
+                    admin_note: adminNoteEl ? adminNoteEl.value : '',
                     tax_type: taxTypeChecked ? taxTypeChecked.value : '',
                     jasa_package_unit: jasaUnitEl ? jasaUnitEl.value : '',
                     material_package_unit: matUnitEl ? matUnitEl.value : '',
@@ -3799,6 +3878,10 @@
                 if (draft.notes !== undefined) {
                     const notesEl = document.getElementById('rfq-notes');
                     if (notesEl) notesEl.value = draft.notes;
+                }
+                if (draft.admin_note !== undefined) {
+                    const adminNoteEl = document.getElementById('rfq-admin-note');
+                    if (adminNoteEl) adminNoteEl.value = draft.admin_note;
                 }
                 if (draft.tax_type) {
                     const radio = document.querySelector('input[name="tax_type"][value="' + draft.tax_type + '"]');
