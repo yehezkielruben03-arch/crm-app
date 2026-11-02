@@ -3091,10 +3091,11 @@
 
                     const compHppDisp = row.querySelector('.comp-hpp-display');
                     if (compHppDisp) {
+                        const pureHppTotal = hppRaw * qty;
                         if (qty > 1) {
-                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(partModalTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(baseCost)} &times; ${qty}</span>`;
+                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(pureHppTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(hppRaw)} &times; ${qty}</span>`;
                         } else {
-                            compHppDisp.innerText = 'Rp ' + formatRupiah(baseCost);
+                            compHppDisp.innerText = 'Rp ' + formatRupiah(hppRaw);
                         }
                     }
 
