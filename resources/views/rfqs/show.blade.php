@@ -347,7 +347,7 @@
                             </div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">Catatan Admin ke Sales</h3>
+                                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">Catatan untuk Sales</h3>
                                     <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
                                         <svg class="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                                         Internal Notice
@@ -406,7 +406,7 @@
                             </svg>
                         </div>
                         <div>
-                            <span class="text-xs font-semibold text-slate-800 block">Catatan Admin ke Sales (Internal Notice)</span>
+                            <span class="text-xs font-semibold text-slate-800 block">Catatan untuk Sales (Internal Notice)</span>
                             <span class="text-[11px] text-slate-500">Belum ada catatan pergantian spek / discontinue untuk Sales.</span>
                         </div>
                     </div>
@@ -452,7 +452,7 @@
                                 </div>
                                 <div>
                                     <h3 class="text-sm font-bold text-white flex items-center gap-2">
-                                        <span>Edit Catatan Admin ke Sales</span>
+                                        <span>Edit Catatan untuk Sales</span>
                                         <span class="text-[10px] bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-semibold">Internal Only</span>
                                     </h3>
                                     <p class="text-[11px] text-slate-400">{{ $rfq->rfq_number }} &bull; {{ $rfq->customer_name }}</p>
