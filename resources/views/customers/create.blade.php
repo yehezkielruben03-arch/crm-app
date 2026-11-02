@@ -734,12 +734,23 @@
                         msg.id = `duplicate-${type}-msg`;
                         msg.className = 'mt-2 flex items-start gap-2 p-3 rounded-xl text-xs';
 
+                        const isAdminUser = {{ auth()->user()->isAdminOrAbove() ? 'true' : 'false' }};
+                        const editActionHtml = (isAdminUser && match.id)
+                            ? `<div class="mt-2">
+                                   <a href="/customers/${match.id}/edit" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition shadow-2xs" style="background: var(--accent-blue);">
+                                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                       <span>Bantu Edit / Lengkapi Alamat Customer Ini</span>
+                                   </a>
+                               </div>`
+                            : '';
+
                         if (isExact) {
                             msg.style.cssText = 'background: rgba(225,29,72,0.08); border: 1px solid rgba(225,29,72,0.30); color: var(--accent-rose);';
                             msg.innerHTML = `<svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                                 <div>
                                     <strong>Peringatan Duplikasi!</strong> "${match.company_name}" sudah terdaftar di sistem atas nama Sales/Akun <strong>${match.owner}</strong> (Status: <strong>${match.status || 'Active'}</strong>).
-                                    <div class="mt-1">Pendaftaran ditolak karena duplikat. Anda tidak perlu membuat PT ini lagi. Silakan gunakan akun yang sudah ada atau hubungi Admin untuk pengalihan akun.</div>
+                                    <div class="mt-1">Pendaftaran ditolak karena duplikat. Anda tidak perlu membuat PT ini lagi.${isAdminUser ? ' Klik tombol di bawah jika Anda ingin membantu melengkapi alamat atau data customer tersebut:' : ' Silakan gunakan akun yang sudah ada atau hubungi Admin untuk pengalihan akun.'}</div>
+                                    ${editActionHtml}
                                 </div>`;
                         } else {
                             msg.style.cssText = 'background: rgba(217,119,6,0.08); border: 1px solid rgba(217,119,6,0.30); color: var(--accent-amber);';
@@ -747,6 +758,7 @@
                                 <div>
                                     <strong>Kemiripan Terdeteksi!</strong> Ditemukan perusahaan serupa: <strong>"${match.company_name}"</strong> (Sales/Akun: <strong>${match.owner}</strong>).
                                     <div class="mt-1">Pastikan tidak terjadi pendaftaran ganda jika perusahaan tersebut adalah badan usaha yang sama.</div>
+                                    ${editActionHtml}
                                 </div>`;
                         }
 

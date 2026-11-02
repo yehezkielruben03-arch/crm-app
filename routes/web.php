@@ -120,6 +120,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/rfqs/{rfq}', [RfqController::class, 'destroy'])->name('rfq.destroy');
         Route::get('/rfqs/{rfq}/price', [RfqController::class, 'priceForm'])->name('rfq.price_form');
         Route::post('/rfqs/{rfq}/price', [RfqController::class, 'submitPrice'])->name('rfq.submit_price');
+        Route::post('/rfqs/{rfq}/admin-note', [RfqController::class, 'updateAdminNote'])->name('rfq.update_admin_note')->middleware('role:Admin,Admin Purchase,Super Admin,Leader');
         Route::post('/rfqs/{rfq}/approve', [RfqController::class, 'approve'])->name('rfq.approve');
         Route::post('/rfqs/{rfq}/reject', [RfqController::class, 'reject'])->name('rfq.reject');
         Route::get('/rfqs/{rfq}/download-quotation', [RfqController::class, 'downloadQuotation'])->name('rfq.download_quotation');

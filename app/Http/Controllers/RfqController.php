@@ -413,7 +413,7 @@ class RfqController extends Controller
             abort(403);
         }
 
-        $rfq->load(['customer', 'sales', 'items.vendor']);
+        $rfq->load(['customer', 'sales', 'items.vendor', 'adminNoteAuthor']);
 
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->with('creator:id,name')
@@ -845,6 +845,7 @@ class RfqController extends Controller
 
         $validated = $request->validate([
             'notes'                              => 'nullable|string|max:3000',
+            'admin_note'                         => 'nullable|string|max:5000',
             'tax_type'                           => 'nullable|string|in:auto,include,exclude',
             'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
             'payment_term_days'                  => 'nullable|integer|min:1|max:365',
@@ -905,6 +906,11 @@ class RfqController extends Controller
             $rfqUpdate = [];
             if ($request->has('notes')) {
                 $rfqUpdate['notes'] = $request->notes;
+            }
+            if ($request->has('admin_note')) {
+                $rfqUpdate['admin_note'] = $request->filled('admin_note') ? trim($request->admin_note) : null;
+                $rfqUpdate['admin_note_updated_at'] = now();
+                $rfqUpdate['admin_note_by'] = Auth::id();
             }
             if ($request->has('tax_type')) {
                 $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
@@ -1159,6 +1165,51 @@ class RfqController extends Controller
             : 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disimpan dan diteruskan ke Leader untuk di-approve.';
 
         return redirect()->route('rfq.show', $rfq)->with('success', $successMsg);
+    }
+
+    public function updateAdminNote(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader() && !$this->authUser()->hasPermission('CRUD'), 403);
+
+        $validated = $request->validate([
+            'admin_note' => 'nullable|string|max:5000',
+        ]);
+
+        $note = $request->filled('admin_note') ? trim($validated['admin_note']) : null;
+
+        $rfq->update([
+            'admin_note'            => $note,
+            'admin_note_updated_at' => now(),
+            'admin_note_by'         => Auth::id(),
+        ]);
+
+        if ($rfq->sales_id) {
+            try {
+                $updaterName = Auth::user()?->name ?? 'Admin';
+                Notification::send(
+                    userId:  $rfq->sales_id,
+                    type:    'info',
+                    title:   'Catatan Admin pada RFQ ' . $rfq->rfq_number,
+                    message: $updaterName . ' memperbarui catatan internal untuk RFQ ' . $rfq->rfq_number . ' (' . $rfq->customer_name . ').',
+                    link:    route('rfq.show', $rfq)
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Gagal kirim notifikasi admin note: ' . $e->getMessage());
+            }
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'               => true,
+                'message'               => 'Catatan internal untuk Sales berhasil disimpan.',
+                'admin_note'            => $rfq->admin_note,
+                'admin_note_updated_at' => $rfq->admin_note_updated_at?->format('d/m/Y H:i'),
+                'admin_note_author'     => $rfq->adminNoteAuthor?->name,
+                'whatsapp_text'         => $rfq->getWhatsAppFormattedNote(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Catatan internal untuk Sales berhasil disimpan.');
     }
 
     public function approve(Rfq $rfq)

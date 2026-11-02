@@ -442,12 +442,14 @@ class CustomerController extends Controller
         $cleanName = preg_replace('/^(PT\.?|CV\.?)\s+|\s*,?\s*(PT\.?|CV\.?|Perorangan|Pemerintah)$/i', '', $validated['company_name'] ?? '');
         $inputName = trim($cleanName);
         if (!empty($inputName)) {
-            $validated['company_name'] = Customer::formatTitleCase($inputName);
+            $inputCleanMatch = Customer::normalizeCompanyName($inputName);
+            $currentCleanMatch = Customer::normalizeCompanyName($customer->company_name ?? '');
 
-            // Mencegah perubahan nama menjadi duplikat perusahaan lain yang sudah ada
-            $inputCleanMatch = Customer::normalizeCompanyName($validated['company_name']);
-            if ($inputCleanMatch !== '') {
-                $existingDuplicate = Customer::withTrashed()
+            // Hanya jalankan pengecekan duplikat apabila nama perusahaan memang diubah oleh user
+            if ($inputCleanMatch !== '' && $inputCleanMatch !== $currentCleanMatch) {
+                $validated['company_name'] = Customer::formatTitleCase($inputName);
+
+                $existingDuplicate = Customer::query()
                     ->where('id', '!=', $customer->id)
                     ->select('id', 'company_name', 'sales_id', 'status', 'deleted_at')
                     ->with('sales')
@@ -465,28 +467,36 @@ class CustomerController extends Controller
                             'company_name' => "Nama perusahaan bentrok dengan customer lain (\"{$existingDuplicate->company_name}\") atas nama \"{$ownerName}\" (Status: {$statusLabel}).",
                         ]);
                 }
+            } else {
+                // Nama perusahaan tidak berubah (misal Admin hanya bantu isi alamat): pertahankan nama asli
+                $validated['company_name'] = $customer->company_name;
             }
         } else {
             unset($validated['company_name']); // Pertahankan nama sebelumnya jika dikosongkan
         }
 
-        // Mencegah perubahan email menjadi duplikat customer lain
+        // Mencegah perubahan email menjadi duplikat customer lain (hanya jika email memang diubah)
         if (!empty($validated['email'])) {
-            $existingEmail = Customer::withTrashed()
-                ->where('id', '!=', $customer->id)
-                ->where('email', strtolower(trim($validated['email'])))
-                ->select('id', 'company_name', 'sales_id', 'status', 'deleted_at')
-                ->with('sales')
-                ->first();
+            $inputEmailClean = strtolower(trim($validated['email']));
+            $currentEmailClean = strtolower(trim($customer->email ?? ''));
 
-            if ($existingEmail) {
-                $ownerName = $existingEmail->sales ? $existingEmail->sales->name : 'Pedia (House Account)';
-                $statusLabel = $existingEmail->trashed() ? 'Dihapus/Nonaktif' : ($existingEmail->status ?? 'Aktif');
-                return back()
-                    ->withInput()
-                    ->withErrors([
-                        'email' => "Email \"{$validated['email']}\" sudah digunakan oleh customer lain (\"{$existingEmail->company_name}\") atas nama \"{$ownerName}\" (Status: {$statusLabel}).",
-                    ]);
+            if ($inputEmailClean !== $currentEmailClean) {
+                $existingEmail = Customer::query()
+                    ->where('id', '!=', $customer->id)
+                    ->where('email', $inputEmailClean)
+                    ->select('id', 'company_name', 'sales_id', 'status', 'deleted_at')
+                    ->with('sales')
+                    ->first();
+
+                if ($existingEmail) {
+                    $ownerName = $existingEmail->sales ? $existingEmail->sales->name : 'Pedia (House Account)';
+                    $statusLabel = $existingEmail->trashed() ? 'Dihapus/Nonaktif' : ($existingEmail->status ?? 'Aktif');
+                    return back()
+                        ->withInput()
+                        ->withErrors([
+                            'email' => "Email \"{$validated['email']}\" sudah digunakan oleh customer lain (\"{$existingEmail->company_name}\") atas nama \"{$ownerName}\" (Status: {$statusLabel}).",
+                        ]);
+                }
             }
         }
 
