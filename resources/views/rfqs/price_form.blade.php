@@ -895,8 +895,8 @@
                                             <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
                                                 <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
-                                                    @foreach(['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'] as $catOption)
-                                                        <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
+                                                    @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Hardware', 'Software', 'Jasa', 'Lainnya'] as $catOption)
+                                                        <option value="{{ $catOption }}" {{ ($comp->description === $catOption || ($catOption === 'Hardware' && $comp->description === 'Aksesoris') || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
                                                     @endforeach
                                                 </select>
                                             </td>
@@ -2116,12 +2116,15 @@
                             <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
                                 <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                    2. Biaya Modal (HPP)
+                                    2. Biaya Modal Exclude PPN (HPP)
                                 </span>
                             </div>
 
                             <div>
-                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                <label class="text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                    <span>HPP Dasar / Modal Satuan (Exclude PPN) <span class="text-rose-500 font-bold">(wajib)</span></span>
+                                    <span class="text-[10px] bg-amber-100 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">Ex PPN</span>
+                                </label>
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
@@ -2766,7 +2769,7 @@
                     { category: 'Power Supply', name: 'Antec ATOM B750 - 750W 80+ Bronze', inc_ppn: 850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
                     { category: 'Casing', name: 'GameMax Spark Air Black Tempered Glass M-ATX', inc_ppn: 615000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
                     { category: 'Monitor', name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', inc_ppn: 1195000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Aksesoris', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
+                    { category: 'Hardware', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
                 ]
             },
             mini_pc: {
@@ -2777,7 +2780,7 @@
                     { category: 'RAM', name: 'V-GeN Platinum DDR4 16GB 3200Mhz', inc_ppn: 2488000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
                     { category: 'Storage', name: 'V-GeN SSD NVMe 1TB', inc_ppn: 3288000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
                     { category: 'Software', name: 'Windows 11 Pro - OEM', inc_ppn: 2715000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'Aksesoris', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
+                    { category: 'Hardware', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
                 ]
             },
             office_i3: {
@@ -2790,7 +2793,7 @@
                     { category: 'Storage', name: 'Kingston NV2 500GB M.2 PCIe NVMe', inc_ppn: 650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Casing', name: 'VenomRX mATX Case + PSU 450W', inc_ppn: 450000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Monitor', name: 'Philips 221V8L 21.5" FHD 75Hz', inc_ppn: 1050000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Aksesoris', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Hardware', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
                     { category: 'Jasa', name: 'Rakit + Cable Management + Testing', inc_ppn: 150000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
                 ]
             },
@@ -2952,8 +2955,8 @@
             tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
             tr.dataset.compIndex = rowIdx;
 
-            const catOptions = ['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
-            const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
+            const catOptions = ['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Hardware', 'Software', 'Jasa', 'Lainnya'];
+            const selectOptions = catOptions.map(c => `<option value="${c}" ${(c.toLowerCase() === cat.toLowerCase() || (c === 'Hardware' && cat.toLowerCase() === 'aksesoris')) ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
                 <td class="py-2.5 px-2 text-center whitespace-nowrap">
@@ -3168,10 +3171,11 @@
 
                     const compHppDisp = row.querySelector('.comp-hpp-display');
                     if (compHppDisp) {
+                        const pureHppTotal = hppRaw * qty;
                         if (qty > 1) {
-                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(partModalTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(baseCost)} &times; ${qty}</span>`;
+                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(pureHppTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(hppRaw)} &times; ${qty}</span>`;
                         } else {
-                            compHppDisp.innerText = 'Rp ' + formatRupiah(baseCost);
+                            compHppDisp.innerText = 'Rp ' + formatRupiah(hppRaw);
                         }
                     }
 
