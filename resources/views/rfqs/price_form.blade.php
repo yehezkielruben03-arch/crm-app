@@ -567,12 +567,15 @@
                                     <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
                                         <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                             <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                            2. Biaya Modal (HPP)
+                                            2. Biaya Modal Exclude PPN (HPP)
                                         </span>
                                     </div>
 
                                     <div>
-                                        <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500">*</span></label>
+                                        <label class="text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                            <span>HPP Dasar / Modal Satuan (Exclude PPN) <span class="text-rose-500">*</span></span>
+                                            <span class="text-[10px] bg-amber-100 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">Ex PPN</span>
+                                        </label>
                                         <div class="relative rounded-xl shadow-2xs">
                                             <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                             @php
@@ -2039,12 +2042,15 @@
                             <div class="flex items-center justify-between border-b border-slate-200/80 pb-1.5">
                                 <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                    2. Biaya Modal (HPP)
+                                    2. Biaya Modal Exclude PPN (HPP)
                                 </span>
                             </div>
 
                             <div>
-                                <label class="text-[11px] font-bold text-slate-700 mb-1 block">HPP Dasar / Modal Satuan <span class="text-rose-500 font-bold">(wajib)</span></label>
+                                <label class="text-[11px] font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                    <span>HPP Dasar / Modal Satuan (Exclude PPN) <span class="text-rose-500 font-bold">(wajib)</span></span>
+                                    <span class="text-[10px] bg-amber-100 text-amber-800 border border-amber-200/80 px-1.5 py-0.5 rounded font-mono font-bold">Ex PPN</span>
+                                </label>
                                 <div class="relative rounded-xl shadow-2xs">
                                     <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-xs font-bold text-slate-400">Rp</span>
                                     <input type="text" inputmode="numeric" name="items[${tempId}][hpp]" id="hpp-${tempId}" data-item-id="${tempId}"
