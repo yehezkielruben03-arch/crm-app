@@ -895,7 +895,7 @@
                                             <td class="py-2.5 px-2.5">
                                                 <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][id]" value="{{ $comp->id }}">
                                                 <select name="items[{{ $item->id }}][components][{{ $cIdx }}][description]" class="w-full text-xs font-semibold text-slate-700 border-slate-200 rounded-lg py-1.5 px-2 focus:ring-1 focus:ring-indigo-500 bg-white">
-                                                    @foreach(['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Jasa', 'Lainnya'] as $catOption)
+                                                    @foreach(['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'] as $catOption)
                                                         <option value="{{ $catOption }}" {{ ($comp->description === $catOption || str_contains(strtolower($comp->product_name), strtolower($catOption))) ? 'selected' : '' }}>{{ $catOption }}</option>
                                                     @endforeach
                                                 </select>
@@ -2875,7 +2875,7 @@
             tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
             tr.dataset.compIndex = rowIdx;
 
-            const catOptions = ['Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
+            const catOptions = ['Hardware', 'Processor', 'Motherboard', 'RAM', 'Storage', 'Casing', 'Power Supply', 'Cooler', 'VGA / GPU', 'Monitor', 'Aksesoris', 'Software', 'Jasa', 'Lainnya'];
             const selectOptions = catOptions.map(c => `<option value="${c}" ${c.toLowerCase() === cat.toLowerCase() ? 'selected' : ''}>${c}</option>`).join('');
 
             tr.innerHTML = `
