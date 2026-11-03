@@ -922,8 +922,11 @@ class RfqController extends Controller
 
         $oldStatus = $rfq->status;
         $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
+        $targetStatus = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
+            ? Rfq::STATUS_APPROVED
+            : Rfq::STATUS_PENDING_LEADER;
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request, $targetStatus) {
             $cleanPrice = function ($val, $default = 0.0) {
                 if ($val === null || $val === '') return $default;
                 if (is_int($val) || is_float($val)) return (float) $val;
@@ -1136,10 +1139,6 @@ class RfqController extends Controller
 
             // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved
             // Jika Admin yang merevisi, alihkan ke Pending Leader agar disetujui ulang oleh Leader
-            $targetStatus = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
-                ? Rfq::STATUS_APPROVED
-                : Rfq::STATUS_PENDING_LEADER;
-
             if ($rfq->canTransitionTo($targetStatus)) {
                 $rfq->update(['status' => $targetStatus]);
             }
