@@ -170,6 +170,9 @@ class Rfq extends Model
             ],
             self::STATUS_PO_PENDING_LEADER => [
                 self::STATUS_GOAL,
+                self::STATUS_QUOTATION_SENT,
+                self::STATUS_QUOTATION_CREATED,
+                self::STATUS_APPROVED,
             ],
             default => [],
         };

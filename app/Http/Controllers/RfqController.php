@@ -1823,7 +1823,7 @@ class RfqController extends Controller
     public function rejectPo(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin atau Leader yang dapat menolak bukti PO.');
-        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat ditolak.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Hanya PO yang berstatus Pending Admin atau Pending Leader yang dapat ditolak.');
 
         $request->validate([
             'rejection_reason' => 'required|string|min:3|max:1000',
@@ -1839,6 +1839,7 @@ class RfqController extends Controller
         }
 
         $rejectionReason = trim($request->rejection_reason);
+        $userRole = $this->authUser()->isLeader() ? 'Leader' : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
 
         $rfq->update([
             'po_file_path'      => null,
@@ -1855,14 +1856,28 @@ class RfqController extends Controller
             \App\Models\Notification::send(
                 userId:  $rfq->sales_id,
                 type:    'warning',
-                title:   'Bukti PO Ditolak oleh Admin',
-                message: 'Admin ' . $this->authUser()->name . ' menolak bukti PO untuk RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Silakan upload ulang bukti PO yang benar.',
+                title:   'Bukti PO Ditolak oleh ' . $userRole,
+                message: $userRole . ' ' . $this->authUser()->name . ' menolak bukti PO untuk RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Silakan lakukan revisi harga/QTY atau koordinasikan dengan Admin.',
                 link:    route('rfq.show', $rfq)
             );
         }
 
+        // Jika ditolak oleh Leader, beri tahu juga Admin Purchase agar segera sesuaikan HPP/harga penawaran
+        if ($this->authUser()->isLeader() || $this->authUser()->isSuperAdmin()) {
+            $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    userId:  $admin->id,
+                    type:    'warning',
+                    title:   'PO Ditolak oleh Leader (Perlu Revisi HPP/Harga)',
+                    message: 'Leader ' . $this->authUser()->name . ' menolak bukti PO RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Harap periksa dan sesuaikan HPP/harga penawaran jika diperlukan.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+        }
+
         return redirect()->route('rfq.show', $rfq)
-            ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales telah diberitahu untuk mengunggah ulang bukti PO.');
+            ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales dan Admin telah diberitahu untuk melakukan penyesuaian.');
     }
 
     public function approveGoal(Request $request, Rfq $rfq)

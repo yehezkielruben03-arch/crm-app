@@ -1169,6 +1169,28 @@
             </div>
             @endif
 
+            @if($rfq->po_rejection_note)
+            <div class="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-900 w-full shadow-sm">
+                <div class="flex items-start gap-2.5">
+                    <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <div class="flex-1 text-xs">
+                        <div class="font-bold text-rose-800 mb-1 flex items-center justify-between gap-2">
+                            <span>Bukti PO Ditolak oleh {{ $rfq->poRejectedBy?->role_display_name ?? ($rfq->poRejectedBy?->role ?? 'Admin / Leader') }} {{ $rfq->poRejectedBy?->name ? '('.$rfq->poRejectedBy->name.')' : '' }}</span>
+                            @if($rfq->po_rejected_at)
+                            <span class="font-normal text-[11px] text-rose-600">{{ $rfq->po_rejected_at->format('d/m/Y H:i') }}</span>
+                            @endif
+                        </div>
+                        <div class="p-2 bg-white/90 rounded-lg border border-rose-200 text-rose-950 font-medium whitespace-pre-line mb-1.5 shadow-sm">
+                            "{{ $rfq->po_rejection_note }}"
+                        </div>
+                        <p class="text-rose-700">Silakan periksa alasan di atas. Lakukan penyesuaian harga (oleh Admin/Leader) atau revisi QTY (oleh Sales) sebelum mengunggah kembali bukti PO yang sesuai.</p>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']) && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()))
             <a href="{{ route('rfq.price_form', $rfq) }}"
                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
@@ -1214,28 +1236,6 @@
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Upload PO Customer (Menjadi GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Jika klien setuju, silakan upload bukti PO di sini untuk diproses menjadi GOAL.</p>
-                
-                @if($rfq->po_rejection_note)
-                <div class="p-3.5 mb-3 rounded-xl border border-rose-200 bg-rose-50 text-rose-900">
-                    <div class="flex items-start gap-2.5">
-                        <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                        </svg>
-                        <div class="flex-1 text-xs">
-                            <div class="font-bold text-rose-800 mb-1 flex items-center justify-between gap-2">
-                                <span>Bukti PO Ditolak oleh Admin {{ $rfq->poRejectedBy?->name ? '('.$rfq->poRejectedBy->name.')' : '' }}</span>
-                                @if($rfq->po_rejected_at)
-                                <span class="font-normal text-[11px] text-rose-600">{{ $rfq->po_rejected_at->format('d/m/Y H:i') }}</span>
-                                @endif
-                            </div>
-                            <div class="p-2 bg-white/90 rounded-lg border border-rose-200 text-rose-950 font-medium whitespace-pre-line mb-1.5 shadow-sm">
-                                "{{ $rfq->po_rejection_note }}"
-                            </div>
-                            <p class="text-rose-700">Silakan periksa alasan di atas dan unggah kembali bukti PO yang benar melalui form di bawah ini.</p>
-                        </div>
-                    </div>
-                </div>
-                @endif
 
                 <form action="{{ route('rfq.upload_po', $rfq) }}" method="POST" enctype="multipart/form-data">
                     @csrf
@@ -1282,16 +1282,26 @@
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Persetujuan Akhir (GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Admin Purchase telah memverifikasi PO ini. Setujui untuk menandai sebagai GOAL.</p>
-                <form action="{{ route('rfq.approve_goal', $rfq) }}" method="POST" onsubmit="if(!confirm('Setujui RFQ {{ $rfq->rfq_number }} sebagai GOAL? PO resmi akan diterbitkan ke Admin Purchase.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses GOAL...'; return true;">
-                    @csrf
-                    <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
-                        style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                <div class="flex flex-col gap-2">
+                    <form action="{{ route('rfq.approve_goal', $rfq) }}" method="POST" onsubmit="if(!confirm('Setujui RFQ {{ $rfq->rfq_number }} sebagai GOAL? PO resmi akan diterbitkan ke Admin Purchase.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses GOAL...'; return true;">
+                        @csrf
+                        <button type="submit" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
+                            style="background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Approve Menjadi GOAL
+                        </button>
+                    </form>
+                    <button type="button" onclick="openRejectPoModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}')"
+                        class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition-colors hover:bg-rose-100"
+                        style="background: rgba(225,29,72,0.1); color: var(--accent-rose); border: 1px solid rgba(225,29,72,0.25);">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
-                        Approve Menjadi GOAL
+                        Tolak PO & Minta Revisi Harga / Upload Ulang
                     </button>
-                </form>
+                </div>
             </div>
             @endif
 
