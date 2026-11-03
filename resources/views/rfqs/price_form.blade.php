@@ -872,8 +872,7 @@
                                             <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
                                             <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
                                             <th class="py-2.5 px-2.5 w-40 min-w-[150px]">Vendor / Toko</th>
-                                            <th class="py-2.5 px-2.5 w-36 min-w-[145px] text-right">Harga Beli (Inc PPN)</th>
-                                            <th class="py-2.5 px-2.5 w-36 min-w-[140px] text-right bg-slate-50/80 whitespace-nowrap">Modal Ex PPN</th>
+                                            <th class="py-2.5 px-2.5 w-40 min-w-[155px] text-right bg-amber-50/60 text-amber-900 font-extrabold whitespace-nowrap">Modal HPP (Ex PPN) <span class="text-rose-500">*</span></th>
                                             <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Ongkir Vendor</th>
                                             <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Biaya Kirim</th>
                                             <th class="py-2.5 px-1.5 w-20 min-w-[80px] text-center">Margin %</th>
@@ -926,27 +925,16 @@
                                             <td class="py-2.5 px-2.5">
                                                 @php
                                                     $modalEx = (float) $comp->hpp;
-                                                    $estInc = round($modalEx * 1.11);
                                                 @endphp
                                                 <div class="relative">
-                                                    <input type="text" inputmode="numeric"
-                                                           value="{{ number_format($estInc > 0 ? $estInc : $modalEx, 0, ',', '.') }}"
-                                                           class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-inc-ppn-input"
-                                                           placeholder="0" oninput="onCompIncPpnChange(this, '{{ $item->id }}')">
+                                                    <input type="text" inputmode="numeric" name="items[{{ $item->id }}][components][{{ $cIdx }}][hpp]"
+                                                           value="{{ number_format($modalEx, 0, ',', '.') }}"
+                                                           class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-hpp-raw focus:ring-1 focus:ring-indigo-500"
+                                                           placeholder="0" required oninput="calculateBundle('{{ $item->id }}')">
                                                 </div>
-                                                <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
-                                                    <input type="checkbox" checked class="rounded border-slate-300 text-indigo-600 focus:ring-0 comp-ppn-toggle" onchange="onCompIncPpnChange(this, '{{ $item->id }}')">
-                                                    <span>/ 1.11</span>
-                                                </label>
-                                            </td>
-                                            <td class="py-2.5 px-2.5 text-right bg-slate-50/80 font-mono font-semibold text-slate-700 whitespace-nowrap">
-                                                <input type="hidden" name="items[{{ $item->id }}][components][{{ $cIdx }}][hpp]" value="{{ $modalEx }}" class="comp-hpp-raw">
-                                                <span class="comp-hpp-display">
+                                                <span class="comp-hpp-subdisplay block text-[10px] text-slate-400 font-normal text-right mt-0.5" style="{{ (float)$comp->qty > 1 ? '' : 'display:none;' }}">
                                                     @if((float)$comp->qty > 1)
-                                                        <span>Rp {{ number_format($modalEx * (float)$comp->qty, 0, ',', '.') }}</span>
-                                                        <span class="block text-[10px] text-slate-400 font-normal">@ Rp {{ number_format($modalEx, 0, ',', '.') }} &times; {{ (float)$comp->qty }}</span>
-                                                    @else
-                                                        Rp {{ number_format($modalEx, 0, ',', '.') }}
+                                                        @ Rp {{ number_format($modalEx, 0, ',', '.') }} &times; {{ (float)$comp->qty }} = Rp {{ number_format($modalEx * (float)$comp->qty, 0, ',', '.') }}
                                                     @endif
                                                 </span>
                                             </td>
@@ -2767,57 +2755,57 @@
                 name: 'PC RAKITAN i5-12400 | 16GB | 1TB SSD | NO VGA | NO OS',
                 delivery_cost: 107100,
                 components: [
-                    { category: 'Processor', name: 'Intel Core i5-12400 2.5GHz Up To 4.4GHz - Cache 18MB Socket LGA1700', inc_ppn: 3529000, is_inc: true, ongkir: 150000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Motherboard', name: 'MSI PRO B760M-A WIFI DDR4 (LGA1700, B760, DDR4, USB3.2 Type-C, SATA3)', inc_ppn: 2490000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'RAM', name: 'Team Elite Plus Black DDR4 PC25600 3200MHz 16GB (2x8GB)', inc_ppn: 2209000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Storage', name: 'Samsung SSD 990 EVO PLUS M.2 PCIe Gen 5.0 1TB', inc_ppn: 4379000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Casing', name: 'Deepcool XFAN 12CM Black (Hydro Bearing)', inc_ppn: 49000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Cooler', name: 'Deepcool AK400 - Fan 12CM - LGA1700 Support', inc_ppn: 395000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Power Supply', name: 'Antec ATOM B750 - 750W 80+ Bronze', inc_ppn: 850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Casing', name: 'GameMax Spark Air Black Tempered Glass M-ATX', inc_ppn: 615000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Monitor', name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', inc_ppn: 1195000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Hardware', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', inc_ppn: 148810, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
+                    { category: 'Processor', name: 'Intel Core i5-12400 2.5GHz Up To 4.4GHz - Cache 18MB Socket LGA1700', hpp: 3179279, ongkir: 150000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Motherboard', name: 'MSI PRO B760M-A WIFI DDR4 (LGA1700, B760, DDR4, USB3.2 Type-C, SATA3)', hpp: 2243243, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'RAM', name: 'Team Elite Plus Black DDR4 PC25600 3200MHz 16GB (2x8GB)', hpp: 1990090, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Storage', name: 'Samsung SSD 990 EVO PLUS M.2 PCIe Gen 5.0 1TB', hpp: 3945045, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'Deepcool XFAN 12CM Black (Hydro Bearing)', hpp: 44144, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Cooler', name: 'Deepcool AK400 - Fan 12CM - LGA1700 Support', hpp: 355856, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Power Supply', name: 'Antec ATOM B750 - 750W 80+ Bronze', hpp: 765766, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'GameMax Spark Air Black Tempered Glass M-ATX', hpp: 554054, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Monitor', name: 'MSI Pro MP2412 23.8" FHD 100Hz Monitor', hpp: 1076577, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Hardware', name: 'Vention USB Wired Full-Sized Keyboard and Mouse Combo', hpp: 134063, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Stekno' }
                 ]
             },
             mini_pc: {
                 name: 'MINI PC ASUS INTEL NUC13ANH',
                 delivery_cost: 107100,
                 components: [
-                    { category: 'Processor', name: 'MINI PC ASUS INTEL NUC13ANHH5 INTEL i5-13420H', inc_ppn: 6650000, is_inc: true, ongkir: 100000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'RAM', name: 'V-GeN Platinum DDR4 16GB 3200Mhz', inc_ppn: 2488000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'Storage', name: 'V-GeN SSD NVMe 1TB', inc_ppn: 3288000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'Software', name: 'Windows 11 Pro - OEM', inc_ppn: 2715000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
-                    { category: 'Hardware', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', inc_ppn: 162000, is_inc: true, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
+                    { category: 'Processor', name: 'MINI PC ASUS INTEL NUC13ANHH5 INTEL i5-13420H', hpp: 5990991, ongkir: 100000, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'RAM', name: 'V-GeN Platinum DDR4 16GB 3200Mhz', hpp: 2241441, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Storage', name: 'V-GeN SSD NVMe 1TB', hpp: 2962162, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Software', name: 'Windows 11 Pro - OEM', hpp: 2445946, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'ISB' },
+                    { category: 'Hardware', name: 'Logitech MK120 Corded Keyboard and Mouse Combo', hpp: 145946, ongkir: 10000, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'CAL' }
                 ]
             },
             office_i3: {
                 name: 'PC RAKITAN INTEL CORE i3-12100 | 8GB | 512GB SSD | MONITOR 22"',
                 delivery_cost: 100000,
                 components: [
-                    { category: 'Processor', name: 'Intel Core i3-12100 Box Socket LGA1700', inc_ppn: 1750000, is_inc: true, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Motherboard', name: 'Asrock H610M-HDV/M.2 DDR4', inc_ppn: 1150000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'RAM', name: 'Team Elite Plus 8GB DDR4 3200MHz', inc_ppn: 320000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Storage', name: 'Kingston NV2 500GB M.2 PCIe NVMe', inc_ppn: 650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Casing', name: 'VenomRX mATX Case + PSU 450W', inc_ppn: 450000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Monitor', name: 'Philips 221V8L 21.5" FHD 75Hz', inc_ppn: 1050000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Hardware', name: 'Logitech MK120 Combo Keyboard Mouse', inc_ppn: 235000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
-                    { category: 'Jasa', name: 'Rakit + Cable Management + Testing', inc_ppn: 150000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
+                    { category: 'Processor', name: 'Intel Core i3-12100 Box Socket LGA1700', hpp: 1576577, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Motherboard', name: 'Asrock H610M-HDV/M.2 DDR4', hpp: 1036036, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'RAM', name: 'Team Elite Plus 8GB DDR4 3200MHz', hpp: 288288, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Storage', name: 'Kingston NV2 500GB M.2 PCIe NVMe', hpp: 585586, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Casing', name: 'VenomRX mATX Case + PSU 450W', hpp: 405405, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Monitor', name: 'Philips 221V8L 21.5" FHD 75Hz', hpp: 945946, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Hardware', name: 'Logitech MK120 Combo Keyboard Mouse', hpp: 211712, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Tokopedia' },
+                    { category: 'Jasa', name: 'Rakit + Cable Management + Testing', hpp: 150000, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
                 ]
             },
             workstation_i7: {
                 name: 'PC WORKSTATION INTEL CORE i7-13700 | RTX 4060 | 32GB DDR5 | 1TB NVMe',
                 delivery_cost: 150000,
                 components: [
-                    { category: 'Processor', name: 'Intel Core i7-13700 Box Socket LGA1700', inc_ppn: 5800000, is_inc: true, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Motherboard', name: 'MSI MAG B760 TOMAHAWK WIFI DDR5', inc_ppn: 3600000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'RAM', name: 'Corsair Vengeance 32GB (2x16GB) DDR5 5600MHz', inc_ppn: 1950000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Storage', name: 'Samsung 980 Pro 1TB M.2 PCIe Gen 4', inc_ppn: 1850000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'VGA / GPU', name: 'GeForce RTX 4060 8GB GDDR6', inc_ppn: 5250000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Power Supply', name: 'Corsair RM650e 650W 80+ Gold Modular', inc_ppn: 1650000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Casing', name: 'Cooler Master MasterBox TD500 Mesh V2', inc_ppn: 1350000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Cooler', name: 'Deepcool AK620 High Performance Air Cooler', inc_ppn: 950000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Monitor', name: 'Dell UltraSharp / LG 27" 2K QHD IPS', inc_ppn: 4200000, is_inc: true, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
-                    { category: 'Jasa', name: 'Rakit Profesional + Stress Test 24 Jam', inc_ppn: 250000, is_inc: false, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
+                    { category: 'Processor', name: 'Intel Core i7-13700 Box Socket LGA1700', hpp: 5225225, ongkir: 0, margin: 15, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Motherboard', name: 'MSI MAG B760 TOMAHAWK WIFI DDR5', hpp: 3243243, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'RAM', name: 'Corsair Vengeance 32GB (2x16GB) DDR5 5600MHz', hpp: 1756757, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Storage', name: 'Samsung 980 Pro 1TB M.2 PCIe Gen 4', hpp: 1666667, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'VGA / GPU', name: 'GeForce RTX 4060 8GB GDDR6', hpp: 4729730, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Power Supply', name: 'Corsair RM650e 650W 80+ Gold Modular', hpp: 1486486, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Casing', name: 'Cooler Master MasterBox TD500 Mesh V2', hpp: 1216216, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Cooler', name: 'Deepcool AK620 High Performance Air Cooler', hpp: 855856, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Monitor', name: 'Dell UltraSharp / LG 27" 2K QHD IPS', hpp: 3783784, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Enterkomputer' },
+                    { category: 'Jasa', name: 'Rakit Profesional + Stress Test 24 Jam', hpp: 250000, ongkir: 0, margin: 13, ceiling: 50000, qty: 1, unit: 'Unit', vendor: 'Internal Pedia' }
                 ]
             }
         };
@@ -2917,8 +2905,7 @@
                     addPcComponentRow(itemId, {
                         category: comp.category,
                         name: comp.name,
-                        inc_ppn: comp.inc_ppn,
-                        is_inc: comp.is_inc,
+                        hpp: comp.hpp || 0,
                         ongkir: comp.ongkir,
                         biaya_kirim: delivery,
                         margin: comp.margin,
@@ -2948,15 +2935,12 @@
             const qty = data.qty !== undefined ? data.qty : 1;
             const unit = data.unit || 'Unit';
             const vendor = data.vendor || '';
-            const incPpn = data.inc_ppn !== undefined ? data.inc_ppn : 0;
-            const isInc = data.is_inc !== undefined ? data.is_inc : true;
+            const hppVal = data.hpp !== undefined ? data.hpp : (data.inc_ppn !== undefined ? data.inc_ppn : 0);
             const ongkir = data.ongkir !== undefined ? data.ongkir : 0;
             const biayaKirim = data.biaya_kirim !== undefined ? data.biaya_kirim : (rowIdx === 0 ? (parseRupiah(document.getElementById('bundle-delivery-cost-' + itemId)?.value || '107100')) : 0);
             const margin = data.margin !== undefined ? data.margin : (rowIdx === 0 ? 15 : 13);
             const ceiling = data.ceiling !== undefined ? data.ceiling : 50000;
             const showInQuo = data.show_in_quotation !== undefined ? Boolean(data.show_in_quotation) : true;
-
-            const modalEx = isInc && incPpn > 0 ? Math.round(incPpn / 1.11) : incPpn;
 
             const tr = document.createElement('tr');
             tr.className = 'comp-row-' + itemId + ' hover:bg-slate-50/80 transition';
@@ -3003,19 +2987,14 @@
                 </td>
                 <td class="py-2.5 px-2.5">
                     <div class="relative">
-                        <input type="text" inputmode="numeric"
-                               value="${formatRupiah(incPpn)}"
-                               class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-inc-ppn-input"
-                               placeholder="0" oninput="onCompIncPpnChange(this, '${itemId}')">
+                        <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][hpp]"
+                               value="${formatRupiah(hppVal)}"
+                               class="w-full text-xs font-bold text-right border-slate-200 rounded-lg py-1.5 px-2 rupiah-input comp-hpp-raw focus:ring-1 focus:ring-indigo-500"
+                               placeholder="0" required oninput="calculateBundle('${itemId}')">
                     </div>
-                    <label class="flex items-center gap-1 mt-0.5 text-[9px] text-slate-500 cursor-pointer">
-                        <input type="checkbox" ${isInc ? 'checked' : ''} class="rounded border-slate-300 text-indigo-600 focus:ring-0 comp-ppn-toggle" onchange="onCompIncPpnChange(this, '${itemId}')">
-                        <span>/ 1.11</span>
-                    </label>
-                </td>
-                <td class="py-2.5 px-2.5 text-right bg-slate-50/80 font-mono font-semibold text-slate-700 whitespace-nowrap">
-                    <input type="hidden" name="items[${itemId}][components][${rowIdx}][hpp]" value="${modalEx}" class="comp-hpp-raw">
-                    <span class="comp-hpp-display">Rp ${formatRupiah(modalEx)}</span>
+                    <span class="comp-hpp-subdisplay block text-[10px] text-slate-400 font-normal text-right mt-0.5" style="${qty > 1 ? '' : 'display:none;'}">
+                        ${qty > 1 ? `@ Rp ${formatRupiah(hppVal)} &times; ${qty} = Rp ${formatRupiah(hppVal * qty)}` : ''}
+                    </span>
                 </td>
                 <td class="py-2.5 px-2.5">
                     <input type="text" inputmode="numeric" name="items[${itemId}][components][${rowIdx}][ongkir_pedia]"
@@ -3080,25 +3059,6 @@
             }
         }
 
-        function onCompIncPpnChange(el, itemId) {
-            const row = el.closest('tr');
-            if (!row) return;
-
-            const incInput = row.querySelector('.comp-inc-ppn-input');
-            const toggle = row.querySelector('.comp-ppn-toggle');
-            const hppRaw = row.querySelector('.comp-hpp-raw');
-            const hppDisp = row.querySelector('.comp-hpp-display');
-
-            const incVal = parseRupiah(incInput?.value || '0');
-            const isInc = toggle ? toggle.checked : true;
-
-            const exVal = (isInc && incVal > 0) ? Math.round(incVal / 1.11) : incVal;
-
-            if (hppRaw) hppRaw.value = exVal;
-            if (hppDisp) hppDisp.innerText = 'Rp ' + formatRupiah(exVal);
-
-            calculateBundle(itemId);
-        }
 
         function updateBundleDeliveryCost(itemId) {
             const deliveryVal = parseRupiah(document.getElementById('bundle-delivery-cost-' + itemId)?.value || '0');
@@ -3176,13 +3136,15 @@
                         }
                     }
 
-                    const compHppDisp = row.querySelector('.comp-hpp-display');
-                    if (compHppDisp) {
-                        const pureHppTotal = hppRaw * qty;
+                    const compHppSubDisp = row.querySelector('.comp-hpp-subdisplay');
+                    if (compHppSubDisp) {
                         if (qty > 1) {
-                            compHppDisp.innerHTML = `<span>Rp ${formatRupiah(pureHppTotal)}</span><span class="block text-[10px] text-slate-400 font-normal">@ Rp ${formatRupiah(hppRaw)} &times; ${qty}</span>`;
+                            const pureHppTotal = hppRaw * qty;
+                            compHppSubDisp.style.display = 'block';
+                            compHppSubDisp.innerHTML = `@ Rp ${formatRupiah(hppRaw)} &times; ${qty} = Rp ${formatRupiah(pureHppTotal)}`;
                         } else {
-                            compHppDisp.innerText = 'Rp ' + formatRupiah(hppRaw);
+                            compHppSubDisp.style.display = 'none';
+                            compHppSubDisp.innerHTML = '';
                         }
                     }
 
