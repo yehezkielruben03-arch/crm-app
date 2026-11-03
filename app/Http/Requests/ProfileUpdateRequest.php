@@ -28,6 +28,7 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:30'],
             'job_title' => ['nullable', 'string', 'max:100'],
+            'crm_title' => ['nullable', 'string', 'max:100'],
             'signature_file' => ['nullable', 'image', 'mimes:png,jpg,jpeg', 'max:2048'],
             'signature_data' => ['nullable', 'string'],
             'remove_signature' => ['nullable'],

@@ -35,6 +35,7 @@ class ProfileController extends Controller
             'email'     => $validated['email'],
             'phone'     => $validated['phone'] ?? null,
             'job_title' => $validated['job_title'] ?? null,
+            'crm_title' => $validated['crm_title'] ?? null,
         ]);
 
         if ($user->isDirty('email')) {

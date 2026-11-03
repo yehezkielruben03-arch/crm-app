@@ -75,7 +75,7 @@
                 {{-- Jabatan Resmi di Dokumen (Job Title) --}}
                 <div>
                     <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
-                        Jabatan di Dokumen (Job Title)
+                        Jabatan di Dokumen (Job Title Penawaran)
                     </label>
                     <input type="text" name="job_title" value="{{ old('job_title', 'Account Manager') }}"
                         placeholder="Contoh: Account Manager, Sales Engineer"
@@ -83,6 +83,19 @@
                         onfocus="this.style.borderColor='var(--accent-blue)'"
                         onblur="this.style.borderColor='var(--border-color)'">
                     @error('job_title') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- Jabatan Tampilan Profil CRM --}}
+                <div>
+                    <label class="block text-xs font-semibold mb-1.5" style="color: var(--text-secondary);">
+                        Jabatan Profil CRM (Pojok Kanan Atas)
+                    </label>
+                    <input type="text" name="crm_title" value="{{ old('crm_title') }}"
+                        placeholder="Contoh: Admin, Account Manager (Opsional)"
+                        style="width: 100%; padding: 0.6rem 0.75rem; border-radius: 0.75rem; font-size: 0.875rem; outline: none; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary);"
+                        onfocus="this.style.borderColor='var(--accent-blue)'"
+                        onblur="this.style.borderColor='var(--border-color)'">
+                    @error('crm_title') <p class="mt-1 text-xs" style="color: var(--accent-rose);">{{ $message }}</p> @enderror
                 </div>
 
                 {{-- Status --}}

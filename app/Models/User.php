@@ -21,6 +21,7 @@ class User extends Authenticatable
         'password',
         'role',
         'job_title',
+        'crm_title',
         'phone',
         'signature_path',
         'status',
@@ -49,10 +50,14 @@ class User extends Authenticatable
 
     public function getRoleDisplayNameAttribute(): string
     {
+        if (!empty($this->crm_title)) {
+            return $this->crm_title;
+        }
+
         return match($this->role) {
             'Sales' => 'Sales Marketing',
             'Admin' => 'Admin Purchase',
-            default => $this->role,
+            default => $this->role ?: 'User',
         };
     }
 

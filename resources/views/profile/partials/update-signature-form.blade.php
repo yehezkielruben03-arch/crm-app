@@ -28,10 +28,10 @@
         <input type="hidden" name="remove_signature" id="removeSignatureInput" value="0">
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {{-- Input Jabatan Resmi --}}
+            {{-- Input Jabatan Resmi Dokumen (Quotation) --}}
             <div>
                 <label for="job_title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Jabatan Resmi di Dokumen (Job Title) <span class="text-rose-500">*</span>
+                    Jabatan Resmi di Dokumen Penawaran (Job Title Quotation) <span class="text-rose-500">*</span>
                 </label>
                 <input 
                     type="text" 
@@ -39,17 +39,35 @@
                     name="job_title" 
                     value="{{ old('job_title', $user->job_title ?: ($user->isSales() ? 'Account Manager' : $user->role)) }}" 
                     class="w-full text-sm border-slate-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition px-3.5 py-2.5 shadow-xs"
-                    placeholder="Contoh: Account Manager, Senior Sales Executive, Sales Engineer"
+                    placeholder="Contoh: Account Manager, Admin Purchase, Sales Engineer"
                     oninput="updateSignaturePreviewTitle(this.value)"
                     required
                 >
                 <p class="text-[11px] text-slate-400 mt-1">
-                    Teks jabatan ini akan tercetak di bawah nama Anda pada tanda tangan penawaran ke klien.
+                    Teks jabatan ini khusus tercetak di bawah tanda tangan pada lembar penawaran (Quotation PDF & Web).
+                </p>
+            </div>
+
+            {{-- Input Jabatan / Title Profil CRM (Kanan Atas) --}}
+            <div>
+                <label for="crm_title" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Jabatan / Label Profil CRM (Pojok Kanan Atas & Sidebar)
+                </label>
+                <input 
+                    type="text" 
+                    id="crm_title" 
+                    name="crm_title" 
+                    value="{{ old('crm_title', $user->crm_title) }}" 
+                    class="w-full text-sm border-slate-300 rounded-xl focus:ring-blue-500 focus:border-blue-500 transition px-3.5 py-2.5 shadow-xs"
+                    placeholder="Contoh: Admin (Kosongkan jika default: {{ $user->role }})"
+                >
+                <p class="text-[11px] text-slate-400 mt-1">
+                    Teks jabatan yang tampil di pojok kanan atas CRM & sidebar. Kosongkan untuk menggunakan role default ({{ $user->role }}).
                 </p>
             </div>
 
             {{-- Input Nomor Telepon / WA --}}
-            <div>
+            <div class="md:col-span-2">
                 <label for="phone" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Nomor Telepon / WhatsApp Sales
                 </label>
