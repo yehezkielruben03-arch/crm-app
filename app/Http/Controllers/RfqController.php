@@ -1147,44 +1147,42 @@ class RfqController extends Controller
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
+        }
 
-            $isRevision = $oldStatus !== Rfq::STATUS_PENDING_ADMIN;
-            $actionWord = $isRevision ? 'disesuaikan' : 'diisi';
-            $byWhom     = $isLeaderUser ? 'Leader' : 'Admin Purchase';
+        // Jika yang submit adalah Admin, kirim notifikasi HANYA ke Leader untuk Approval (Sales TIDAK diberi notif prematur)
+        if (!$isLeaderUser) {
+            $leaders = \App\Models\User::where('role', 'Leader')->get();
+            foreach ($leaders as $leader) {
+                \App\Models\Notification::send(
+                    userId:  $leader->id,
+                    type:    'warning',
+                    title:   'RFQ Membutuhkan Approval',
+                    message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+        } else {
+            // Jika Leader yang langsung menyesuaikan harga pada RFQ yang statusnya sudah Approved
+            if ($targetStatus === Rfq::STATUS_APPROVED && $rfq->sales_id) {
+                \App\Models\Notification::send(
+                    userId:  $rfq->sales_id,
+                    type:    'info',
+                    title:   'Harga Penawaran Disesuaikan Leader',
+                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan harga untuk RFQ ' . $rfq->rfq_number . '.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
 
-            // Notifikasi ke Sales Marketing
-            \App\Models\Notification::send(
-                $rfq->sales_id,
-                'info',
-                'Harga RFQ ' . ($isRevision ? 'Disesuaikan' : 'Diisi') . ' ' . $byWhom,
-                'Harga untuk RFQ ' . $rfq->rfq_number . ' telah ' . $actionWord . ' oleh ' . $byWhom . '.',
-                route('rfq.show', $rfq)
-            );
-
-            // Jika yang submit adalah Admin, kirim notif ke Leader untuk Approval
-            if (!$isLeaderUser) {
-                $leaders = \App\Models\User::where('role', 'Leader')->get();
-                foreach ($leaders as $leader) {
-                    \App\Models\Notification::send(
-                        userId:  $leader->id,
-                        type:    'warning',
-                        title:   'RFQ Membutuhkan Approval',
-                        message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
-            } else {
-                // Jika Leader yang menyesuaikan harga, kirim info ke Admin
-                $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
-                foreach ($admins as $admin) {
-                    \App\Models\Notification::send(
-                        userId:  $admin->id,
-                        type:    'info',
-                        title:   'HPP Disesuaikan oleh Leader',
-                        message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan HPP untuk RFQ ' . $rfq->rfq_number . '.',
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
+            // Info ke Admin Purchase
+            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    userId:  $admin->id,
+                    type:    'info',
+                    title:   'HPP Disesuaikan oleh Leader',
+                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan HPP untuk RFQ ' . $rfq->rfq_number . '.',
+                    link:    route('rfq.show', $rfq)
+                );
             }
         }
 
