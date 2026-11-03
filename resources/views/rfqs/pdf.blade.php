@@ -67,18 +67,18 @@
         $itemCount         = count($quotationItems);
         $totalSpecLines    = 0;
         foreach ($quotationItems as $qItem) {
-            $specText = trim((string) ($qItem->description ?: $qItem->detail_item));
-            if ($specText !== '') {
-                foreach (preg_split('/\r\n|\r|\n/', $specText) as $sLine) {
+            $cleanSpec = trim(strip_tags($qItem->description ?: (string) $qItem->detail_item));
+            if ($cleanSpec !== '') {
+                foreach (preg_split('/\r\n|\r|\n/', $cleanSpec) as $sLine) {
                     $sLine = trim($sLine);
                     if ($sLine !== '') {
-                        $totalSpecLines += max(1, (int) ceil(mb_strlen($sLine) / 68));
+                        $totalSpecLines += max(1, (int) ceil(mb_strlen(strip_tags($sLine)) / 68));
                     }
                 }
             }
         }
 
-        $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
+        $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", strip_tags($rfq->notes ?? '')))), function($line) {
             $clean = strtolower(trim(ltrim($line, '- ')));
             return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
         });
@@ -246,6 +246,14 @@
         .text-left { text-align: left; }
         .font-bold { font-weight: bold; }
         .italic { font-style: italic; }
+    
+        /* Scoped DomPDF styling for Rich Text Notes & Item Specs */
+        .pdf-rich-text { display: inline-block; width: 100%; }
+        .pdf-rich-text ul, .pdf-rich-text ol { margin: 0; padding-left: 12pt; }
+        .pdf-rich-text li { margin: 0; padding: 0; }
+        .pdf-rich-text p { margin: 0; }
+        .pdf-rich-text s { text-decoration: line-through; }
+        .pdf-rich-text u { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -359,11 +367,7 @@
                         @php $itemSpec = trim((string) ($item->description ?: $item->detail_item)); @endphp
                         @if($itemSpec !== '')
                         <div style="color: #000; margin-top: 1pt; font-size: {{ $itemSpecSize }}; font-style: italic;">
-                            @foreach(preg_split('/\r\n|\r|\n/', ucfirst($itemSpec)) as $specLine)
-                                @if(trim($specLine) !== '')
-                                <div style="line-height: {{ $specLineH }};">{{ trim($specLine) }}</div>
-                                @endif
-                            @endforeach
+                            {!! \App\Helpers\RfqNoteHelper::renderPdfHtml(ucfirst($itemSpec)) !!}
                         </div>
                         @endif
 
@@ -374,7 +378,9 @@
                                 @php
                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                 @endphp
-                                <div style="font-style: italic; color: #ff0000; line-height: {{ $specLineH }}; font-weight: bold;">{{ $formattedNote }}</div>
+                                <div style="font-style: italic; color: #ff0000; line-height: {{ $specLineH }}; font-weight: bold;">
+                                    {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($formattedNote) /* cNote via RfqNoteHelper */ !!}
+                                </div>
                             @endforeach
                             <div style="font-style: italic; color: #000; line-height: {{ $specLineH }};">- Harga dapat berubah tanpa pemberitahuan</div>
                             <div style="font-style: italic; color: #000; line-height: {{ $specLineH }};">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>

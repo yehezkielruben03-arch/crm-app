@@ -246,7 +246,7 @@
                 @if($rfq->notes)
                 <div class="mt-4 pt-4" style="border-top: 1px solid #e2e8f0;">
                     <dt class="text-xs mb-1" style="color: var(--text-muted);">Catatan</dt>
-                    <dd class="text-sm" style="color: var(--text-secondary);">{{ $rfq->notes }}</dd>
+                    <dd class="text-sm" style="color: var(--text-secondary);">{!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->notes) !!}</dd>
                 </div>
                 @endif
 
@@ -286,10 +286,11 @@
                     let lines = [];
                     lines.push(this.customerName + ', ' + this.rfqType);
                     lines.push('note:');
-                    if (this.noteText && this.noteText.trim()) {
-                        lines.push(this.noteText.trim());
+                    let convertedNote = typeof htmlToWhatsApp === 'function' ? htmlToWhatsApp(this.noteText || '') : (this.noteText || '');
+                    if (convertedNote && convertedNote.trim()) {
+                        lines.push(convertedNote.trim());
                     }
-                    if (!this.noteText.toLowerCase().includes('file sudah dimasukan ke folder sales')) {
+                    if (!convertedNote.toLowerCase().includes('file sudah dimasukan ke folder sales')) {
                         lines.push('file sudah dimasukan ke folder sales');
                     }
                     return lines.join('\n');
@@ -392,8 +393,8 @@
                     </div>
 
                     {{-- Isi Catatan --}}
-                    <div class="mt-3 p-3.5 rounded-xl bg-white border border-amber-200 text-xs text-slate-800 font-mono leading-relaxed whitespace-pre-line shadow-2xs">
-                        {{ $rfq->admin_note }}
+                    <div class="mt-3 p-3.5 rounded-xl bg-white border border-amber-200 text-xs text-slate-800 leading-relaxed shadow-2xs">
+                        {!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->admin_note) !!}
                     </div>
                 </div>
                 @elseif(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
@@ -504,17 +505,30 @@
                                 </div>
                             </div>
 
-                            {{-- Textarea --}}
-                            <div>
-                                <label for="admin-note-modal-textarea" class="text-xs font-bold text-slate-700 mb-1 block">
-                                    Isi Catatan Internal:
+                            {{-- Textarea with Mini Toolbar & Contenteditable --}}
+                            <div class="mini-rich-editor-wrapper" id="modal-rte-admin-note">
+                                <label for="admin-note-modal-textarea" class="text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                                    <span>Isi Catatan Internal:</span>
+                                    <span class="inline-flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs italic text-slate-700 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs underline text-slate-700 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs line-through text-slate-700 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                                    </span>
                                 </label>
+                                <div contenteditable="true"
+                                     x-ref="modalEditor"
+                                     @input="noteText = $el.innerHTML; document.getElementById('admin-note-modal-textarea').value = noteText"
+                                     class="rte-editor w-full text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-xl p-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y leading-relaxed min-h-[120px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->admin_note) !!}</div>
                                 <textarea name="admin_note" 
                                           id="admin-note-modal-textarea" 
                                           x-model="noteText"
                                           rows="5" 
-                                          class="w-full text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-xl p-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y leading-relaxed"
-                                          placeholder="Tulis catatan per butir..."></textarea>
+                                          style="display:none;"
+                                          class="hidden"
+                                          placeholder="Tulis catatan per butir...">{{ $rfq->admin_note }}</textarea>
                             </div>
 
                             {{-- Live WA Preview Box --}}
@@ -1547,6 +1561,27 @@
             }
             return false;
         }
-    </script>
+            function htmlToWhatsApp(html) {
+            if (!html) return '';
+            let text = html;
+            text = text.replace(/<br\s*\/?>/gi, '\n');
+            text = text.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
+            text = text.replace(/<\/?p[^>]*>/gi, '');
+            text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1\n');
+            text = text.replace(/<\/?(ul|ol)[^>]*>/gi, '');
+            // Bold <b> / <strong> -> *text*
+            text = text.replace(/<(b|strong)>(.*?)<\/(b|strong)>/gi, '*$2*');
+            // Italic <i> / <em> -> _text_
+            text = text.replace(/<(i|em)>(.*?)<\/(i|em)>/gi, '_$2_');
+            // Strike <s> / <del> -> ~text~
+            text = text.replace(/<(s|del|strike)>(.*?)<\/(s|del|strike)>/gi, '~$2~');
+            // Underline <u> -> unwrap
+            text = text.replace(/<\/?u>/gi, '');
+            text = text.replace(/<[^>]+>/g, '');
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            return doc.body.textContent || "";
+        }
+
+</script>
 
 </x-app-layout>

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\RfqNoteHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -203,6 +204,16 @@ class RfqItem extends Model
             $qty = (float) ($c->qty ?: 1);
             return $unitCost * $qty;
         });
+    }
+
+    public function setDescriptionAttribute($value): void
+    {
+        $this->attributes['description'] = RfqNoteHelper::sanitize($value);
+    }
+
+    public function setDetailItemAttribute($value): void
+    {
+        $this->attributes['detail_item'] = RfqNoteHelper::sanitize($value);
     }
 
     // Menentukan apakah item merupakan tenaga kerja teknisi, akomodasi, atau mobdemob internal Pedia

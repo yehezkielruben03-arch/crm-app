@@ -272,7 +272,7 @@
                                             <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! e(ucfirst($itemSpec)) !!}</div>
+                                            <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
@@ -287,7 +287,7 @@
                                                 @php
                                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                                 @endphp
-                                                <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug">{{ $formattedNote }}</div>
+                                                <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml($formattedNote) !!}</div>
                                             @endforeach
                                             <div class="italic text-black text-[12px] leading-snug">- Harga dapat berubah tanpa pemberitahuan</div>
                                             <div class="italic text-black text-[12px] leading-snug">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
@@ -297,7 +297,7 @@
                                     <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! e(ucfirst($itemSpec)) !!}</div>
+                                    <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
                                     @endif
                                 @endif
                             </td>

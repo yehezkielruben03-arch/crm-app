@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Helpers\RfqNoteHelper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -273,9 +274,13 @@ class Rfq extends Model
 
     public function getWhatsAppFormattedNote(): string
     {
-        $customer = $this->customer?->company_name ?? $this->customer?->name ?? $this->customer_name ?? '-';
+        $customerName = null;
+        if ($this->relationLoaded('customer') || static::$resolver !== null) {
+            $customerName = $this->customer?->company_name ?? $this->customer?->name;
+        }
+        $customer = $customerName ?: ($this->customer_name ?? '-');
         $type = $this->type ?: 'Hardware';
-        $note = trim($this->admin_note ?? '');
+        $note = trim(RfqNoteHelper::toWhatsApp($this->admin_note));
 
         $lines = [];
         $lines[] = "{$customer}, {$type}";
@@ -345,6 +350,16 @@ class Rfq extends Model
     public function setCustomerNameAttribute($value): void
     {
         $this->attributes['customer_name'] = Customer::formatTitleCase($value);
+    }
+
+    public function setNotesAttribute($value): void
+    {
+        $this->attributes['notes'] = RfqNoteHelper::sanitize($value);
+    }
+
+    public function setAdminNoteAttribute($value): void
+    {
+        $this->attributes['admin_note'] = RfqNoteHelper::sanitize($value);
     }
 
     public function getResolvedPicNameAttribute(): string
