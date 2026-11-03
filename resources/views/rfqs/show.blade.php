@@ -965,10 +965,28 @@
                                             Draf Penyesuaian (Versi {{ $history->version }}) - Menunggu Approval
                                         @endif
                                     </span>
-                                    <span class="text-xs text-slate-500 font-medium">{{ $history->created_at->format('d M Y, H:i') }} WIB</span>
+                                    <span class="text-xs text-slate-500 font-medium">{{ $history->created_at ? $history->created_at->format('d M Y, H:i') : '' }} WIB</span>
                                 </div>
-                                <div class="text-xs text-slate-600">
-                                    Disimpan oleh: <strong class="text-slate-800">{{ $history->creator->name ?? 'Admin Purchase' }}</strong>
+                                <div class="flex items-center gap-3">
+                                    <div class="text-xs text-slate-600">
+                                        Disimpan oleh: <strong class="text-slate-800">{{ $history->creator->name ?? 'Admin Purchase' }}</strong>
+                                    </div>
+                                    @if($history->approved_at)
+                                    <div class="flex items-center gap-1.5">
+                                        <a href="{{ route('rfq.preview_quotation', ['rfq' => $rfq, 'history_id' => $history->id]) }}" target="_blank"
+                                           class="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs transition"
+                                           title="Web Preview Versi Ini">
+                                            <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            Preview
+                                        </a>
+                                        <a href="{{ route('rfq.download_quotation', ['rfq' => $rfq, 'history_id' => $history->id], false) }}" download onclick="return downloadQuotationPdf(event, this)"
+                                           class="inline-flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 shadow-2xs transition"
+                                           title="Download PDF Versi Ini">
+                                            <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            <span>PDF</span>
+                                        </a>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                             <div class="overflow-x-auto">
@@ -1166,6 +1184,61 @@
                     </svg>
                     <span>Download PDF</span>
                 </a>
+            </div>
+            @endif
+
+            {{-- Arsip Dokumen Penawaran Multi-Versi --}}
+            @if(isset($approvedVersions) && count($approvedVersions) > 0)
+            <div class="p-4 rounded-xl border mt-4 shadow-sm w-full" style="border-color: #e2e8f0; background: #ffffff;">
+                <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <h3 class="text-sm font-bold text-slate-800">Arsip Dokumen Penawaran (PDF)</h3>
+                    </div>
+                    <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                        {{ count($approvedVersions) }} Versi
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 mb-3">Unduh atau pratinjau dokumen penawaran resmi dari setiap versi yang disetujui:</p>
+
+                <div class="space-y-2">
+                    @foreach($approvedVersions as $ver)
+                    @php
+                        $verObj = is_array($ver) ? (object)$ver : $ver;
+                    @endphp
+                    <div class="p-2.5 rounded-lg border {{ $verObj->is_latest ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 bg-slate-50/50' }} hover:border-slate-300 transition">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <span class="text-xs font-bold text-slate-800">{{ $verObj->label }}</span>
+                                @if($verObj->is_latest)
+                                    <span class="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">Terkini</span>
+                                @endif
+                            </div>
+                            <span class="text-[11px] text-slate-500 whitespace-nowrap">{{ $verObj->date }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 pt-1 border-t border-slate-200/60">
+                            <a href="{{ route('rfq.preview_quotation', ['rfq' => $rfq, 'history_id' => $verObj->id]) }}" target="_blank"
+                               class="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 shadow-2xs transition"
+                               title="Web Preview {{ $verObj->label }}">
+                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
+                                <span>Preview</span>
+                            </a>
+                            <a href="{{ route('rfq.download_quotation', ['rfq' => $rfq, 'history_id' => $verObj->id], false) }}" download onclick="return downloadQuotationPdf(event, this)"
+                               class="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-white rounded-lg transition shadow-2xs {{ $verObj->is_latest ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-700 hover:bg-slate-800' }}"
+                               title="Download PDF {{ $verObj->label }}">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span>PDF</span>
+                            </a>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
             </div>
             @endif
 

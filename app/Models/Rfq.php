@@ -434,7 +434,19 @@ class Rfq extends Model
     // Baris Note otomatis berada di baris terakhir tepat di bawah rincian pekerjaan jasa
     public function getCustomerQuotationItemsAttribute(): \Illuminate\Support\Collection
     {
-        $items = $this->items;
+        return $this->formatCustomerQuotationItems($this->items);
+    }
+
+    /**
+     * Format koleksi RfqItem menjadi koleksi item resmi Quotation (PDF & Web Preview).
+     * Mendukung item live dari database maupun model yang direkonstruksi dari snapshot JSON.
+     *
+     * @param \Illuminate\Support\Collection|array $itemsCollection
+     * @return \Illuminate\Support\Collection
+     */
+    public function formatCustomerQuotationItems($itemsCollection): \Illuminate\Support\Collection
+    {
+        $items = $itemsCollection instanceof \Illuminate\Support\Collection ? $itemsCollection : collect($itemsCollection);
         if ($items->isEmpty()) {
             return collect();
         }
@@ -799,5 +811,35 @@ class Rfq extends Model
         }
 
         return collect($result);
+    }
+
+    /**
+     * Rekonstruksi customer_quotation_items dari snapshot history_data
+     *
+     * @param array $historyData
+     * @return \Illuminate\Support\Collection
+     */
+    public function getCustomerQuotationItemsFromSnapshot(array $historyData): \Illuminate\Support\Collection
+    {
+        if (empty($historyData)) {
+            return collect();
+        }
+
+        $items = collect($historyData)->map(function ($itemArr) {
+            $item = new \App\Models\RfqItem();
+            $item->forceFill((array) $itemArr);
+            // Cegah query lazy-load tidak disengaja ke tabel vendors
+            $item->setRelation('vendor', null);
+            return $item;
+        });
+
+        // Hubungkan komponen bundle anak ke parent
+        $parents = $items->filter(fn($i) => empty($i->parent_id));
+        foreach ($parents as $parent) {
+            $components = $items->filter(fn($i) => !empty($i->parent_id) && (string)$i->parent_id === (string)$parent->id)->values();
+            $parent->setRelation('components', $components);
+        }
+
+        return $this->formatCustomerQuotationItems($items);
     }
 }

@@ -63,7 +63,7 @@
         $revRoman = $romanMap[$revisionCount ?? 0] ?? ($revisionCount ?? 1);
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
-        $quotationItems    = $rfq->customer_quotation_items;
+        $quotationItems    = $quotationItems ?? $rfq->customer_quotation_items;
         $itemCount         = count($quotationItems);
         $totalSpecLines    = 0;
         foreach ($quotationItems as $qItem) {

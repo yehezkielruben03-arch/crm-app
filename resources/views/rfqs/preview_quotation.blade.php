@@ -74,9 +74,17 @@
             </button>
         </div>
         @else
-        <a href="{{ route('rfq.show', $rfq->id) }}" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
-            <span>&larr;</span> Kembali ke Detail RFQ
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('rfq.show', $rfq->id) }}" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
+                <span>&larr;</span> Kembali ke Detail RFQ
+            </a>
+            @if(request('history_id') || !empty($historyId))
+            <span class="bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Arsip Versi: {{ ($revisionCount ?? 0) === 0 ? 'Penawaran Awal (Original / Rev 0)' : 'Penawaran Revisi ' . $revisionCount }}
+            </span>
+            @endif
+        </div>
         <div class="flex items-center gap-3">
             @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_APPROVED, \App\Models\Rfq::STATUS_QUOTATION_CREATED]))
             <form action="{{ route('rfq.mark_quotation_sent', $rfq->id) }}" method="POST" class="inline m-0">
@@ -92,7 +100,7 @@
                 Quotation Sent to Client
             </div>
             @endif
-            <a href="{{ route('rfq.download_quotation', $rfq->id, false) }}" download onclick="return downloadQuotationPdf(event, this)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
+            <a href="{{ route('rfq.download_quotation', array_filter(['rfq' => $rfq->id, 'history_id' => request('history_id') ?? ($historyId ?? null)]), false) }}" download onclick="return downloadQuotationPdf(event, this)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow text-sm font-semibold transition flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 <span>Download PDF</span>
             </a>
@@ -149,7 +157,7 @@
         $revRoman = $romanMap[$revisionCount ?? 0] ?? ($revisionCount ?? 1);
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
-        $quotationItems = $rfq->customer_quotation_items;
+        $quotationItems = $quotationItems ?? $rfq->customer_quotation_items;
         $itemCount = count($quotationItems);
         $noteMinHeight = match(true) {
             $itemCount <= 1 => '210px',

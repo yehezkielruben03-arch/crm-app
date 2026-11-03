@@ -431,7 +431,25 @@ class RfqController extends Controller
 
         [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
 
-        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'revisionDate', 'latestHistory', 'isApproved'));
+        $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
+            ->sortBy('version')
+            ->values();
+
+        $totalApproved = $approvedHistories->count();
+
+        $approvedVersions = $approvedHistories->map(function ($h, $index) use ($totalApproved) {
+            $revNum = $index;
+            return [
+                'id'        => $h->id,
+                'version'   => $h->version,
+                'rev_num'   => $revNum,
+                'label'     => $revNum === 0 ? 'Penawaran Awal (Original / Rev 0)' : ('Penawaran Revisi ' . $revNum),
+                'date'      => $h->approved_at ? $h->approved_at->format('d M Y, H:i') . ' WIB' : $h->created_at->format('d M Y, H:i') . ' WIB',
+                'is_latest' => ($index === $totalApproved - 1),
+            ];
+        });
+
+        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'revisionDate', 'latestHistory', 'isApproved', 'approvedVersions'));
     }
 
     public function edit(Rfq $rfq)
@@ -1321,7 +1339,7 @@ class RfqController extends Controller
             ->with('warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
     }
 
-    public function downloadQuotation(Rfq $rfq)
+    public function downloadQuotation(Request $request, Rfq $rfq)
     {
         ini_set('memory_limit', '512M');
         set_time_limit(120);
@@ -1351,14 +1369,26 @@ class RfqController extends Controller
             ->orderByDesc('version')
             ->get();
 
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
+            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
+
+        if ($historyId !== null && $resolvedHistory !== null) {
+            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
+                $item = new \App\Models\RfqItem();
+                $item->forceFill((array) $itemArr);
+                $item->setRelation('vendor', null);
+                return $item;
+            });
+            $rfq->setRelation('items', $rawItems);
+        }
 
         $fontCacheDir = storage_path('fonts');
         if (!is_dir($fontCacheDir)) {
             @mkdir($fontCacheDir, 0777, true);
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate'), [], 'UTF-8');
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate', 'quotationItems'), [], 'UTF-8');
         $pdf->setPaper('a4', 'portrait');
         $pdf->setOptions([
             'isHtml5ParserEnabled' => true,
@@ -1378,7 +1408,7 @@ class RfqController extends Controller
             $rfqNum = $datePart . '-' . str_pad($rfq->id, 4, '0', STR_PAD_LEFT);
         }
 
-        $firstItem = $rfq->customer_quotation_items->first() ?: $rfq->items->first();
+        $firstItem = $quotationItems->first() ?: ($rfq->customer_quotation_items->first() ?: $rfq->items->first());
         $rawTitle = $firstItem?->product_name ?: ($rfq->customer?->company_name ?: ($rfq->type ?: 'Hardware'));
         $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
         $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');
@@ -1400,7 +1430,7 @@ class RfqController extends Controller
         ]);
     }
 
-    public function previewQuotation(Rfq $rfq)
+    public function previewQuotation(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
         abort_if(!in_array($rfq->status, [
@@ -1418,9 +1448,27 @@ class RfqController extends Controller
             ->orderByDesc('version')
             ->get();
 
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
+            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
 
-        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate'));
+        if ($historyId !== null && $resolvedHistory !== null) {
+            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
+                $item = new \App\Models\RfqItem();
+                $item->forceFill((array) $itemArr);
+                $item->setRelation('vendor', null);
+                return $item;
+            });
+            $rfq->setRelation('items', $rawItems);
+        }
+
+        return view('rfqs.preview_quotation', [
+            'rfq'            => $rfq,
+            'revisionCount'  => $revisionCount,
+            'revisionDate'   => $revisionDate,
+            'quotationItems' => $quotationItems,
+            'historyId'      => $resolvedHistoryId,
+        ]);
     }
 
     public function previewDraft(Request $request, Rfq $rfq)
@@ -2014,6 +2062,41 @@ class RfqController extends Controller
             : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
 
         return [$revisionCount, $revisionDate, $latestHistory];
+    }
+
+    /**
+     * Resolve quotation revision metadata and quotation items.
+     * Supports both latest version and specific historical version via history_id.
+     *
+     * @return array{0: int, 1: string, 2: \Illuminate\Support\Collection, 3: ?int, 4: ?\App\Models\RfqPriceHistory}
+     */
+    private function resolveQuotationVersion(Rfq $rfq, $priceHistories, ?int $historyId = null): array
+    {
+        if ($historyId) {
+            $targetHistory = $priceHistories->firstWhere('id', $historyId);
+            abort_if(!$targetHistory, 404, 'Dokumen arsip penawaran tidak ditemukan.');
+            abort_if(empty($targetHistory->approved_at), 403, 'Versi penawaran ini belum disetujui oleh Leader.');
+
+            $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
+                ->sortBy('version')
+                ->values();
+
+            $index = $approvedHistories->search(fn($h) => (int)$h->id === (int)$targetHistory->id);
+            $revisionCount = $index !== false ? (int)$index : 0;
+            $revisionDate = $targetHistory->approved_at 
+                ? $targetHistory->approved_at->format('d M Y')
+                : ($targetHistory->created_at ? $targetHistory->created_at->format('d M Y') : date('d M Y'));
+
+            $quotationItems = $rfq->getCustomerQuotationItemsFromSnapshot($targetHistory->history_data ?? []);
+
+            return [$revisionCount, $revisionDate, $quotationItems, $targetHistory->id, $targetHistory];
+        }
+
+        // Default / Latest version
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
+        $quotationItems = $rfq->customer_quotation_items;
+
+        return [$revisionCount, $revisionDate, $quotationItems, null, $latestHistory];
     }
 
     private function authUser(): User
