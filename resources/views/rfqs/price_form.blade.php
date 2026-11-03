@@ -127,7 +127,7 @@
                         <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 border border-rose-200">Item belum dirinci oleh Sales</span>
                     @endif
                 </div>
-                <p class="text-xs text-amber-900 leading-relaxed font-medium pl-7 whitespace-pre-line">{{ $rfq->notes }}</p>
+                <div class="text-xs text-amber-900 leading-relaxed font-medium pl-7">{!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->notes) !!}</div>
             </div>
             @endif
 
@@ -301,7 +301,7 @@
                         <button type="button" onclick="addMultiplePriceItems('{{ $categoryName }}', '{{ $blockKey }}')"
                             class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white {{ $theme['btn_add'] }} rounded-lg transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
-                            <span>Tambah Item</span>
+                            <span>+ Tambah Item</span>
                         </button>
                     </div>
                 </div>

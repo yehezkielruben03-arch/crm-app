@@ -441,6 +441,11 @@ class Rfq extends Model
         return $this->valid_until_date->format('d M Y');
     }
 
+    public function getCustomNotesAttribute(): array
+    {
+        return \App\Helpers\RfqNoteHelper::extractCustomNotes($this->notes);
+    }
+
     // Koleksi item untuk dokumen resmi Quotation PDF dan Preview
     // Mengikuti format resmi penawaran:
     // Urutan 1: Seluruh item Hardware terurut di baris-baris teratas

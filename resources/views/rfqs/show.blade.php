@@ -296,7 +296,7 @@
                     let lines = [];
                     lines.push(this.customerName + ', ' + this.rfqType);
                     lines.push('note:');
-                    let convertedNote = typeof htmlToWhatsApp === 'function' ? htmlToWhatsApp(this.noteText || '') : (this.noteText || '');
+                    let convertedNote = typeof htmlToWhatsApp === 'function' ? htmlToWhatsApp(this.noteText || '') : (typeof window !== 'undefined' && typeof window.htmlToWhatsApp === 'function' ? window.htmlToWhatsApp(this.noteText || '') : (this.noteText || ''));
                     if (convertedNote && convertedNote.trim()) {
                         lines.push(convertedNote.trim());
                     }
@@ -362,7 +362,7 @@
                             </div>
                             <div>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">Catatan untuk Sales</h3>
+                                    <h3 class="text-sm font-bold text-slate-900 tracking-tight">Catatan Admin ke Sales</h3>
                                     <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
                                         <svg class="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
                                         Internal Notice
@@ -645,7 +645,7 @@
                                             @endif
                                         </div>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500 whitespace-pre-line">{{ $itemSpec }}</span>@endif
+                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
                                         @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
                                             <div x-data="{ open: false }" class="mt-2">
                                                 <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
@@ -793,7 +793,7 @@
                                         @endif
                                     </div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500 whitespace-pre-line">{{ $itemSpec }}</span>@endif
+                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
                                     @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
                                         <div x-data="{ open: false }" class="mt-2">
                                             <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
@@ -1575,26 +1575,132 @@
             }
             return false;
         }
-            function htmlToWhatsApp(html) {
-            if (!html) return '';
-            let text = html;
-            text = text.replace(/<br\s*\/?>/gi, '\n');
-            text = text.replace(/<\/p>\s*<p[^>]*>/gi, '\n\n');
-            text = text.replace(/<\/?p[^>]*>/gi, '');
-            text = text.replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1\n');
-            text = text.replace(/<\/?(ul|ol)[^>]*>/gi, '');
-            // Bold <b> / <strong> -> *text*
-            text = text.replace(/<(b|strong)>(.*?)<\/(b|strong)>/gi, '*$2*');
-            // Italic <i> / <em> -> _text_
-            text = text.replace(/<(i|em)>(.*?)<\/(i|em)>/gi, '_$2_');
-            // Strike <s> / <del> -> ~text~
-            text = text.replace(/<(s|del|strike)>(.*?)<\/(s|del|strike)>/gi, '~$2~');
-            // Underline <u> -> unwrap
-            text = text.replace(/<\/?u>/gi, '');
-            text = text.replace(/<[^>]+>/g, '');
-            const doc = new DOMParser().parseFromString(text, 'text/html');
-            return doc.body.textContent || "";
+        function htmlToWhatsApp(html) {
+            if (!html || typeof html !== 'string') return '';
+            let raw = html.trim();
+            if (!raw) return '';
+
+            // Formatting tags mapping:
+            // Bold: <b>, <strong> -> *text*
+            // Italic: <i>, <em> -> _text_
+            // Strikethrough: <s>, <del>, <strike> -> ~text~
+            // Underline: <u> -> unwrap
+            // Lists: <ul><li> -> • text, <ol><li> -> 1. text
+
+            // Normalize newlines and non-breaking spaces
+            let normalized = raw.replace(/\r\n|\r/g, '\n').replace(/&nbsp;/g, ' ');
+            normalized = normalized.replace(/<br\s*\/?>/gi, '\n');
+
+            const parser = new DOMParser();
+            const doc = parser.parseFromString('<div>' + normalized + '</div>', 'text/html');
+            const root = doc.body.firstElementChild || doc.body;
+
+            function formatDelimiter(delim, inner) {
+                if (!inner || !inner.trim()) return inner;
+                const match = inner.match(/^(\s*)([\s\S]*?)(\s*)$/);
+                if (match) {
+                    const prefix = match[1];
+                    const core = match[2];
+                    const suffix = match[3];
+                    if (!core) return inner;
+                    return prefix + delim + core + delim + suffix;
+                }
+                return delim + inner.trim() + delim;
+            }
+
+            function walk(node) {
+                let out = '';
+                node.childNodes.forEach(child => {
+                    if (child.nodeType === Node.TEXT_NODE) {
+                        out += child.textContent;
+                    } else if (child.nodeType === Node.ELEMENT_NODE) {
+                        const tag = child.nodeName.toLowerCase();
+                        switch (tag) {
+                            case 'b':
+                            case 'strong':
+                                out += formatDelimiter('*', walk(child));
+                                break;
+                            case 'i':
+                            case 'em':
+                                out += formatDelimiter('_', walk(child));
+                                break;
+                            case 's':
+                            case 'strike':
+                            case 'del':
+                                out += formatDelimiter('~', walk(child));
+                                break;
+                            case 'u':
+                                out += walk(child);
+                                break;
+                            case 'p':
+                            case 'div': {
+                                const inner = walk(child);
+                                const trimmed = inner.trim();
+                                if (trimmed !== '') {
+                                    if (out !== '' && !out.endsWith('\n')) out += '\n';
+                                    out += trimmed + '\n';
+                                } else if (out !== '' && !out.endsWith('\n\n')) {
+                                    out += '\n';
+                                }
+                                break;
+                            }
+                            case 'li': {
+                                const inner = walk(child);
+                                const trimmed = inner.trim();
+                                if (trimmed !== '') {
+                                    const parentTag = child.parentElement ? child.parentElement.nodeName.toLowerCase() : '';
+                                    if (parentTag === 'ul' || parentTag === 'ol') {
+                                        out += trimmed;
+                                    } else {
+                                        if (out !== '' && !out.endsWith('\n')) out += '\n';
+                                        out += '• ' + trimmed + '\n';
+                                    }
+                                }
+                                break;
+                            }
+                            case 'ul': {
+                                if (out !== '' && !out.endsWith('\n')) out += '\n';
+                                child.childNodes.forEach(li => {
+                                    if (li.nodeType === Node.ELEMENT_NODE && li.nodeName.toLowerCase() === 'li') {
+                                        const liText = walk(li).trim();
+                                        if (liText !== '') {
+                                            out += '• ' + liText + '\n';
+                                        }
+                                    }
+                                });
+                                break;
+                            }
+                            case 'ol': {
+                                if (out !== '' && !out.endsWith('\n')) out += '\n';
+                                let idx = 1;
+                                child.childNodes.forEach(li => {
+                                    if (li.nodeType === Node.ELEMENT_NODE && li.nodeName.toLowerCase() === 'li') {
+                                        const liText = walk(li).trim();
+                                        if (liText !== '') {
+                                            out += idx + '. ' + liText + '\n';
+                                            idx++;
+                                        }
+                                    }
+                                });
+                                break;
+                            }
+                            default:
+                                out += walk(child);
+                                break;
+                        }
+                    }
+                });
+                return out;
+            }
+
+            let result = walk(root);
+            result = result.replace(/\u00A0/g, ' ');
+            result = result.replace(/[^\S\r\n]+\n/g, '\n');
+            result = result.replace(/[^\S\r\n]{2,}/g, ' ');
+            result = result.replace(/\n{3,}/g, '\n\n');
+            return result.trim();
         }
+        window.htmlToWhatsApp = htmlToWhatsApp;
 
 </script>
 

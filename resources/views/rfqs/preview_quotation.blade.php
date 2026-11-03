@@ -222,7 +222,7 @@
                 <!-- Info Klien (Kiri 65%) -->
                 <div class="w-[65%] leading-snug pr-4" style="font-family: Arial, sans-serif;">
                     <div class="text-black">Kepada YTH</div>
-                    <div class="font-bold text-[13px] text-black my-0.5">{{ $clientCompanyName }}</div>
+                    <div class="font-bold text-[13px] text-black my-0.5" data-company-name="{{ $rfq->resolved_company_name }}">{{ $clientCompanyName }}</div>
                     @if(!empty($custAddress))
                     <div class="whitespace-pre-line text-black">{{ $custAddress }}</div>
                     @endif
@@ -285,22 +285,19 @@
                                             <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
+                                            <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
                                             <div class="font-bold text-[14px] text-black mb-0.5">Note :</div>
                                             @php
-                                                $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", $rfq->notes ?? ''))), function($line) {
-                                                    $clean = strtolower(trim(ltrim($line, '- ')));
-                                                    return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
-                                                });
+                                                $customNotes = \App\Helpers\RfqNoteHelper::extractCustomNotes($rfq->notes);
                                             @endphp
                                             @foreach($customNotes as $cNote)
                                                 @php
                                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                                 @endphp
-                                                <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml($formattedNote) !!}</div>
+                                                <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug" style="color: #ff0000; font-style: italic; font-weight: bold;">{!! \App\Helpers\RfqNoteHelper::renderHtml($formattedNote) !!}</div>
                                             @endforeach
                                             <div class="italic text-black text-[12px] leading-snug">- Harga dapat berubah tanpa pemberitahuan</div>
                                             <div class="italic text-black text-[12px] leading-snug">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
@@ -310,7 +307,7 @@
                                     <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
+                                    <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</div>
                                     @endif
                                 @endif
                             </td>
@@ -348,7 +345,7 @@
                         <!-- TOTAL HARGA (Include PPN / Perorangan) -->
                         <tr class="total-row">
                             <td class="font-bold !px-1">
-                                <div class="flex w-full">
+                                <div class="flex w-full" data-total-qty="{{ (int) $totalQty }} {{ $summaryUnitLabel }}">
                                     <span class="w-[40%] text-right pr-1">{{ (int) $totalQty }}</span>
                                     <span class="w-[60%] text-left pl-0.5">{{ $summaryUnitLabel }}</span>
                                 </div>
@@ -363,7 +360,7 @@
                         <!-- 1. TOTAL -->
                         <tr class="total-row">
                             <td class="font-bold !px-1">
-                                <div class="flex w-full">
+                                <div class="flex w-full" data-total-qty="{{ (int) $totalQty }} {{ $summaryUnitLabel }}">
                                     <span class="w-[40%] text-right pr-1">{{ (int) $totalQty }}</span>
                                     <span class="w-[60%] text-left pl-0.5">{{ $summaryUnitLabel }}</span>
                                 </div>

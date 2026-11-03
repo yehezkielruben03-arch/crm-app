@@ -882,4 +882,42 @@ class RfqRichTextE2ETest extends TestCase
         // Correct <br> line breaks
         $this->assertStringContainsString('<br', $rendered);
     }
+
+    /**
+     * Scenario 5: Multi-line Custom Notes HTML/Newline Extraction (Leader Rian Report Fix)
+     */
+    public function test_tier4_scenario_multiline_custom_notes_html_and_newlines(): void
+    {
+        $this->requireHelper();
+
+        // 1. Case: Browser contenteditable with <div> blocks
+        $divHtml = '<div>- Unit READY LIMITED stok tidak mengikat</div><div>- Harga tidak termasuk Pemasangan</div>';
+        $extractedDiv = $this->callHelper('extractCustomNotes', $divHtml);
+        $this->assertCount(2, $extractedDiv);
+        $this->assertEquals('- Unit READY LIMITED stok tidak mengikat', $extractedDiv[0]);
+        $this->assertEquals('- Harga tidak termasuk Pemasangan', $extractedDiv[1]);
+
+        // 2. Case: <p> paragraphs with inline formatting
+        $pHtml = '<p>- Unit <b>READY LIMITED</b> stok tidak mengikat</p><p>- Harga <i>tidak termasuk</i> Pemasangan</p>';
+        $extractedP = $this->callHelper('extractCustomNotes', $pHtml);
+        $this->assertCount(2, $extractedP);
+        $this->assertStringContainsString('<b>READY LIMITED</b>', $extractedP[0]);
+        $this->assertStringContainsString('<i>tidak termasuk</i>', $extractedP[1]);
+
+        // 3. Case: <br> line breaks
+        $brHtml = '- Unit READY LIMITED stok tidak mengikat<br>- Harga tidak termasuk Pemasangan';
+        $extractedBr = $this->callHelper('extractCustomNotes', $brHtml);
+        $this->assertCount(2, $extractedBr);
+
+        // 4. Case: Standard notice exclusions filtered out
+        $mixedHtml = '<div>- Unit READY LIMITED stok tidak mengikat</div><div>- Harga dapat berubah tanpa pemberitahuan</div><div>- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>';
+        $extractedMixed = $this->callHelper('extractCustomNotes', $mixedHtml);
+        $this->assertCount(1, $extractedMixed);
+        $this->assertEquals('- Unit READY LIMITED stok tidak mengikat', $extractedMixed[0]);
+
+        // 5. Case: Legacy plain text with \n
+        $plainText = "- Unit READY LIMITED stok tidak mengikat\n- Harga tidak termasuk Pemasangan";
+        $extractedPlain = $this->callHelper('extractCustomNotes', $plainText);
+        $this->assertCount(2, $extractedPlain);
+    }
 }

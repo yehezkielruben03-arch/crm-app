@@ -43,9 +43,50 @@ class RfqNoteHelper
             $config->set('HTML.Doctype', 'HTML 4.01 Transitional');
 
             self::$purifier = new HTMLPurifier($config);
+            self::$purifier->purify('<b></b>');
         }
 
         return self::$purifier;
+    }
+
+    /**
+     * Check if an HTML string consists solely of clean whitelisted tags with no attributes.
+     */
+    private static function isStrictlyCleanHtml(string $html): bool
+    {
+        if (preg_match('/<[a-zA-Z0-9]+[^>]*[\s=]/', $html)) {
+            return false;
+        }
+
+        if (preg_match('/<\/?(?!b\b|strong\b|i\b|em\b|u\b|s\b|ul\b|ol\b|li\b|p\b|br\b)[a-zA-Z0-9]+/i', $html)) {
+            return false;
+        }
+
+        if (substr_count($html, '<') !== substr_count($html, '>')) {
+            return false;
+        }
+
+        if (preg_match_all('/<(\/)?([a-zA-Z0-9]+)\s*\/?>/', $html, $matches, PREG_SET_ORDER)) {
+            $stack = [];
+            foreach ($matches as $m) {
+                $tag = strtolower($m[2]);
+                if ($tag === 'br') {
+                    continue;
+                }
+                if ($m[1] === '/') {
+                    if (empty($stack) || array_pop($stack) !== $tag) {
+                        return false;
+                    }
+                } else {
+                    $stack[] = $tag;
+                }
+            }
+            if (!empty($stack)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -71,8 +112,19 @@ class RfqNoteHelper
             return '';
         }
 
+        if (!str_contains($trimmed, '<')) {
+            return $trimmed;
+        }
+
+        // Fast path: if payload contains exclusively clean, whitelisted tags with no attributes
+        if (self::isStrictlyCleanHtml($trimmed)) {
+            return $trimmed;
+        }
+
         // Normalize <del> and <strike> tags to standard <s>
-        $normalized = preg_replace('/<(\/?)(strike|del)\b[^>]*>/i', '<$1s>', $trimmed);
+        $normalized = (stripos($trimmed, 'strike') !== false || stripos($trimmed, 'del') !== false)
+            ? preg_replace('/<(\/?)(strike|del)\b[^>]*>/i', '<$1s>', $trimmed)
+            : $trimmed;
 
         $purified = self::getPurifier()->purify($normalized);
 
@@ -132,19 +184,19 @@ class RfqNoteHelper
             return $inner;
         }
 
-        if (preg_match('/^(\s*)([\s\S]*?)(\s*)$/u', $inner, $matches)) {
-            $prefix = $matches[1];
-            $core   = $matches[2];
-            $suffix = $matches[3];
+        $ltrimmed = ltrim($inner);
+        $prefixLen = strlen($inner) - strlen($ltrimmed);
+        $prefix = substr($inner, 0, $prefixLen);
 
-            if ($core === '') {
-                return $inner;
-            }
+        $core = rtrim($ltrimmed);
+        $suffixLen = strlen($ltrimmed) - strlen($core);
+        $suffix = $suffixLen > 0 ? substr($ltrimmed, -$suffixLen) : '';
 
-            return $prefix . $delimiter . $core . $delimiter . $suffix;
+        if ($core === '') {
+            return $inner;
         }
 
-        return $delimiter . trim($inner) . $delimiter;
+        return $prefix . $delimiter . $core . $delimiter . $suffix;
     }
 
     /**
@@ -216,6 +268,7 @@ class RfqNoteHelper
                             break;
 
                         case 'p':
+                        case 'div':
                             $inner = $walk($child, $walk);
                             $trimmed = trim($inner);
                             if ($trimmed !== '') {
@@ -225,6 +278,22 @@ class RfqNoteHelper
                                 $out .= $trimmed . "\n";
                             } elseif ($out !== '' && !str_ends_with($out, "\n\n")) {
                                 $out .= "\n";
+                            }
+                            break;
+
+                        case 'li':
+                            $inner = $walk($child, $walk);
+                            $trimmed = trim($inner);
+                            if ($trimmed !== '') {
+                                $parentTag = $child->parentNode ? strtolower($child->parentNode->nodeName) : '';
+                                if ($parentTag === 'ul' || $parentTag === 'ol') {
+                                    $out .= $trimmed;
+                                } else {
+                                    if ($out !== '' && !str_ends_with($out, "\n")) {
+                                        $out .= "\n";
+                                    }
+                                    $out .= "• " . $trimmed . "\n";
+                                }
                             }
                             break;
 
@@ -259,7 +328,7 @@ class RfqNoteHelper
                             break;
 
                         default:
-                            // Container tags like div, span, etc.
+                            // Container tags like span, etc.
                             $out .= $walk($child, $walk);
                             break;
                     }
@@ -277,15 +346,84 @@ class RfqNoteHelper
         $result = str_replace("\xc2\xa0", ' ', $result);
 
         // Strip trailing horizontal spaces before newlines
-        $result = preg_replace('/[^\S\r\n]+\n/', "\n", $result);
+        $result = preg_replace('/[ \t]+\n/', "\n", $result);
 
         // Collapse multiple horizontal spaces to single space
-        $result = preg_replace('/[^\S\r\n]{2,}/u', ' ', $result);
+        $result = preg_replace('/[ \t]{2,}/', ' ', $result);
 
         // Collapse 3+ newlines to max 2 newlines
         $result = preg_replace("/\n{3,}/", "\n\n", $result);
 
         return trim($result);
+    }
+
+    /**
+     * Parse and extract custom notes into distinct note lines.
+     *
+     * Supports both HTML elements (<div>, <p>, <br>, <li>, etc.) and
+     * plain-text newlines (\r\n, \n) while preserving existing exclusion
+     * filters ('harga dapat berubah', 'tanyakan stok').
+     *
+     * @param string|null $notes
+     * @return array<int, string>
+     */
+    public static function extractCustomNotes(?string $notes): array
+    {
+        if ($notes === null || trim($notes) === '') {
+            return [];
+        }
+
+        $raw = trim($notes);
+
+        if (self::isLegacyPlainText($raw)) {
+            $rawLines = preg_split('/\r\n|\r|\n/', $raw);
+        } else {
+            // Normalize line breaks and non-breaking spaces
+            $html = str_replace(["\r\n", "\r"], "\n", $raw);
+            $html = str_replace('&nbsp;', ' ', $html);
+
+            // Replace breaks and closing block tags with newlines
+            $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+            $html = preg_replace('/<\/(?:p|div|li|ol|ul|h[1-6]|tr|blockquote)>/i', "\n", $html);
+
+            // Strip container/block tags but preserve inline formatting (b, strong, i, em, u, s)
+            $html = preg_replace('/<(?:p|div|li|ol|ul|h[1-6]|tr|td|th|table|tbody|thead|blockquote)\b[^>]*>/i', '', $html);
+
+            $rawLines = explode("\n", $html);
+        }
+
+        $lines = [];
+        foreach ($rawLines as $line) {
+            $trimmed = trim($line);
+            if ($trimmed === '') {
+                continue;
+            }
+
+            // Extract plain text for exclusion checking
+            $textOnly = strtolower(trim(strip_tags($trimmed)));
+            $clean = trim(ltrim($textOnly, "-•*\t\n\r\0\x0B "));
+
+            if ($clean === '' || str_contains($clean, 'harga dapat berubah') || str_contains($clean, 'tanyakan stok')) {
+                continue;
+            }
+
+            // Normalize bullet prefix: strip leading bullet markers if present, then prefix with '- '
+            $bulletStripped = preg_replace('/^(?:[•\*]\s*|-\s*)/u', '', $trimmed);
+            $lines[] = '- ' . trim($bulletStripped);
+        }
+
+        return $lines;
+    }
+
+    /**
+     * Alias for extractCustomNotes.
+     *
+     * @param string|null $notes
+     * @return array<int, string>
+     */
+    public static function parseCustomNotes(?string $notes): array
+    {
+        return self::extractCustomNotes($notes);
     }
 
     /**

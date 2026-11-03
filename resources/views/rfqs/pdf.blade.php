@@ -70,7 +70,7 @@
             $cleanSpec = trim(strip_tags($qItem->description ?: (string) $qItem->detail_item));
             if ($cleanSpec !== '') {
                 foreach (preg_split('/\r\n|\r|\n/', $cleanSpec) as $sLine) {
-                    $sLine = trim($sLine);
+                    $sLine = trim(strip_tags($sLine));
                     if ($sLine !== '') {
                         $totalSpecLines += max(1, (int) ceil(mb_strlen(strip_tags($sLine)) / 68));
                     }
@@ -78,11 +78,14 @@
             }
         }
 
-        $customNotes = array_filter(array_map('trim', explode("\n", str_replace("\r", "", strip_tags($rfq->notes ?? '')))), function($line) {
-            $clean = strtolower(trim(ltrim($line, '- ')));
-            return $clean !== '' && !str_contains($clean, 'harga dapat berubah') && !str_contains($clean, 'tanyakan stok');
-        });
-        $noteLineCount = count($customNotes) + 2;
+        $strippedNotes = strip_tags($rfq->notes ?? '');
+        $customNotes = \App\Helpers\RfqNoteHelper::extractCustomNotes($rfq->notes);
+        $totalCustomNoteLines = 0;
+        foreach ($customNotes as $cNote) {
+            $cleanText = trim(strip_tags($cNote));
+            $totalCustomNoteLines += max(1, (int) ceil(mb_strlen($cleanText) / 68));
+        }
+        $noteLineCount = $totalCustomNoteLines + 2;
 
         // Visual weight mengestimasi total baris vertikal di dalam tabel
         $visualWeight = ($itemCount * 2) + $totalSpecLines + $noteLineCount;
@@ -249,11 +252,16 @@
     
         /* Scoped DomPDF styling for Rich Text Notes & Item Specs */
         .pdf-rich-text { display: inline-block; width: 100%; }
-        .pdf-rich-text ul, .pdf-rich-text ol { margin: 0; padding-left: 12pt; }
-        .pdf-rich-text li { margin: 0; padding: 0; }
-        .pdf-rich-text p { margin: 0; }
-        .pdf-rich-text s { text-decoration: line-through; }
-        .pdf-rich-text u { text-decoration: underline; }
+        .pdf-rich-text ul, .pdf-rich-text ol { margin: 0; }
+        .pdf-rich-text, .item-spec-content, .note-content { line-height: inherit; }
+        .pdf-rich-text p, .item-spec-content p, .note-content p { margin: 0 0 1.5pt 0; line-height: inherit; }
+        .pdf-rich-text ul, .pdf-rich-text ol, .item-spec-content ul, .item-spec-content ol, .note-content ul, .note-content ol {
+            margin: 1pt 0 2pt 0;
+            padding-left: 12pt;
+        }
+        .pdf-rich-text li, .item-spec-content li, .note-content li { margin: 0; padding: 0; line-height: inherit; }
+        .pdf-rich-text s, .pdf-rich-text del, s, del { text-decoration: line-through; }
+        .pdf-rich-text u, u { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -366,8 +374,8 @@
                         <div style="font-weight: bold; font-size: {{ $itemTitleSize }}; color: #000; line-height: 1.08;">{{ ucfirst($item->product_name) }}</div>
                         @php $itemSpec = trim((string) ($item->description ?: $item->detail_item)); @endphp
                         @if($itemSpec !== '')
-                        <div style="color: #000; margin-top: 1pt; font-size: {{ $itemSpecSize }}; font-style: italic;">
-                            {!! \App\Helpers\RfqNoteHelper::renderPdfHtml(ucfirst($itemSpec)) !!}
+                        <div style="color: #000; margin-top: 1pt; font-size: {{ $itemSpecSize }}; font-style: italic;" class="item-spec-content">
+                            {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($itemSpec) !!}
                         </div>
                         @endif
 
@@ -378,7 +386,7 @@
                                 @php
                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
                                 @endphp
-                                <div style="font-style: italic; color: #ff0000; line-height: {{ $specLineH }}; font-weight: bold;">
+                                <div style="font-style: italic; color: #ff0000; line-height: {{ $specLineH }}; font-weight: bold;" class="note-content">
                                     {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($formattedNote) /* cNote via RfqNoteHelper */ !!}
                                 </div>
                             @endforeach
