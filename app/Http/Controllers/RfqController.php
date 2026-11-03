@@ -1758,11 +1758,19 @@ class RfqController extends Controller
             'po_file.mimes'    => 'Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.',
         ]);
 
+        // Hapus file lama jika ada sebelum replace file baru
+        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
+            Storage::disk('public')->delete($rfq->po_file_path);
+        }
+
         $poPath = $request->file('po_file')->store('purchase_orders', 'public');
         
         $rfq->update([
-            'po_file_path' => $poPath,
-            'status'       => Rfq::STATUS_PO_PENDING_ADMIN
+            'po_file_path'      => $poPath,
+            'status'            => Rfq::STATUS_PO_PENDING_ADMIN,
+            'po_rejection_note' => null,
+            'po_rejected_at'    => null,
+            'po_rejected_by'    => null,
         ]);
 
         if ($rfq->sales_id) {
@@ -1783,6 +1791,78 @@ class RfqController extends Controller
 
         return redirect()->route('rfq.show', $rfq)
             ->with('success', 'Bukti PO berhasil diupload. Menunggu verifikasi Admin Purchase.');
+    }
+
+    public function cancelPo(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk membatalkan PO RFQ ini.');
+        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat dibatalkan.');
+
+        // Hapus file PO fisik dari storage
+        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
+            Storage::disk('public')->delete($rfq->po_file_path);
+        }
+
+        $rfq->update([
+            'po_file_path'      => null,
+            'status'            => Rfq::STATUS_QUOTATION_SENT,
+            'po_rejection_note' => null,
+            'po_rejected_at'    => null,
+            'po_rejected_by'    => null,
+        ]);
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'Bukti PO berhasil dibatalkan. Silakan unggah kembali file PO yang sesuai.');
+    }
+
+    public function rejectPo(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin atau Leader yang dapat menolak bukti PO.');
+        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat ditolak.');
+
+        $request->validate([
+            'rejection_reason' => 'required|string|min:3|max:1000',
+        ], [
+            'rejection_reason.required' => 'Alasan penolakan PO wajib diisi.',
+            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
+            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
+        ]);
+
+        // Hapus file PO fisik yang salah dari storage
+        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
+            Storage::disk('public')->delete($rfq->po_file_path);
+        }
+
+        $rejectionReason = trim($request->rejection_reason);
+
+        $rfq->update([
+            'po_file_path'      => null,
+            'status'            => Rfq::STATUS_QUOTATION_SENT,
+            'po_rejection_note' => $rejectionReason,
+            'po_rejected_at'    => now(),
+            'po_rejected_by'    => Auth::id(),
+        ]);
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+
+            // Kirim notifikasi peringatan ke Sales pemilik RFQ
+            \App\Models\Notification::send(
+                userId:  $rfq->sales_id,
+                type:    'warning',
+                title:   'Bukti PO Ditolak oleh Admin',
+                message: 'Admin ' . $this->authUser()->name . ' menolak bukti PO untuk RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Silakan upload ulang bukti PO yang benar.',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales telah diberitahu untuk mengunggah ulang bukti PO.');
     }
 
     public function approveGoal(Request $request, Rfq $rfq)
