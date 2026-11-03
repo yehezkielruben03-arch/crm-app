@@ -171,7 +171,7 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-blue);">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
                 </svg>
-                {{ ($dateFilter['isFiltered'] ?? false) ? 'Target & Capaian Periode Ini' : 'Target Bulan Ini' }}
+                {{ ($dateFilter['isFiltered'] ?? false) ? 'Target & Capaian (' . ($dateFilter['label'] ?? 'Periode Ini') . ')' : 'Target Bulan Ini (' . ($dateFilter['startDate'] ?? now())->translatedFormat('F Y') . ')' }}
             </h2>
 
             <div class="flex-1 space-y-4">
@@ -323,9 +323,9 @@
                     <p class="text-xl font-bold" style="color: #9333ea;">{{ number_format($rfqPipeline->po_review ?? 0) }}</p>
                     <p class="text-[10px]" style="color: var(--text-muted);">PO Review</p>
                 </div>
-                <div class="p-3 rounded-xl text-center flex flex-col justify-center" style="background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);">
+                <div class="p-3 rounded-xl text-center flex flex-col justify-center" style="background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);" title="Jumlah RFQ yang mencapai GOAL pada periode terpilih">
                     <p class="text-xl font-bold" style="color: var(--accent-emerald);">{{ number_format($rfqPipeline->goal ?? 0) }}</p>
-                    <p class="text-[10px]" style="color: var(--text-muted);">GOAL</p>
+                    <p class="text-[10px]" style="color: var(--text-muted);">GOAL (Periode)</p>
                 </div>
             </div>
         </section>
@@ -345,7 +345,7 @@
                 <div class="space-y-3">
                     @forelse($recentOrders as $order)
                         <div class="p-3 rounded-xl" style="background: var(--bg-secondary); border: 1px solid var(--border-color);">
-                            <div class="flex justify-between items-start mb-1.5">
+                            <div class="flex justify-between items-start mb-1">
                                 <a href="{{ route('rfq.show', $order) }}" class="text-xs font-bold hover:underline truncate mr-2" style="color: var(--text-primary); max-width: 140px;">
                                     {{ $order->customer->company_name ?? '-' }}
                                 </a>
@@ -353,8 +353,11 @@
                                     GOAL
                                 </span>
                             </div>
-                            <div class="flex justify-between items-end">
-                                <span class="text-[10px]" style="color: var(--text-muted);">{{ $order->quotation_number ?? $order->rfq_number }}</span>
+                            <div class="flex justify-between items-center text-[10px] mb-1" style="color: var(--text-muted);">
+                                <span>{{ $order->quotation_number ?? $order->rfq_number }}</span>
+                                <span class="font-medium text-slate-500">{{ $order->updated_at ? $order->updated_at->format('d M Y') : '' }}</span>
+                            </div>
+                            <div class="flex justify-end items-end">
                                 <span class="text-xs font-bold" style="color: var(--accent-blue);">Rp{{ number_format($order->grand_total/1000000, 1, ',', '.') }}Jt</span>
                             </div>
                         </div>
@@ -983,9 +986,9 @@
                 <p class="text-lg font-bold" style="color: var(--accent-violet);">{{ number_format($rfqPipeline->quotation_created ?? 0) }}</p>
                 <p class="text-[10px]" style="color: var(--text-muted);">Quotation</p>
             </div>
-            <div class="p-3 rounded-xl text-center" style="background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);">
+            <div class="p-3 rounded-xl text-center" style="background: rgba(5,150,105,0.08); border: 1px solid rgba(5,150,105,0.20);" title="Total RFQ yang mencapai GOAL pada periode terpilih">
                 <p class="text-lg font-bold" style="color: var(--accent-emerald);">{{ number_format($rfqPipeline->goal ?? 0) }}</p>
-                <p class="text-[10px]" style="color: var(--text-muted);">GOAL</p>
+                <p class="text-[10px]" style="color: var(--text-muted);">GOAL (Periode)</p>
             </div>
             <div class="p-3 rounded-xl text-center" style="background: rgba(225,29,72,0.06); border: 1px solid rgba(225,29,72,0.15);">
                 <p class="text-lg font-bold" style="color: var(--accent-rose);">{{ number_format($rfqPipeline->cancelled ?? 0) }}</p>

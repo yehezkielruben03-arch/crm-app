@@ -757,6 +757,7 @@ class RfqController extends Controller
     private function clearDashboardCacheForSales(int $salesId): void
     {
         $ym = now()->format('Y-m');
+        $currFilterKey = now()->startOfMonth()->format('Ymd') . '_' . now()->endOfMonth()->format('Ymd');
 
         Cache::forget('dash:cust_stats:' . $salesId);
         Cache::forget('dash:rfq_stats:' . $salesId);
@@ -766,12 +767,21 @@ class RfqController extends Controller
         Cache::forget('dash:rev:' . $salesId . ':' . $ym);
         Cache::forget('dash:goal_cnt:' . $salesId . ':' . $ym);
         Cache::forget('dash:stats:' . $salesId . ':' . $ym);
+        Cache::forget("dash:rev:{$salesId}:{$currFilterKey}");
+        Cache::forget("dash:goal_cnt:{$salesId}:{$currFilterKey}");
+        Cache::forget("dash:stats:{$salesId}:{$currFilterKey}");
+        Cache::forget("dash:pipeline:{$salesId}:{$currFilterKey}");
         Cache::forget('dash:pipeline:' . $salesId);
         Cache::forget('dash:chart:' . $salesId);
         Cache::forget('dash:recent:' . $salesId);
+        Cache::forget("dash:recent_goal:{$salesId}");
         Cache::forget('dash:recent_quo:' . $salesId);
         Cache::forget('dash:admin:global');
         Cache::forget('dash:admin:rev:' . $ym);
+        Cache::forget("dash:admin:rev:{$currFilterKey}");
+        Cache::forget("dash:admin:pipeline:{$currFilterKey}");
+        Cache::forget('dash:admin:pipeline');
+        Cache::forget("dash:admin:goal_cnt:{$currFilterKey}");
         Cache::forget('dash:admin:chart');
         Cache::forget('dash:admin:perf:' . $ym);
         Cache::forget('dash:admin:recent_quo');

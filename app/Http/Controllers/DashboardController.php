@@ -188,8 +188,8 @@ class DashboardController extends Controller
         $todayNewCustomers = $periodNewCustomers;
         $todayNewRFQ = $periodNewRFQ;
 
-        // RFQ pipeline breakdown
-        $rfqPipeline = Cache::remember("dash:pipeline:{$userId}", 60, function () use ($userId) {
+        // RFQ pipeline breakdown: status aktif (WIP) + status terminal (GOAL & Cancelled pada periode terpilih)
+        $rfqPipeline = Cache::remember("dash:pipeline:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
             return Rfq::where('sales_id', $userId)
                 ->selectRaw("
                     SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_ADMIN . "' THEN 1 ELSE 0 END) as pending_admin,
@@ -197,9 +197,9 @@ class DashboardController extends Controller
                     SUM(CASE WHEN status = '" . Rfq::STATUS_APPROVED . "' THEN 1 ELSE 0 END) as approved,
                     SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "') THEN 1 ELSE 0 END) as quotation_created,
                     SUM(CASE WHEN status IN ('" . Rfq::STATUS_PO_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as po_review,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as goal,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' THEN 1 ELSE 0 END) as cancelled
-                ")
+                    SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' AND updated_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as goal,
+                    SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' AND updated_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as cancelled
+                ", [$startDate, $endDate, $startDate, $endDate])
                 ->first();
         });
 
@@ -513,16 +513,16 @@ class DashboardController extends Controller
         $todayNewCustomers = $periodNewCustomers;
         $todayNewRFQ = $periodNewRFQ;
 
-        // RFQ pipeline (admin sees all sales)
-        $rfqPipeline = Cache::remember("dash:admin:pipeline", 60, function () {
+        // RFQ pipeline (admin sees all sales): status aktif (WIP) + status terminal (GOAL & Cancelled pada periode terpilih)
+        $rfqPipeline = Cache::remember("dash:admin:pipeline:{$filterKey}", 60, function () use ($startDate, $endDate) {
             return Rfq::selectRaw("
                 SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "') THEN 1 ELSE 0 END) as pending_admin,
                 SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_LEADER . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as pending_leader,
                 SUM(CASE WHEN status = '" . Rfq::STATUS_APPROVED . "' THEN 1 ELSE 0 END) as approved,
                 SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "') THEN 1 ELSE 0 END) as quotation_created,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' THEN 1 ELSE 0 END) as goal,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' THEN 1 ELSE 0 END) as cancelled
-            ")
+                SUM(CASE WHEN status = '" . Rfq::STATUS_GOAL . "' AND updated_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as goal,
+                SUM(CASE WHEN status = '" . Rfq::STATUS_CANCELLED . "' AND updated_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as cancelled
+            ", [$startDate, $endDate, $startDate, $endDate])
             ->first();
         });
 
