@@ -576,6 +576,40 @@
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                        <div class="relative inline-flex items-center rte-color-wrapper">
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                                <span class="font-bold">A</span>
+                                                <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                            </button>
+                                            <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                                <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                                    <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                                </label>
+                                            </div>
+                                        </div>
+                                                <div class="relative inline-flex items-center rte-color-wrapper">
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                                        <span class="font-bold">A</span>
+                                                        <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                                    </button>
+                                                    <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                                        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                                            <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                                        </label>
+                                                    </div>
+                                                </div>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                             </span>
@@ -1044,6 +1078,40 @@
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                <div class="relative inline-flex items-center rte-color-wrapper">
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                        <span class="font-bold">A</span>
+                                        <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                    </button>
+                                    <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                            <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                        </label>
+                                    </div>
+                                </div>
+                                            <div class="relative inline-flex items-center rte-color-wrapper">
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                                    <span class="font-bold">A</span>
+                                                    <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                                </button>
+                                                <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                                    <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                                        <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                                    </label>
+                                                </div>
+                                            </div>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                         </span>
@@ -1345,6 +1413,23 @@
                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs italic font-serif text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs underline text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs line-through text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                            <div class="relative inline-flex items-center rte-color-wrapper">
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-2 py-0.5 text-xs font-bold text-rose-800 hover:bg-white rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                    <span class="font-bold">A</span>
+                                    <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                </button>
+                                <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam"></button>
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                    <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                        <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                    </label>
+                                </div>
+                            </div>
                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                         </span>
@@ -1977,6 +2062,23 @@
                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                <div class="relative inline-flex items-center rte-color-wrapper">
+                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                        <span class="font-bold">A</span>
+                                        <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                    </button>
+                                    <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                            <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                        </label>
+                                    </div>
+                                </div>
                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                             </span>
@@ -2190,6 +2292,23 @@
                                         <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
                                         <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
                                         <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                        <div class="relative inline-flex items-center rte-color-wrapper">
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
+                                                <span class="font-bold">A</span>
+                                                <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
+                                            </button>
+                                            <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
+                                                <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
+                                                    <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
+                                                </label>
+                                            </div>
+                                        </div>
                                         <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                         <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                     </span>
@@ -3422,6 +3541,7 @@
             });
 
             wrapper.querySelectorAll('.rte-btn, button[data-cmd]').forEach(btn => {
+                if (btn.classList.contains('rte-color-btn')) return;
                 btn.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // Preserve contenteditable selection
                 });
@@ -3435,7 +3555,70 @@
                     }
                 });
             });
+
+            // Text color picker integration
+            const colorBtn = wrapper.querySelector('.rte-color-btn');
+            const colorPalette = wrapper.querySelector('.rte-color-palette');
+            const colorBar = wrapper.querySelector('.rte-color-bar');
+
+            if (colorBtn && colorPalette) {
+                colorBtn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                });
+                colorBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    document.querySelectorAll('.rte-color-palette').forEach(p => {
+                        if (p !== colorPalette) p.classList.add('hidden');
+                    });
+                    colorPalette.classList.toggle('hidden');
+                });
+
+                colorPalette.querySelectorAll('.rte-color-swatch').forEach(swatch => {
+                    swatch.addEventListener('mousedown', (e) => {
+                        e.preventDefault();
+                    });
+                    swatch.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const color = swatch.getAttribute('data-color');
+                        editor.focus();
+                        try {
+                            document.execCommand('styleWithCSS', false, true);
+                        } catch (_) {}
+                        document.execCommand('foreColor', false, color);
+                        if (colorBar) colorBar.style.backgroundColor = color;
+                        colorPalette.classList.add('hidden');
+                        syncToTextarea();
+                    });
+                });
+
+                const customInput = colorPalette.querySelector('.rte-custom-color');
+                if (customInput) {
+                    customInput.addEventListener('input', (e) => {
+                        const color = e.target.value;
+                        editor.focus();
+                        try {
+                            document.execCommand('styleWithCSS', false, true);
+                        } catch (_) {}
+                        document.execCommand('foreColor', false, color);
+                        if (colorBar) colorBar.style.backgroundColor = color;
+                        syncToTextarea();
+                    });
+                    customInput.addEventListener('change', () => {
+                        colorPalette.classList.add('hidden');
+                    });
+                }
+            }
         };
+
+        if (!window._rteGlobalClickAttached) {
+            window._rteGlobalClickAttached = true;
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.rte-color-wrapper')) {
+                    document.querySelectorAll('.rte-color-palette').forEach(p => p.classList.add('hidden'));
+                }
+            });
+        }
 
         function initMiniRichEditor(wrapper) {
             window.initMiniRichEditor(wrapper);

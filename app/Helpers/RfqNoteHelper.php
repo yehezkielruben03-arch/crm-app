@@ -32,11 +32,8 @@ class RfqNoteHelper
             // across all CLI, containerized, and read-only environments.
             $config->set('Cache.DefinitionImpl', null);
 
-            // Whitelist permitted formatting and structural elements.
-            $config->set('HTML.AllowedElements', ['b', 'strong', 'i', 'em', 'u', 's', 'ul', 'ol', 'li', 'p', 'br']);
-
-            // Disallow all attributes across all elements.
-            $config->set('HTML.AllowedAttributes', []);
+            // Whitelist permitted formatting and structural elements, including font with color.
+            $config->set('HTML.Allowed', 'b,strong,i,em,u,s,ul,ol,li,p,br,font[color]');
 
             // Ensure UTF-8 character encoding and consistent HTML doctype.
             $config->set('Core.Encoding', 'UTF-8');
@@ -116,6 +113,13 @@ class RfqNoteHelper
             return $trimmed;
         }
 
+        // Convert any <span style="...color: #xyz..."> to <font color="#xyz">
+        if (stripos($trimmed, 'color') !== false && stripos($trimmed, '<span') !== false) {
+            $trimmed = preg_replace_callback('/<span\s+[^>]*style="[^"]*color:\s*([^;"]+)[^"]*"[^>]*>/i', function ($m) {
+                return '<font color="' . trim($m[1]) . '">';
+            }, $trimmed);
+        }
+
         // Fast path: if payload contains exclusively clean, whitelisted tags with no attributes
         if (self::isStrictlyCleanHtml($trimmed)) {
             return $trimmed;
@@ -144,7 +148,7 @@ class RfqNoteHelper
             return true;
         }
 
-        $tagPattern = '/<\/?(p|br|b|strong|i|em|u|s|strike|del|ul|ol|li|div|span|h[1-6]|table|thead|tbody|tr|td|th|blockquote|pre|code|hr|a|img|script|style)\b[^>]*>/i';
+        $tagPattern = '/<\/?(p|br|b|strong|i|em|u|s|strike|del|ul|ol|li|div|span|font|h[1-6]|table|thead|tbody|tr|td|th|blockquote|pre|code|hr|a|img|script|style)\b[^>]*>/i';
 
         return !preg_match($tagPattern, $content);
     }

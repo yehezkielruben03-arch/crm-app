@@ -920,4 +920,36 @@ class RfqRichTextE2ETest extends TestCase
         $extractedPlain = $this->callHelper('extractCustomNotes', $plainText);
         $this->assertCount(2, $extractedPlain);
     }
+
+    /**
+     * Scenario 6: Rich Text Color Formatting, Sanitization, and Multi-channel Support
+     */
+    public function test_tier4_scenario_text_color_formatting_and_sanitization(): void
+    {
+        $this->requireHelper();
+
+        // 1. Sanitization preserves font/span with color
+        $inputSpan = 'Unit <span style="color: #dc2626;">READY LIMITED</span> garansi <span style="color: blue;">1 Tahun</span>';
+        $purified = $this->callHelper('sanitize', $inputSpan);
+        $this->assertStringContainsString('color="#dc2626"', $purified);
+        $this->assertStringContainsString('color="#0000FF"', $purified);
+
+        // 2. Dangerous CSS properties are stripped while color is preserved
+        $malicious = '<span style="color: red; position: fixed; background: url(javascript:alert(1));">Peringatan</span>';
+        $cleaned = $this->callHelper('sanitize', $malicious);
+        $this->assertStringContainsString('color="#FF0000"', $cleaned);
+        $this->assertStringNotContainsString('position', $cleaned);
+        $this->assertStringNotContainsString('background', $cleaned);
+        $this->assertStringNotContainsString('javascript', $cleaned);
+
+        // 3. Render in PDF wraps inside pdf-rich-text and retains color
+        $pdfHtml = $this->callHelper('renderPdfHtml', $inputSpan);
+        $this->assertStringContainsString('pdf-rich-text', $pdfHtml);
+        $this->assertStringContainsString('color="#dc2626"', $pdfHtml);
+
+        // 4. WhatsApp strips span but preserves text cleanly
+        $waText = $this->callHelper('toWhatsApp', $inputSpan);
+        $this->assertStringContainsString('Unit READY LIMITED garansi 1 Tahun', $waText);
+        $this->assertStringNotContainsString('<span', $waText);
+    }
 }
