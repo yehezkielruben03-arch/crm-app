@@ -108,6 +108,16 @@
         .rfq-grid__status { justify-self: end; text-align: right; }
         .rfq-grid__hpp { display: block; font-size: 0.625rem; line-height: 1.5; color: var(--text-muted); }
         .rfq-grid__hpp-line b { font-weight: 600; color: var(--text-secondary); }
+        .rte-editor ul, .mini-rich-editor ul, .rfq-rich-text ul {
+            list-style-type: disc !important;
+            padding-left: 1.25rem !important;
+            margin: 0.25rem 0 !important;
+        }
+        .rte-editor ol, .mini-rich-editor ol, .rfq-rich-text ol {
+            list-style-type: decimal !important;
+            padding-left: 1.25rem !important;
+            margin: 0.25rem 0 !important;
+        }
         .rfq-grid__hpp-line--jual, .rfq-grid__hpp-line--jual b { color: var(--accent-blue); }
         .rfq-grid__badge {
             display: inline-flex;
@@ -329,10 +339,14 @@
                 },
                 insertSnippet(snippet) {
                     const ta = document.getElementById('admin-note-modal-textarea');
-                    if (!ta) return;
+                    const editor = this.$refs.modalEditor;
                     const val = (this.noteText || '').trim();
                     this.noteText = val === '' ? snippet : val + '\n' + snippet;
-                    this.$nextTick(() => { ta.focus(); });
+                    if (editor) {
+                        editor.innerHTML = this.noteText.includes('<') ? this.noteText : this.noteText.replace(/\n/g, '<br>');
+                    }
+                    if (ta) ta.value = this.noteText;
+                    this.$nextTick(() => { if (editor) editor.focus(); else if (ta) ta.focus(); });
                 }
             }">
 
@@ -380,7 +394,7 @@
                             {{-- Edit Button (Admin & Leader Only) --}}
                             @if(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
                             <button type="button" 
-                                    @click="openAdminNoteModal = true" 
+                                    @click="openAdminNoteModal = true; $nextTick(() => { if ($refs.modalEditor) $refs.modalEditor.innerHTML = (noteText && (noteText.includes('<') ? noteText : noteText.replace(/\n/g, '<br>'))) || ''; })" 
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer"
                                     title="Edit atau tambahkan catatan internal ini langsung tanpa mengubah harga HPP">
                                 <svg class="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -412,7 +426,7 @@
                         </div>
                     </div>
                     <button type="button" 
-                            @click="openAdminNoteModal = true"
+                            @click="openAdminNoteModal = true; $nextTick(() => { if ($refs.modalEditor) $refs.modalEditor.innerHTML = (noteText && (noteText.includes('<') ? noteText : noteText.replace(/\n/g, '<br>'))) || ''; })"
                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl transition shadow-2xs active:scale-95 cursor-pointer flex-shrink-0">
                         <svg class="w-3.5 h-3.5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span>+ Tambah Catatan</span>
@@ -506,22 +520,22 @@
                             </div>
 
                             {{-- Textarea with Mini Toolbar & Contenteditable --}}
-                            <div class="mini-rich-editor-wrapper" id="modal-rte-admin-note">
+                            <div class="mini-rich-editor-wrapper mini-rich-wrapper" id="modal-rte-admin-note">
                                 <label for="admin-note-modal-textarea" class="text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                                     <span>Isi Catatan Internal:</span>
                                     <span class="inline-flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs italic text-slate-700 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs underline text-slate-700 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs line-through text-slate-700 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
-                                        <button type="button" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('bold', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('italic', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs italic font-serif text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('underline', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs underline text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('strikeThrough', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs line-through text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('insertUnorderedList', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                        <button type="button" onmousedown="event.preventDefault()" onclick="document.execCommand('insertOrderedList', false, null); $refs.modalEditor.dispatchEvent(new Event('input'))" class="rte-btn px-2 py-0.5 text-xs text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                     </span>
                                 </label>
                                 <div contenteditable="true"
                                      x-ref="modalEditor"
                                      @input="noteText = $el.innerHTML; document.getElementById('admin-note-modal-textarea').value = noteText"
-                                     class="rte-editor w-full text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-xl p-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y leading-relaxed min-h-[120px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->admin_note) !!}</div>
+                                     class="rte-editor mini-rich-editor w-full text-xs font-mono text-slate-800 bg-white border border-slate-300 rounded-xl p-3 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y leading-relaxed min-h-[120px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml($rfq->admin_note) !!}</div>
                                 <textarea name="admin_note" 
                                           id="admin-note-modal-textarea" 
                                           x-model="noteText"

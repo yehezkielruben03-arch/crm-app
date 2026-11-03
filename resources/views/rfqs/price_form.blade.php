@@ -20,6 +20,22 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
+    .rte-editor ul, .mini-rich-editor ul {
+        list-style-type: disc !important;
+        padding-left: 1.25rem !important;
+        margin: 0.25rem 0 !important;
+    }
+    .rte-editor ol, .mini-rich-editor ol {
+        list-style-type: decimal !important;
+        padding-left: 1.25rem !important;
+        margin: 0.25rem 0 !important;
+    }
+    .rte-editor:empty:before, .mini-rich-editor:empty:before {
+        content: attr(placeholder);
+        color: #94a3b8;
+        pointer-events: none;
+        display: block;
+    }
 </style>
 <x-app-layout>
     <div class="space-y-6">
@@ -552,25 +568,26 @@
                                         </div>
                                     </div>
 
-                                    <div class="flex-1 flex flex-col mini-rich-editor-wrapper" id="rte-desc-{{ $item->id }}">
+                                    <div class="flex-1 flex flex-col mini-rich-editor-wrapper mini-rich-wrapper" id="rte-desc-{{ $item->id }}">
                                         <label class="text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
                                             <span>Spesifikasi / Keterangan Item</span>
                                             <span class="inline-flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] italic text-slate-700 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
-                                                <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                             </span>
                                         </label>
                                         @php $itemSpec = old('items.'.$item->id.'.description', $item->description ?: $item->detail_item); @endphp
                                         <div contenteditable="true"
-                                             class="rte-editor w-full flex-1 min-h-[130px] text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs leading-relaxed bg-white overflow-auto"
+                                             class="rte-editor mini-rich-editor w-full flex-1 min-h-[130px] text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs leading-relaxed bg-white overflow-auto"
                                              placeholder="Part number, spesifikasi teknis, atau keterangan barang...">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</div>
                                         <textarea name="items[{{ $item->id }}][description]" rows="5"
                                                   style="display:none;"
-                                                  class="hidden">{{ $itemSpec }}</textarea>
+                                                  class="hidden"
+                                                  oninput="syncBundleDescription('{{ $item->id }}', this.value, 'regular')">{{ $itemSpec }}</textarea>
                                     </div>
                                 </div>
                             </div>
@@ -1015,18 +1032,33 @@
                             </div>
 
                             <!-- Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1) -->
-                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mini-rich-editor-wrapper mini-rich-wrapper" id="bundle-wrapper-{{ $item->id }}">
                                 <div class="flex items-center justify-between mb-1.5">
                                     <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                                         <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                                         Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1)
                                     </label>
-                                    <span class="text-[11px] text-slate-500">Bisa diedit atau ditambah catatan garansi</span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-0.5 bg-white rounded-lg p-0.5 border border-slate-200">
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                                        </span>
+                                        <span class="text-[11px] text-slate-500 hidden sm:inline">Bisa diedit atau ditambah catatan garansi</span>
+                                    </div>
                                 </div>
+                                @php $bundleSpec = old('items.'.$item->id.'.description', $item->description ?: $item->detail_item); @endphp
+                                <div contenteditable="true"
+                                     class="rte-editor mini-rich-editor w-full min-h-[140px] text-xs font-mono border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white overflow-auto"
+                                     placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'...">{!! \App\Helpers\RfqNoteHelper::renderHtml($bundleSpec) !!}</div>
                                 <textarea id="bundle-description-{{ $item->id }}" rows="6"
-                                          class="w-full text-xs font-mono border-slate-200 rounded-xl resize-y focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white"
+                                          style="display:none;"
+                                          class="hidden"
                                           placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'..."
-                                          oninput="syncBundleDescription('{{ $item->id }}', this.value)">{{ old('items.'.$item->id.'.description', $item->description ?: $item->detail_item) }}</textarea>
+                                          oninput="syncBundleDescription('{{ $item->id }}', this.value, 'bundle')">{{ $bundleSpec }}</textarea>
                             </div>
 
                             <!-- Rollup Footer Summary (Persis Excel Lembar2 Baris 26) -->
@@ -1299,7 +1331,7 @@
             @endif
 
             {{-- Catatan Tambahan Penawaran (Quotation Note - Teks Merah) --}}
-            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs mb-6 mini-rich-editor-wrapper" id="rte-notes">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs mb-6 mini-rich-editor-wrapper mini-rich-wrapper" id="rte-notes">
                 <div class="flex items-center justify-between mb-2">
                     <label for="rfq-notes" class="text-sm font-bold text-slate-800 flex items-center gap-2">
                         <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1309,18 +1341,18 @@
                     </label>
                     <div class="flex items-center gap-2">
                         <span class="inline-flex items-center gap-0.5 bg-rose-50/80 rounded-lg p-0.5 border border-rose-200">
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs font-bold text-rose-800 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs italic text-rose-800 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs underline text-rose-800 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs line-through text-rose-800 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs font-bold text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs italic font-serif text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs underline text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs line-through text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-rose-800 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                         </span>
                         <span class="text-xs text-rose-600 font-semibold bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-100">Tampil warna merah di atas template tetap</span>
                     </div>
                 </div>
                 <div contenteditable="true"
-                     class="rte-editor w-full text-xs text-rose-700 bg-rose-50/20 border border-rose-200 rounded-xl p-3 focus:outline-none focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition resize-y font-medium leading-relaxed min-h-[90px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml(old('notes', $rfq->notes)) !!}</div>
+                     class="rte-editor mini-rich-editor w-full text-xs text-rose-700 bg-rose-50/20 border border-rose-200 rounded-xl p-3 focus:outline-none focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition resize-y font-medium leading-relaxed min-h-[90px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml(old('notes', $rfq->notes)) !!}</div>
                 <textarea 
                     name="notes" 
                     id="rfq-notes" 
@@ -1338,7 +1370,7 @@
             </div>
 
             {{-- Catatan Admin ke Sales (Internal Only) --}}
-            <div class="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300/80 p-5 shadow-xs mb-6 mini-rich-editor-wrapper" id="rte-admin-note" x-data="{
+            <div class="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/30 rounded-2xl border-2 border-amber-300/80 p-5 shadow-xs mb-6 mini-rich-editor-wrapper mini-rich-wrapper" id="rte-admin-note" x-data="{
                 insertSnippet(snippet) {
                     const wrapper = document.getElementById('rte-admin-note');
                     const editor = wrapper ? wrapper.querySelector('[contenteditable]') : null;
@@ -1366,12 +1398,12 @@
                     </label>
                     <div class="flex items-center gap-2">
                         <span class="inline-flex items-center gap-0.5 bg-amber-100/90 rounded-lg p-0.5 border border-amber-300">
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs font-bold text-amber-900 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs italic text-amber-900 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs underline text-amber-900 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs line-through text-amber-900 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs text-amber-900 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
-                            <button type="button" class="rte-btn px-2 py-0.5 text-xs text-amber-900 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs font-bold text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs italic font-serif text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs underline text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs line-through text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                            <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-2 py-0.5 text-xs text-amber-900 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                         </span>
                         <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100/90 px-2.5 py-1 rounded-lg border border-amber-300">
                             <svg class="w-3.5 h-3.5 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
@@ -1413,7 +1445,7 @@
                 </div>
 
                 <div contenteditable="true"
-                     class="rte-editor w-full text-xs text-slate-800 bg-white border border-amber-300 rounded-xl p-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y font-mono font-medium leading-relaxed min-h-[110px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml(old('admin_note', $rfq->admin_note)) !!}</div>
+                     class="rte-editor mini-rich-editor w-full text-xs text-slate-800 bg-white border border-amber-300 rounded-xl p-3 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-y font-mono font-medium leading-relaxed min-h-[110px] overflow-auto">{!! \App\Helpers\RfqNoteHelper::renderHtml(old('admin_note', $rfq->admin_note)) !!}</div>
                 <textarea 
                     name="admin_note" 
                     id="rfq-admin-note" 
@@ -1933,18 +1965,32 @@
                     </button>
                 </div>
 
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 mini-rich-editor-wrapper mini-rich-wrapper" id="bundle-wrapper-${itemId}">
                     <div class="flex items-center justify-between mb-1.5">
                         <label class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
                             <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                             Spesifikasi Teknis (Tampil di Quotation Klien / PDF Sheet Q1)
                         </label>
-                        <span class="text-[11px] text-slate-500">Bisa diedit atau ditambah catatan garansi</span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-0.5 bg-white rounded-lg p-0.5 border border-slate-200">
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                            </span>
+                            <span class="text-[11px] text-slate-500 hidden sm:inline">Bisa diedit atau ditambah catatan garansi</span>
+                        </div>
                     </div>
+                    <div contenteditable="true"
+                         class="rte-editor mini-rich-editor w-full min-h-[140px] text-xs font-mono border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white overflow-auto"
+                         placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'...">${desc ? (desc.includes('<') ? desc : desc.replace(/\n/g, '<br>')) : ''}</div>
                     <textarea id="bundle-description-${itemId}" rows="6"
-                              class="w-full text-xs font-mono border-slate-200 rounded-xl resize-y focus:border-indigo-500 focus:ring-indigo-500 shadow-2xs leading-relaxed bg-white"
+                              style="display:none;"
+                              class="hidden"
                               placeholder="Daftar spesifikasi komponen akan tersusun otomatis saat klik tombol 'Sinkronkan Spek'..."
-                              oninput="syncBundleDescription('${itemId}', this.value)">${desc || ''}</textarea>
+                              oninput="syncBundleDescription('${itemId}', this.value, 'bundle')">${desc || ''}</textarea>
                 </div>
 
                 <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white shadow-md border border-slate-700 space-y-4">
@@ -2136,24 +2182,25 @@
                                 </div>
                             </div>
 
-                            <div class="flex-1 flex flex-col mini-rich-editor-wrapper" id="rte-desc-${tempId}">
+                            <div class="flex-1 flex flex-col mini-rich-editor-wrapper mini-rich-wrapper" id="rte-desc-${tempId}">
                                 <label class="text-[11px] font-semibold text-slate-600 mb-1 flex items-center justify-between">
                                     <span>Spesifikasi / Keterangan Item</span>
                                     <span class="inline-flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5 border border-slate-200">
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition" data-cmd="bold" title="Bold">B</button>
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] italic text-slate-700 hover:bg-white rounded transition" data-cmd="italic" title="Italic">I</button>
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition" data-cmd="underline" title="Underline">U</button>
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition" data-cmd="strikeThrough" title="Strikethrough">S</button>
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
-                                        <button type="button" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition" data-cmd="insertOrderedList" title="Numbered List">1.</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="bold" title="Bold">B</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] italic font-serif text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="italic" title="Italic">I</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] underline text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="underline" title="Underline">U</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] line-through text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="strikeThrough" title="Strikethrough">S</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
+                                        <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                     </span>
                                 </label>
                                 <div contenteditable="true"
-                                     class="rte-editor w-full flex-1 min-h-[130px] text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs leading-relaxed bg-white overflow-auto"
-                                     placeholder="Part number, spesifikasi teknis, atau keterangan barang...">${initDesc}</div>
+                                     class="rte-editor mini-rich-editor w-full flex-1 min-h-[130px] text-xs border border-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-2xs leading-relaxed bg-white overflow-auto"
+                                     placeholder="Part number, spesifikasi teknis, atau keterangan barang...">${initDesc ? (initDesc.includes('<') ? initDesc : initDesc.replace(/\n/g, '<br>')) : ''}</div>
                                 <textarea name="items[${tempId}][description]" rows="5"
                                           style="display:none;"
-                                          class="hidden">${initDesc}</textarea>
+                                          class="hidden"
+                                          oninput="syncBundleDescription('${tempId}', this.value, 'regular')">${initDesc}</textarea>
                             </div>
                         </div>
                     </div>
@@ -2334,6 +2381,13 @@
 
             const newCard = document.getElementById('card-item-' + tempId);
             attachRupiahListeners(newCard);
+            if (newCard) {
+                newCard.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
+                    if (window.initMiniRichEditor) {
+                        window.initMiniRichEditor(wrap);
+                    }
+                });
+            }
             newCard.querySelectorAll('.calc-trigger').forEach(function(el) {
                 el.addEventListener('input', function() {
                     calculateRow(tempId);
@@ -2903,7 +2957,16 @@
                     const bundleUnitInput = document.getElementById('bundle-unit-' + itemId);
                     if (bundleUnitInput && regUnit) bundleUnitInput.value = regUnit;
                     const bundleDescInput = document.getElementById('bundle-description-' + itemId);
-                    if (bundleDescInput && regDesc) bundleDescInput.value = regDesc;
+                    const bundleWrap = document.getElementById('bundle-wrapper-' + itemId);
+                    if (bundleWrap && window.initMiniRichEditor) {
+                        window.initMiniRichEditor(bundleWrap);
+                    }
+                    if (bundleDescInput && regDesc) {
+                        bundleDescInput.value = regDesc;
+                        if (window.updateMiniRichEditor) {
+                            window.updateMiniRichEditor(bundleDescInput, regDesc, true);
+                        }
+                    }
 
                     // Cek apakah tabel sudah berisi komponen valid dengan nama produk
                     const tbody = document.getElementById('bundle-components-tbody-' + itemId);
@@ -3325,18 +3388,27 @@
 
         
         // ─── Mini Rich-Text Formatting Engine ────────────────────────────────
-        function initMiniRichEditor(wrapper) {
-            if (!wrapper) return;
-            const editor = wrapper.querySelector('[contenteditable="true"]');
+        window.initMiniRichEditor = function(wrapper) {
+            if (!wrapper || wrapper.dataset.miniRichInit === 'true') return;
+            wrapper.dataset.miniRichInit = 'true';
+
+            const editor = wrapper.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
             const textarea = wrapper.querySelector('textarea');
             if (!editor || !textarea) return;
 
             if (!editor.innerHTML.trim() && textarea.value) {
-                editor.innerHTML = textarea.value;
+                const raw = textarea.value;
+                if (raw.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br)\b/i.test(raw)) {
+                    editor.innerHTML = raw;
+                } else {
+                    editor.innerHTML = raw.replace(/\n/g, '<br>');
+                }
             }
 
             const syncToTextarea = () => {
                 textarea.value = editor.innerHTML;
+                textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                textarea.dispatchEvent(new Event('change', { bubbles: true }));
                 if (typeof triggerAutoSave === 'function') {
                     triggerAutoSave();
                 }
@@ -3345,38 +3417,93 @@
             editor.addEventListener('input', syncToTextarea);
             editor.addEventListener('keyup', syncToTextarea);
             editor.addEventListener('blur', syncToTextarea);
+            editor.addEventListener('paste', () => {
+                setTimeout(syncToTextarea, 0);
+            });
 
-            wrapper.querySelectorAll('.rte-btn').forEach(btn => {
+            wrapper.querySelectorAll('.rte-btn, button[data-cmd]').forEach(btn => {
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Preserve contenteditable selection
+                });
                 btn.addEventListener('click', (e) => {
                     e.preventDefault();
                     const cmd = btn.getAttribute('data-cmd');
-                    document.execCommand(cmd, false, null);
-                    editor.focus();
-                    syncToTextarea();
+                    if (cmd) {
+                        editor.focus();
+                        document.execCommand(cmd, false, null);
+                        syncToTextarea();
+                    }
                 });
             });
+        };
+
+        function initMiniRichEditor(wrapper) {
+            window.initMiniRichEditor(wrapper);
         }
 
-        function updateMiniRichEditor(wrapperOrId, html) {
-            const wrapper = typeof wrapperOrId === 'string' ? document.getElementById(wrapperOrId) : wrapperOrId;
-            if (!wrapper) return;
-            const editor = wrapper.querySelector('[contenteditable="true"]');
-            const textarea = wrapper.querySelector('textarea');
-            if (editor) editor.innerHTML = html;
-            if (textarea) textarea.value = html;
-            if (typeof triggerAutoSave === 'function') triggerAutoSave();
+        let isUpdatingMiniRich = false;
+        window.updateMiniRichEditor = function(wrapperOrEl, value, silent = false) {
+            if (!wrapperOrEl || isUpdatingMiniRich) return;
+            isUpdatingMiniRich = true;
+            try {
+                let wrapper = null;
+                let textarea = null;
+                let editor = null;
+
+                if (typeof wrapperOrEl === 'string') {
+                    wrapper = document.getElementById(wrapperOrEl);
+                } else if (wrapperOrEl.tagName === 'TEXTAREA') {
+                    textarea = wrapperOrEl;
+                    wrapper = textarea.closest('.mini-rich-wrapper, .mini-rich-editor-wrapper') || textarea.parentElement;
+                } else {
+                    wrapper = wrapperOrEl;
+                }
+
+                if (wrapper) {
+                    editor = wrapper.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
+                    if (!textarea) textarea = wrapper.querySelector('textarea');
+                }
+
+                const cleanVal = value !== undefined && value !== null ? value : '';
+                if (textarea && textarea.value !== cleanVal) {
+                    textarea.value = cleanVal;
+                    if (!silent) {
+                        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+                if (editor && editor !== document.activeElement) {
+                    if (cleanVal.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br)\b/i.test(cleanVal)) {
+                        editor.innerHTML = cleanVal;
+                    } else {
+                        editor.innerHTML = cleanVal ? cleanVal.replace(/\n/g, '<br>') : '';
+                    }
+                }
+                if (typeof triggerAutoSave === 'function') triggerAutoSave();
+            } finally {
+                isUpdatingMiniRich = false;
+            }
+        };
+
+        function updateMiniRichEditor(wrapperOrEl, value, silent = false) {
+            window.updateMiniRichEditor(wrapperOrEl, value, silent);
         }
 
-        function syncPcSpecsToDescription(itemId, specs) {
-            syncBundleDescription(itemId, specs);
-        }
-
-        function syncBundleDescription(itemId, val) {
+        function syncBundleDescription(itemId, val, source) {
+            const cleanVal = val !== undefined && val !== null ? val : '';
             const regDesc = document.querySelector('textarea[name="items[' + itemId + '][description]"]');
-            if (regDesc) regDesc.value = val;
-            const wrapper = document.getElementById('rte-desc-' + itemId);
-            if (wrapper) {
-                updateMiniRichEditor(wrapper, val);
+            const bundleDesc = document.getElementById('bundle-description-' + itemId);
+
+            if (source === 'bundle') {
+                if (regDesc) window.updateMiniRichEditor(regDesc, cleanVal, true);
+            } else if (source === 'regular') {
+                if (bundleDesc) window.updateMiniRichEditor(bundleDesc, cleanVal, true);
+            } else {
+                if (regDesc) window.updateMiniRichEditor(regDesc, cleanVal, true);
+                if (bundleDesc) window.updateMiniRichEditor(bundleDesc, cleanVal, true);
+            }
+
+            if (typeof triggerAutoSave === 'function') {
+                triggerAutoSave();
             }
         }
 
@@ -3830,12 +3957,21 @@
             });
 
             checkExistingDraft();
-            document.querySelectorAll('.mini-rich-editor-wrapper').forEach(initMiniRichEditor);
+            document.querySelectorAll('.mini-rich-editor-wrapper, .mini-rich-wrapper').forEach(function(wrap) {
+                if (window.initMiniRichEditor) window.initMiniRichEditor(wrap);
+            });
         });
 
         // ─── Autosave LocalStorage & Tab Protection Functions ────────────────
         function saveDraftToStorage() {
             try {
+                // Ensure all mini rich editors flush their innerHTML to the underlying textarea
+                document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
+                    const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
+                    const ta = wrap.querySelector('textarea');
+                    if (ed && ta) ta.value = ed.innerHTML;
+                });
+
                 const form = document.getElementById('price-calculation-form');
                 if (!form) return;
 
@@ -3955,11 +4091,17 @@
 
                 if (draft.notes !== undefined) {
                     const notesEl = document.getElementById('rfq-notes');
-                    if (notesEl) notesEl.value = draft.notes;
+                    if (notesEl) {
+                        notesEl.value = draft.notes;
+                        if (window.updateMiniRichEditor) window.updateMiniRichEditor(notesEl, draft.notes);
+                    }
                 }
                 if (draft.admin_note !== undefined) {
                     const adminNoteEl = document.getElementById('rfq-admin-note');
-                    if (adminNoteEl) adminNoteEl.value = draft.admin_note;
+                    if (adminNoteEl) {
+                        adminNoteEl.value = draft.admin_note;
+                        if (window.updateMiniRichEditor) window.updateMiniRichEditor(adminNoteEl, draft.admin_note);
+                    }
                 }
                 if (draft.tax_type) {
                     const radio = document.querySelector('input[name="tax_type"][value="' + draft.tax_type + '"]');
@@ -4016,6 +4158,10 @@
                         setVal('qty', itemData.qty);
                         setVal('unit', itemData.unit);
                         setVal('description', itemData.description);
+                        const descEl = card.querySelector('[name="items[' + itemData.id + '][description]"]');
+                        if (descEl && window.updateMiniRichEditor) window.updateMiniRichEditor(descEl, itemData.description);
+                        const bDescEl = document.getElementById('bundle-description-' + itemData.id);
+                        if (bDescEl && window.updateMiniRichEditor) window.updateMiniRichEditor(bDescEl, itemData.description);
                         setVal('hpp', itemData.hpp);
                         setVal('biaya_kirim', itemData.biaya_kirim);
                         setVal('ongkir_pedia', itemData.ongkir_pedia);

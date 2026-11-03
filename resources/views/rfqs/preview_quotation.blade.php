@@ -51,6 +51,19 @@
             font-size: 13.5px;
             padding: 3px 8px;
         }
+        .rich-text-preview ul {
+            list-style-type: disc !important;
+            padding-left: 1.25rem !important;
+            margin: 0.2rem 0 !important;
+        }
+        .rich-text-preview ol {
+            list-style-type: decimal !important;
+            padding-left: 1.25rem !important;
+            margin: 0.2rem 0 !important;
+        }
+        .rich-text-preview li {
+            margin-bottom: 0.1rem !important;
+        }
     </style>
 </head>
 <body class="bg-[#525659] flex flex-col items-center py-8 min-h-screen text-black">
@@ -272,7 +285,7 @@
                                             <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                             @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                             @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
+                                            <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
@@ -297,7 +310,7 @@
                                     <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
                                     @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[12px] text-black whitespace-pre-line mt-0.5 leading-snug">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
+                                    <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml(ucfirst($itemSpec)) !!}</div>
                                     @endif
                                 @endif
                             </td>
