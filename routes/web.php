@@ -91,6 +91,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/customers/import/process', [CustomerController::class, 'processImport'])->name('customers.import.process');
         Route::delete('/customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
         Route::post('/customers/{customer}/restore', [CustomerController::class, 'restore'])->name('customers.restore')->withTrashed();
+        Route::delete('/customers/{customer}/force-delete', [CustomerController::class, 'forceDelete'])->name('customers.force-delete')->withTrashed();
+        Route::get('/api/customers/search-target', [CustomerController::class, 'searchTarget'])->name('customers.search-target');
 
         // PO Routes
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('po.index');

@@ -45,20 +45,38 @@
                         <td class="px-4 py-3 text-sm" style="color: var(--text-secondary);">{{ $customer->sales->name ?? '-' }}</td>
                         <td class="px-4 py-3 text-sm" style="color: var(--text-muted);">{{ $customer->deleted_at->format('d M Y, H:i') }}</td>
                         <td class="px-4 py-3">
-                            <form action="{{ route('customers.restore', $customer->id) }}" method="POST" class="inline"
-                                onsubmit="return confirm('Pulihkan customer {{ $customer->company_name }}?')">
-                                @csrf
-                                <button type="submit"
-                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg transition-all"
-                                    style="background: rgba(5,150,105,0.10); color: var(--accent-emerald); border: 1px solid rgba(5,150,105,0.20);"
-                                    onmouseenter="this.style.background='rgba(5,150,105,0.18)'"
-                                    onmouseleave="this.style.background='rgba(5,150,105,0.10)'">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                                    </svg>
-                                    Pulihkan
-                                </button>
-                            </form>
+                            <div class="flex items-center gap-2">
+                                <form action="{{ route('customers.restore', $customer->id) }}" method="POST" class="inline"
+                                    onsubmit="return confirm('Pulihkan customer {{ $customer->company_name }}?')">
+                                    @csrf
+                                    <button type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all"
+                                        style="background: rgba(5,150,105,0.10); color: var(--accent-emerald); border: 1px solid rgba(5,150,105,0.20);"
+                                        onmouseenter="this.style.background='rgba(5,150,105,0.18)'"
+                                        onmouseleave="this.style.background='rgba(5,150,105,0.10)'">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        Pulihkan
+                                    </button>
+                                </form>
+
+                                <form action="{{ route('customers.force-delete', $customer->id) }}" method="POST" class="inline"
+                                    onsubmit="return confirm('PERINGATAN: Hapus PERMANEN customer {{ $customer->company_name }} dari database? Data akan dihapus sepenuhnya dan TIDAK DAPAT dipulihkan kembali!');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all"
+                                        style="background: rgba(225,29,72,0.10); color: var(--accent-rose); border: 1px solid rgba(225,29,72,0.20);"
+                                        onmouseenter="this.style.background='rgba(225,29,72,0.18)'"
+                                        onmouseleave="this.style.background='rgba(225,29,72,0.10)'">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                        Hapus Permanen
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     @empty

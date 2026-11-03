@@ -60,7 +60,7 @@ class CustomerController extends Controller
             $scope = $defaultScope;
         }
 
-        $query = Customer::with('sales');
+        $query = Customer::with('sales')->withCount(['rfqs', 'purchaseOrders']);
 
         if ($scope === 'my') {
             $query->where('sales_id', $user->id);
@@ -113,7 +113,7 @@ class CustomerController extends Controller
         }
 
         // Eager load relasi 'sales' pada $customer
-        $customer->load('sales', 'billingAddresses', 'shippingAddresses');
+        $customer->load('sales', 'billingAddresses', 'shippingAddresses')->loadCount(['rfqs', 'purchaseOrders']);
 
         // Ambil data PO (Berjalan & Riwayat)
         $activePOs  = $customer->purchaseOrders()->whereIn('status', ['Pending', 'Revisi'])->orderByDesc('po_date')->get();
@@ -620,15 +620,123 @@ class CustomerController extends Controller
                 ->with('error', 'Gagal memperbarui customer: ' . $e->getMessage());
         }
     }
-    public function destroy(Customer $customer)
+    public function destroy(Request $request, Customer $customer)
     {
-        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403, 'Akses ditolak. Hanya Admin, Leader, dan Super Admin yang berhak mengarsipkan customer.');
 
         $name = $customer->company_name;
         $customer->delete();
 
-        return redirect()->route('customers.index')
+        if ($request->header('referer') && str_contains($request->header('referer'), "/customers/{$customer->id}")) {
+            return redirect()->route('customers.index')->with('success', "Customer {$name} berhasil diarsipkan.");
+        }
+
+        return redirect()->back()
             ->with('success', "Customer {$name} berhasil diarsipkan.");
+    }
+
+    public function forceDelete(Request $request, int $id)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403, 'Akses ditolak. Hanya Admin, Leader, dan Super Admin yang berhak menghapus permanen customer.');
+
+        $customer = Customer::withTrashed()->findOrFail($id);
+        $name = $customer->company_name;
+        $targetCustomerId = $request->input('target_customer_id');
+
+        try {
+            DB::beginTransaction();
+
+            if (!empty($targetCustomerId) && (int) $targetCustomerId !== (int) $customer->id) {
+                $targetCustomer = Customer::withTrashed()->findOrFail($targetCustomerId);
+
+                // 1. Pindahkan RFQs ke customer tujuan
+                DB::table('rfqs')->where('customer_id', $customer->id)->update([
+                    'customer_id'   => $targetCustomer->id,
+                    'customer_name' => $targetCustomer->company_name,
+                    'customer_code' => $targetCustomer->company_code,
+                ]);
+
+                // 2. Pindahkan Quotations
+                DB::table('quotations')->where('customer_id', $customer->id)->update([
+                    'customer_id' => $targetCustomer->id,
+                ]);
+
+                // 3. Pindahkan Purchase Orders
+                DB::table('purchase_orders')->where('customer_id', $customer->id)->update([
+                    'customer_id' => $targetCustomer->id,
+                ]);
+
+                // 4. Pindahkan Kontak Person yang belum ada di target customer
+                DB::table('customer_contacts')->where('customer_id', $customer->id)->update([
+                    'customer_id' => $targetCustomer->id,
+                ]);
+
+                $message = "Customer {$name} berhasil dihapus permanen. Seluruh transaksi dan kontak telah dipindahkan ke {$targetCustomer->company_name}.";
+            } else {
+                // Tidak merger: lepaskan relasi RFQ agar data riwayat RFQ tetap tersimpan teks nama customernya
+                DB::table('rfqs')->where('customer_id', $customer->id)->update([
+                    'customer_id' => null,
+                ]);
+
+                // Hapus purchase orders & quotations terkait jika ada
+                DB::table('purchase_orders')->where('customer_id', $customer->id)->delete();
+                DB::table('quotations')->where('customer_id', $customer->id)->delete();
+
+                $message = "Customer {$name} berhasil dihapus permanen dari database.";
+            }
+
+            // Hapus kontak & alamat
+            DB::table('customer_contacts')->where('customer_id', $customer->id)->delete();
+            DB::table('customer_billing_addresses')->where('customer_id', $customer->id)->delete();
+            DB::table('customer_shipping_addresses')->where('customer_id', $customer->id)->delete();
+
+            // Hapus approval histories jika ada
+            DB::table('approval_histories')->where('approvable_type', Customer::class)->where('approvable_id', $customer->id)->delete();
+
+            // Hapus customer permanen dari database
+            $customer->forceDelete();
+
+            DB::commit();
+
+            if ($request->header('referer') && str_contains($request->header('referer'), "/customers/{$customer->id}")) {
+                return redirect()->route('customers.index')->with('success', $message);
+            }
+
+            return redirect()->back()->with('success', $message);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal menghapus permanen customer: ' . $e->getMessage());
+        }
+    }
+
+    public function searchTarget(Request $request)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+
+        $q = trim($request->query('q', ''));
+        $excludeId = $request->query('exclude_id');
+
+        $customers = Customer::query()
+            ->when($excludeId, fn($query) => $query->where('id', '!=', $excludeId))
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('company_name', 'like', "%{$q}%")
+                        ->orWhere('company_code', 'like', "%{$q}%");
+                });
+            })
+            ->with('sales')
+            ->orderBy('company_name')
+            ->limit(20)
+            ->get()
+            ->map(fn($c) => [
+                'id' => $c->id,
+                'name' => $c->company_name,
+                'code' => $c->company_code ?? '-',
+                'sales' => $c->sales->name ?? 'Pedia',
+            ]);
+
+        return response()->json($customers);
     }
 
     public function trash()

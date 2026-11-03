@@ -31,9 +31,9 @@
             <p class="mt-1 text-sm ml-10" style="color: var(--text-muted);">Detail informasi dan riwayat transaksi</p>
         </div>
 
-        {{-- Tombol Edit hanya tampil untuk Admin ATAU Sales pemilik customer ini --}}
-        @if($canEdit)
         <div class="flex items-center gap-2">
+            {{-- Tombol Edit hanya tampil untuk Admin ATAU Sales pemilik customer ini --}}
+            @if($canEdit)
             <a href="{{ route('customers.edit', $customer) }}"
                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-md"
                style="background: linear-gradient(135deg, var(--accent-blue), #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.30);">
@@ -42,8 +42,22 @@
                 </svg>
                 Edit Customer
             </a>
+            @endif
+
+            {{-- Tombol Hapus: Khusus Admin, Leader, dan Super Admin --}}
+            @if(auth()->user()->isAdminOrAbove())
+            <button type="button"
+               onclick="openDeleteCustomerModal('{{ $customer->id }}', '{{ addslashes($customer->company_name) }}', '{{ $customer->company_code }}', '{{ addslashes($customer->sales->name ?? 'Pedia') }}', {{ $customer->rfqs_count ?? $customer->rfqs()->count() }}, {{ $customer->purchase_orders_count ?? $customer->purchaseOrders()->count() }})"
+               class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-xl transition-all hover:bg-rose-100"
+               style="background: #fff1f2; color: #e11d48; border: 1px solid #fecdd3;"
+               title="Kelola Penghapusan Customer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Hapus
+            </button>
+            @endif
         </div>
-        @endif
     </div>
 
     {{--
@@ -444,4 +458,6 @@
 
         </div>
     </div>
+
+    @include('customers.partials.delete-modal')
 </x-app-layout>

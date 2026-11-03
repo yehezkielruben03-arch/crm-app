@@ -340,21 +340,17 @@
                                     @endif
 
                                     @if(auth()->user()->isAdminOrAbove())
-                                    <!-- Delete -->
-                                    <form action="{{ route('customers.destroy', $customer) }}" method="POST" class="inline"
-                                        onsubmit="return confirm('Arsipkan customer {{ $customer->company_name }}? Data bisa dipulihkan dari Trash.')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" title="Arsipkan"
-                                            class="p-1.5 rounded-lg transition-colors"
-                                            style="color: var(--text-muted);"
-                                            onmouseenter="this.style.background='rgba(225,29,72,0.08)'; this.style.color='var(--accent-rose)'"
-                                            onmouseleave="this.style.background=''; this.style.color='var(--text-muted)'">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                        </button>
-                                    </form>
+                                    <!-- Delete Button that triggers modal -->
+                                    <button type="button" title="Hapus Customer"
+                                        onclick="openDeleteCustomerModal('{{ $customer->id }}', '{{ addslashes($customer->company_name) }}', '{{ $customer->company_code }}', '{{ addslashes($customer->sales->name ?? 'Pedia') }}', {{ $customer->rfqs_count ?? 0 }}, {{ $customer->purchase_orders_count ?? 0 }})"
+                                        class="p-1.5 rounded-lg transition-colors"
+                                        style="color: var(--text-muted);"
+                                        onmouseenter="this.style.background='rgba(225,29,72,0.08)'; this.style.color='var(--accent-rose)'"
+                                        onmouseleave="this.style.background=''; this.style.color='var(--text-muted)'">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
                                     @endif
                                 </div>
                             </td>
@@ -488,5 +484,7 @@
         </div>
     </div>
     @endif
+
+    @include('customers.partials.delete-modal')
 
 </x-app-layout>
