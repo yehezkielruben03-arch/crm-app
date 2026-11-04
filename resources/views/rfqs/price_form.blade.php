@@ -1802,6 +1802,14 @@
         let isFormSubmitting = false;
 
         function validatePriceFormSubmit(event) {
+            document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
+                const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
+                const ta = wrap.querySelector('textarea');
+                if (ed && ta) {
+                    const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
+                    ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                }
+            });
             const itemCards = document.querySelectorAll('.item-card-row');
             if (itemCards.length === 0) {
                 alert('Mohon tambahkan minimal satu item untuk dihitung HPP & Penawarannya.');
@@ -3525,7 +3533,12 @@
             }
 
             const syncToTextarea = () => {
-                textarea.value = editor.innerHTML;
+                const textOnly = editor.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
+                if (!textOnly && !editor.querySelector('img')) {
+                    textarea.value = '';
+                } else {
+                    textarea.value = editor.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                }
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                 textarea.dispatchEvent(new Event('change', { bubbles: true }));
                 if (typeof triggerAutoSave === 'function') {
@@ -3537,7 +3550,12 @@
             editor.addEventListener('keyup', syncToTextarea);
             editor.addEventListener('blur', syncToTextarea);
             editor.addEventListener('paste', () => {
-                setTimeout(syncToTextarea, 0);
+                setTimeout(() => {
+                    if (editor.innerHTML.includes('&nbsp')) {
+                        editor.innerHTML = editor.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    }
+                    syncToTextarea();
+                }, 0);
             });
 
             wrapper.querySelectorAll('.rte-btn, button[data-cmd]').forEach(btn => {
@@ -4152,7 +4170,10 @@
                 document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
                     const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
                     const ta = wrap.querySelector('textarea');
-                    if (ed && ta) ta.value = ed.innerHTML;
+                    if (ed && ta) {
+                        const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
+                        ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    }
                 });
 
                 const form = document.getElementById('price-calculation-form');

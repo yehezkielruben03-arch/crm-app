@@ -1039,7 +1039,10 @@ class RfqController extends Controller
                 $item->product_name     = $data['product_name'];
                 $item->qty              = $data['qty'];
                 $item->unit             = $data['unit'] ?? null;
-                $desc                   = $data['description'] ?? $data['detail_item'] ?? null;
+                $rawDesc                = $data['description'] ?? $data['detail_item'] ?? null;
+                $desc                   = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
+                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
+                    : null;
                 $item->description      = $desc;
                 $item->detail_item      = $desc;
                 $item->hpp              = $data['hpp'];
@@ -1083,7 +1086,10 @@ class RfqController extends Controller
                         $comp->product_name = $cName;
                         $comp->qty = (float) ($cData['qty'] ?? 1);
                         $comp->unit = $cData['unit'] ?? 'Unit';
-                        $comp->description = $cData['description'] ?? null;
+                        $rawCDesc = $cData['description'] ?? null;
+                        $comp->description = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawCDesc)
+                            ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawCDesc))
+                            : null;
                         $comp->detail_item = $comp->description;
                         $comp->hpp = (float) ($cData['hpp'] ?? 0);
                         $comp->ongkir_pedia = (float) ($cData['ongkir_pedia'] ?? 0);
@@ -1598,7 +1604,10 @@ class RfqController extends Controller
                 $item->product_name = $pName;
                 $item->qty = (float) ($data['qty'] ?? 1);
                 $item->unit = $data['unit'] ?? 'Unit';
-                $desc = $data['description'] ?? $data['detail_item'] ?? null;
+                $rawDesc = $data['description'] ?? $data['detail_item'] ?? null;
+                $desc = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
+                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
+                    : null;
                 $item->description = $desc;
                 $item->detail_item = $desc;
 

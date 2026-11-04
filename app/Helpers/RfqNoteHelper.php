@@ -105,6 +105,7 @@ class RfqNoteHelper
             return null;
         }
 
+        $html = self::normalizeSpaces($html);
         $trimmed = trim($html);
         if ($trimmed === '') {
             return '';
@@ -154,6 +155,54 @@ class RfqNoteHelper
     }
 
     /**
+     * Normalize non-breaking spaces and entity variations to standard clean spaces.
+     * Prevents raw "&nbsp;" entities from leaking into quotations and PDFs.
+     *
+     * @param string $content
+     * @return string
+     */
+    public static function normalizeSpaces(string $content): string
+    {
+        // 1. Replace non-breaking space (U+00A0) and zero-width spaces with regular space
+        $clean = str_replace(["\xc2\xa0", "\u{00a0}", "\u{200b}"], ' ', $content);
+
+        // 2. Replace literal &nbsp; &nbsp (without semicolon), &#160;, and &amp;nbsp; with regular space
+        $clean = preg_replace('/&(?:amp;)?nbsp;?|&#160;?/i', ' ', $clean);
+
+        return $clean;
+    }
+
+    /**
+     * Check whether content contains meaningful visible text or elements.
+     * Accurately flags empty markup such as "<p><br></p>", "<p></p>", "<p>&nbsp;</p>", etc.
+     *
+     * @param string|null $content
+     * @return bool
+     */
+    public static function hasVisibleContent(?string $content): bool
+    {
+        if ($content === null || trim($content) === '') {
+            return false;
+        }
+
+        // If it contains an image or embedded element, it has visible content
+        if (preg_match('/<(?:img|svg|iframe|canvas|table)\b/i', $content)) {
+            return true;
+        }
+
+        // Strip HTML tags
+        $stripped = strip_tags($content);
+
+        // Decode HTML entities (e.g., &nbsp;, &#160;)
+        $decoded = html_entity_decode($stripped, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // Remove regular whitespace, non-breaking spaces (U+00A0), zero-width spaces (U+200B), and control characters
+        $cleaned = preg_replace('/[\s\x{00a0}\x{200b}]+/u', '', $decoded);
+
+        return $cleaned !== '';
+    }
+
+    /**
      * Render safe HTML for Web views (show, price_form, preview_quotation).
      *
      * Automatically applies nl2br(e($content)) for legacy plain-text,
@@ -164,15 +213,17 @@ class RfqNoteHelper
      */
     public static function renderHtml(?string $content): string
     {
-        if ($content === null || trim($content) === '') {
+        if ($content === null || !self::hasVisibleContent($content)) {
             return '';
         }
 
-        if (self::isLegacyPlainText($content)) {
-            return nl2br(e($content));
+        $normalized = self::normalizeSpaces($content);
+
+        if (self::isLegacyPlainText($normalized)) {
+            return nl2br(e($normalized));
         }
 
-        return self::sanitize($content) ?? '';
+        return self::sanitize($normalized) ?? '';
     }
 
     /**
@@ -220,7 +271,7 @@ class RfqNoteHelper
      */
     public static function toWhatsApp(?string $content): string
     {
-        if ($content === null || trim($content) === '') {
+        if ($content === null || !self::hasVisibleContent($content)) {
             return '';
         }
 

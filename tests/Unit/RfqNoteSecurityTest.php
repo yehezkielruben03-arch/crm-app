@@ -215,6 +215,39 @@ class RfqNoteSecurityTest extends TestCase
         $this->assertSame('', RfqNoteHelper::renderPdfHtml(null));
         $this->assertSame('', RfqNoteHelper::renderPdfHtml(''));
         $this->assertSame('', RfqNoteHelper::renderPdfHtml('   '));
+        $this->assertSame('', RfqNoteHelper::renderPdfHtml('<p><br></p>'));
+        $this->assertSame('', RfqNoteHelper::renderPdfHtml('<p>&nbsp;</p>'));
+    }
+
+    public function test_has_visible_content_and_nbsp_cleaning(): void
+    {
+        // 1. Empty HTML markup from Quill/contenteditable should be false
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent(null));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent(''));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('   '));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<p></p>'));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<p><br></p>'));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<p><br/></p>'));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<p>&nbsp;</p>'));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<div><p><br></p></div>'));
+        $this->assertFalse(RfqNoteHelper::hasVisibleContent('<b>   </b>'));
+
+        // 2. Real content should be true
+        $this->assertTrue(RfqNoteHelper::hasVisibleContent('HDD 73GB'));
+        $this->assertTrue(RfqNoteHelper::hasVisibleContent('<p>Screen size 43 inches</p>'));
+
+        // 3. &nbsp; entity and unicode non-breaking space normalization
+        $dirtyText = "Screen size 43 inches,&nbsp;QLED displays,&nbsp;Full HD 2K resolution (1920x1080),&nbsp;HVA Panels";
+        $clean = RfqNoteHelper::normalizeSpaces($dirtyText);
+        $this->assertStringNotContainsString('&nbsp;', $clean);
+        $this->assertStringNotContainsString('&nbsp', $clean);
+        $this->assertStringContainsString('Screen size 43 inches, QLED displays, Full HD 2K resolution (1920x1080), HVA Panels', $clean);
+
+        // 4. renderHtml does not leak raw &nbsp; to output
+        $rendered = RfqNoteHelper::renderHtml($dirtyText);
+        $this->assertStringNotContainsString('&nbsp;', $rendered);
+        $this->assertStringNotContainsString('&nbsp', $rendered);
+        $this->assertStringContainsString('Screen size 43 inches, QLED displays', $rendered);
     }
 
     public function test_model_mutators_sanitize_on_assignment(): void

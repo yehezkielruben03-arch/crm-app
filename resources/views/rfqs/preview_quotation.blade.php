@@ -275,22 +275,24 @@
                             $rowTotal = (float) $item->row_total;
                             $grandSubtotal += $rowTotal;
                             $totalQty += $item->qty;
+                            $rawSpec = $item->description ?: $item->detail_item;
+                            $hasSpec = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawSpec);
+                            $isMid = !$hasSpec && !$loop->last;
                         @endphp
                         <tr class="item-row">
-                            <td class="font-bold !px-1">
+                            <td class="font-bold !px-1" style="vertical-align: {{ $isMid ? 'middle' : 'top' }};">
                                 <div class="flex w-full">
                                     <span class="w-[40%] text-right pr-1">{{ (int) $item->qty }}</span>
                                     <span class="w-[60%] text-left pl-0.5">{{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}</span>
                                 </div>
                             </td>
-                            <td>
+                            <td style="vertical-align: {{ $isMid ? 'middle' : 'top' }};">
                                 @if($loop->last)
                                     <div style="min-height: {{ $noteMinHeight }};" class="flex flex-col justify-between">
                                         <div>
                                             <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
-                                            @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                            @if(!empty($itemSpec))
-                                            <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</div>
+                                            @if($hasSpec)
+                                            <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($rawSpec) !!}</div>
                                             @endif
                                         </div>
                                         <div class="mt-4 mb-1">
@@ -310,16 +312,15 @@
                                     </div>
                                 @else
                                     <div class="font-bold text-[14px] leading-snug text-black">{{ ucfirst($item->product_name) }}</div>
-                                    @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                    @if(!empty($itemSpec))
-                                    <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</div>
+                                    @if($hasSpec)
+                                    <div class="font-normal italic text-[12px] text-black mt-0.5 leading-snug rich-text-preview">{!! \App\Helpers\RfqNoteHelper::renderHtml($rawSpec) !!}</div>
                                     @endif
                                 @endif
                             </td>
-                            <td class="font-bold">
+                            <td class="font-bold" style="vertical-align: {{ $isMid ? 'middle' : 'top' }};">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($unitPrice, 0, ',', '.') }}</span></div>
                             </td>
-                            <td class="font-bold">
+                            <td class="font-bold" style="vertical-align: {{ $isMid ? 'middle' : 'top' }};">
                                 <div class="flex justify-between px-0.5"><span>Rp</span><span>{{ number_format($rowTotal, 0, ',', '.') }}</span></div>
                             </td>
                         </tr>

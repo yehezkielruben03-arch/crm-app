@@ -360,22 +360,24 @@
                     $rowTotal = (float) $item->row_total;
                     $grandSubtotal += $rowTotal;
                     $totalQty += $item->qty;
+                    $rawSpec = $item->description ?: $item->detail_item;
+                    $hasSpec = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawSpec);
+                    $vAlign = (!$hasSpec && !$loop->last) ? 'middle' : 'top';
                 @endphp
                 <tr>
-                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-weight: bold; font-size: {{ $itemTitleSize }}; vertical-align: top; line-height: 1.08;">
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-weight: bold; font-size: {{ $itemTitleSize }}; vertical-align: {{ $vAlign }}; line-height: 1.08;">
                         <table style="width: 100%; border: none;">
                             <tr>
-                                <td style="width: 40%; text-align: right; padding: 0 2pt 0 0; border: none; font-weight: bold;">{{ (int) $item->qty }}</td>
-                                <td style="width: 60%; text-align: left; padding: 0 0 0 2pt; border: none; font-weight: bold;">{{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}</td>
+                                <td style="width: 40%; text-align: right; padding: 0 2pt 0 0; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">{{ (int) $item->qty }}</td>
+                                <td style="width: 60%; text-align: left; padding: 0 0 0 2pt; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">{{ ucwords(strtolower(trim($item->unit ?: 'Unit'))) }}</td>
                             </tr>
                         </table>
                     </td>
-                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: 8.9pt; line-height: 1.08; vertical-align: top;">
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: 8.9pt; line-height: 1.08; vertical-align: {{ $vAlign }};">
                         <div style="font-weight: bold; font-size: {{ $itemTitleSize }}; color: #000; line-height: 1.08;">{{ ucfirst($item->product_name) }}</div>
-                        @php $itemSpec = trim((string) ($item->description ?: $item->detail_item)); @endphp
-                        @if($itemSpec !== '')
+                        @if($hasSpec)
                         <div style="color: #000; margin-top: 1pt; font-size: {{ $itemSpecSize }}; font-style: italic;" class="item-spec-content">
-                            {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($itemSpec) !!}
+                            {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($rawSpec) !!}
                         </div>
                         @endif
 
@@ -395,11 +397,11 @@
                         </div>
                         @endif
                     </td>
-                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.08;">
-                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: {{ $vAlign }}; line-height: 1.08;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">{{ number_format($unitPrice, 0, ',', '.') }}</td></tr></table>
                     </td>
-                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: top; line-height: 1.08;">
-                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold;">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold;">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
+                    <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: {{ $cellPad }}; font-size: {{ $itemTitleSize }}; font-weight: bold; vertical-align: {{ $vAlign }}; line-height: 1.08;">
+                        <table style="width: 100%; border: none;"><tr><td style="text-align: left; padding: 0; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">Rp</td><td style="text-align: right; padding: 0; border: none; font-weight: bold; vertical-align: {{ $vAlign }};">{{ number_format($rowTotal, 0, ',', '.') }}</td></tr></table>
                     </td>
                 </tr>
             @empty

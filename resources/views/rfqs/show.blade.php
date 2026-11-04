@@ -689,7 +689,7 @@
                                             @endif
                                         </div>
                                         @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                        @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
+                                        @if(\App\Helpers\RfqNoteHelper::hasVisibleContent($itemSpec))<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
                                         @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
                                             <div x-data="{ open: false }" class="mt-2">
                                                 <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
@@ -837,7 +837,7 @@
                                         @endif
                                     </div>
                                     @php $itemSpec = $item->description ?: $item->detail_item; @endphp
-                                    @if($itemSpec)<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
+                                    @if(\App\Helpers\RfqNoteHelper::hasVisibleContent($itemSpec))<span class="rfq-grid__desc text-xs text-slate-500">{!! \App\Helpers\RfqNoteHelper::renderHtml($itemSpec) !!}</span>@endif
                                     @if($item->isBundle() && (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && $item->components->isNotEmpty())
                                         <div x-data="{ open: false }" class="mt-2">
                                             <button type="button" @click="open = !open" class="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100 px-2.5 py-1 rounded-lg border border-indigo-200 transition cursor-pointer">
