@@ -1384,16 +1384,22 @@ class RfqController extends Controller
         set_time_limit(120);
 
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-        abort_if(!in_array($rfq->status, [
-            Rfq::STATUS_APPROVED,
-            Rfq::STATUS_QUOTATION_CREATED,
-            Rfq::STATUS_QUOTATION_SENT,
-            Rfq::STATUS_PO_PENDING_ADMIN,
-            Rfq::STATUS_PO_PENDING_LEADER,
-            Rfq::STATUS_GOAL
-        ]), 403, 'Quotation belum tersedia.');
 
-        if ($rfq->status === Rfq::STATUS_APPROVED) {
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
+
+        if (!$historyId && !$canPreviewDraft) {
+            abort_if(!in_array($rfq->status, [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL
+            ]), 403, 'Quotation belum tersedia.');
+        }
+
+        if (!$historyId && $rfq->status === Rfq::STATUS_APPROVED) {
             if ($rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
                 $rfq->update(['status' => Rfq::STATUS_QUOTATION_CREATED]);
                 if ($rfq->sales_id) {
@@ -1472,14 +1478,20 @@ class RfqController extends Controller
     public function previewQuotation(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-        abort_if(!in_array($rfq->status, [
-            Rfq::STATUS_APPROVED,
-            Rfq::STATUS_QUOTATION_CREATED,
-            Rfq::STATUS_QUOTATION_SENT,
-            Rfq::STATUS_PO_PENDING_ADMIN,
-            Rfq::STATUS_PO_PENDING_LEADER,
-            Rfq::STATUS_GOAL
-        ]), 403, 'Quotation belum tersedia.');
+
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
+
+        if (!$historyId && !$canPreviewDraft) {
+            abort_if(!in_array($rfq->status, [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL
+            ]), 403, 'Quotation belum tersedia.');
+        }
 
         $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
         
@@ -2090,7 +2102,13 @@ class RfqController extends Controller
         $approvedCount = $approvedHistories->count();
 
         // Dokumen penawaran resmi hanya bertambah nomor revisinya jika pernah disetujui lebih dari 1 kali
-        $revisionCount = ($isApproved && $approvedCount > 1) ? ($approvedCount - 1) : 0;
+        if ($isApproved) {
+            $revisionCount = ($approvedCount > 1) ? ($approvedCount - 1) : 0;
+        } elseif ($rfq->status === Rfq::STATUS_PENDING_LEADER && $approvedCount >= 1) {
+            $revisionCount = $approvedCount; // Draf revisi ke-N yang sedang menunggu approval Leader
+        } else {
+            $revisionCount = 0;
+        }
 
         $latestApproved = $approvedHistories->sortByDesc('approved_at')->first();
         $latestHistory = $priceHistories->sortByDesc('version')->first();
@@ -2114,14 +2132,21 @@ class RfqController extends Controller
         if ($historyId) {
             $targetHistory = $priceHistories->firstWhere('id', $historyId);
             abort_if(!$targetHistory, 404, 'Dokumen arsip penawaran tidak ditemukan.');
-            abort_if(empty($targetHistory->approved_at), 403, 'Versi penawaran ini belum disetujui oleh Leader.');
+
+            $canViewUnapproved = $this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader();
+            abort_if(empty($targetHistory->approved_at) && !$canViewUnapproved, 403, 'Versi penawaran ini belum disetujui oleh Leader.');
 
             $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
                 ->sortBy('version')
                 ->values();
 
             $index = $approvedHistories->search(fn($h) => (int)$h->id === (int)$targetHistory->id);
-            $revisionCount = $index !== false ? (int)$index : 0;
+            if ($index !== false) {
+                $revisionCount = (int)$index;
+            } else {
+                $revisionCount = $approvedHistories->count();
+            }
+
             $revisionDate = $targetHistory->approved_at 
                 ? $targetHistory->approved_at->format('d M Y')
                 : ($targetHistory->created_at ? $targetHistory->created_at->format('d M Y') : date('d M Y'));
@@ -2132,7 +2157,15 @@ class RfqController extends Controller
         }
 
         // Default / Latest version
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, true);
+        $isApproved = in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]);
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
         $quotationItems = $rfq->customer_quotation_items;
 
         return [$revisionCount, $revisionDate, $quotationItems, null, $latestHistory];

@@ -96,6 +96,11 @@
                 <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Arsip Versi: {{ ($revisionCount ?? 0) === 0 ? 'Penawaran Awal (Original / Rev 0)' : 'Penawaran Revisi ' . $revisionCount }}
             </span>
+            @elseif($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER)
+            <span class="bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-2xs">
+                <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                Draf {{ ($revisionCount ?? 0) > 0 ? 'Revisi ' . $revisionCount : 'Penawaran' }} (Menunggu Approval Leader)
+            </span>
             @endif
         </div>
         <div class="flex items-center gap-3">
