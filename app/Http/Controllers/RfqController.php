@@ -916,8 +916,8 @@ class RfqController extends Controller
             'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
             'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
             'items.*.components.*.description'   => 'nullable|string',
-            'items.*.components.*.link_referensi'=> 'nullable|string|max:500',
-            'items.*.link_referensi'             => 'nullable|string|max:500',
+            'items.*.components.*.link_referensi'=> 'nullable|string|max:2048',
+            'items.*.link_referensi'             => 'nullable|string|max:2048',
         ]);
 
         $oldStatus = $rfq->status;
@@ -926,7 +926,8 @@ class RfqController extends Controller
             ? Rfq::STATUS_APPROVED
             : Rfq::STATUS_PENDING_LEADER;
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request, $targetStatus) {
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request, $targetStatus) {
             $cleanPrice = function ($val, $default = 0.0) {
                 if ($val === null || $val === '') return $default;
                 if (is_int($val) || is_float($val)) return (float) $val;
@@ -1143,6 +1144,15 @@ class RfqController extends Controller
                 $rfq->update(['status' => $targetStatus]);
             }
         });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal submit harga RFQ: ' . $e->getMessage(), [
+                'rfq_id' => $rfq->id,
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat menyimpan harga: ' . $e->getMessage());
+        }
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);

@@ -11,15 +11,28 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('rfq_items') && Schema::hasColumn('rfq_items', 'product_name')) {
+        if (Schema::hasTable('rfq_items')) {
             Schema::table('rfq_items', function (Blueprint $table) {
-                $table->text('product_name')->change();
+                if (Schema::hasColumn('rfq_items', 'product_name')) {
+                    $table->text('product_name')->change();
+                }
+                if (Schema::hasColumn('rfq_items', 'link_referensi')) {
+                    $table->text('link_referensi')->nullable()->change();
+                }
+                if (Schema::hasColumn('rfq_items', 'unit')) {
+                    $table->string('unit', 100)->nullable()->change();
+                }
             });
         }
 
-        if (Schema::hasTable('quotation_items') && Schema::hasColumn('quotation_items', 'product_name')) {
+        if (Schema::hasTable('quotation_items')) {
             Schema::table('quotation_items', function (Blueprint $table) {
-                $table->text('product_name')->change();
+                if (Schema::hasColumn('quotation_items', 'product_name')) {
+                    $table->text('product_name')->change();
+                }
+                if (Schema::hasColumn('quotation_items', 'unit')) {
+                    $table->string('unit', 100)->nullable()->change();
+                }
             });
         }
     }
@@ -29,15 +42,28 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (Schema::hasTable('rfq_items') && Schema::hasColumn('rfq_items', 'product_name')) {
+        if (Schema::hasTable('rfq_items')) {
             Schema::table('rfq_items', function (Blueprint $table) {
-                $table->string('product_name', 150)->change();
+                if (Schema::hasColumn('rfq_items', 'product_name')) {
+                    $table->string('product_name', 150)->change();
+                }
+                if (Schema::hasColumn('rfq_items', 'link_referensi')) {
+                    $table->string('link_referensi', 500)->nullable()->change();
+                }
+                if (Schema::hasColumn('rfq_items', 'unit')) {
+                    $table->string('unit', 30)->nullable()->change();
+                }
             });
         }
 
-        if (Schema::hasTable('quotation_items') && Schema::hasColumn('quotation_items', 'product_name')) {
+        if (Schema::hasTable('quotation_items')) {
             Schema::table('quotation_items', function (Blueprint $table) {
-                $table->string('product_name', 255)->change();
+                if (Schema::hasColumn('quotation_items', 'product_name')) {
+                    $table->string('product_name', 255)->change();
+                }
+                if (Schema::hasColumn('quotation_items', 'unit')) {
+                    $table->string('unit', 30)->nullable()->change();
+                }
             });
         }
     }
