@@ -3,7 +3,9 @@
 namespace App\Helpers;
 
 use DOMDocument;
+use DOMElement;
 use DOMNode;
+use DOMXPath;
 use HTMLPurifier;
 use HTMLPurifier_Config;
 
@@ -34,7 +36,7 @@ class RfqNoteHelper
 
             // Whitelist permitted formatting and structural elements, including span[style] and font[color].
             $config->set('HTML.Allowed', 'b,strong,i,em,u,s,ul,ol,li,p,br,span[style],font[color]');
-            $config->set('CSS.AllowedProperties', ['color']);
+            $config->set('CSS.AllowedProperties', ['color', 'font-weight', 'font-style', 'text-decoration']);
 
             // Ensure UTF-8 character encoding and consistent HTML doctype.
             $config->set('Core.Encoding', 'UTF-8');
@@ -125,6 +127,9 @@ class RfqNoteHelper
             ? preg_replace('/<(\/?)(strike|del)\b[^>]*>/i', '<$1s>', $trimmed)
             : $trimmed;
 
+        // Normalize inline CSS styles (e.g. font-weight: bold -> <b>) so combined formatting coexists cleanly
+        $normalized = self::normalizeStylesWithDom($normalized);
+
         $purified = self::getPurifier()->purify($normalized);
 
         // Strip unstyled / empty-styled span tags while keeping styled spans intact
@@ -200,6 +205,136 @@ class RfqNoteHelper
         $cleaned = preg_replace('/[\s\x{00a0}\x{200b}]+/u', '', $decoded);
 
         return $cleaned !== '';
+    }
+
+    /**
+     * Normalize inline CSS formatting styles (font-weight, font-style, text-decoration)
+     * into semantic HTML tags (<b>, <i>, <u>, <s>), while preserving text color.
+     *
+     * Ensures combined styles (e.g. Bold + Red Color) work simultaneously and consistently
+     * across web views, DomPDF generation, WhatsApp output, and rich text editors.
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function normalizeStylesWithDom(string $html): string
+    {
+        if (stripos($html, 'style') === false) {
+            return $html;
+        }
+
+        $dom = new DOMDocument();
+        libxml_use_internal_errors(true);
+        $dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $html . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        libxml_clear_errors();
+
+        $xpath = new DOMXPath($dom);
+        $nodes = $xpath->query('//*[@style]');
+
+        foreach ($nodes as $node) {
+            if (!($node instanceof DOMElement)) {
+                continue;
+            }
+
+            $styleAttr = $node->getAttribute('style');
+            if (!$styleAttr) {
+                continue;
+            }
+
+            $styles = [];
+            foreach (explode(';', $styleAttr) as $decl) {
+                $parts = explode(':', $decl, 2);
+                if (count($parts) === 2) {
+                    $prop = strtolower(trim($parts[0]));
+                    $val  = trim($parts[1]);
+                    if ($prop !== '' && $val !== '') {
+                        $styles[$prop] = $val;
+                    }
+                }
+            }
+
+            $needsBold = false;
+            $needsItalic = false;
+            $needsUnderline = false;
+            $needsStrike = false;
+
+            if (isset($styles['font-weight'])) {
+                $fw = strtolower($styles['font-weight']);
+                if (in_array($fw, ['bold', '700', '800', '900', 'bolder']) || (is_numeric($fw) && (int)$fw >= 600)) {
+                    $needsBold = true;
+                    unset($styles['font-weight']);
+                }
+            }
+
+            if (isset($styles['font-style'])) {
+                $fs = strtolower($styles['font-style']);
+                if (in_array($fs, ['italic', 'oblique'])) {
+                    $needsItalic = true;
+                    unset($styles['font-style']);
+                }
+            }
+
+            if (isset($styles['text-decoration'])) {
+                $td = strtolower($styles['text-decoration']);
+                if (str_contains($td, 'underline')) {
+                    $needsUnderline = true;
+                }
+                if (str_contains($td, 'line-through')) {
+                    $needsStrike = true;
+                }
+                unset($styles['text-decoration']);
+            }
+
+            if ($needsBold || $needsItalic || $needsUnderline || $needsStrike) {
+                $frag = $dom->createDocumentFragment();
+                while ($node->firstChild) {
+                    $frag->appendChild($node->firstChild);
+                }
+
+                $currentWrapper = $frag;
+
+                if ($needsStrike) {
+                    $s = $dom->createElement('s');
+                    $s->appendChild($currentWrapper);
+                    $currentWrapper = $s;
+                }
+                if ($needsUnderline) {
+                    $u = $dom->createElement('u');
+                    $u->appendChild($currentWrapper);
+                    $currentWrapper = $u;
+                }
+                if ($needsItalic) {
+                    $i = $dom->createElement('i');
+                    $i->appendChild($currentWrapper);
+                    $currentWrapper = $i;
+                }
+                if ($needsBold) {
+                    $b = $dom->createElement('b');
+                    $b->appendChild($currentWrapper);
+                    $currentWrapper = $b;
+                }
+
+                $node->appendChild($currentWrapper);
+            }
+
+            if (isset($styles['color'])) {
+                $node->setAttribute('style', 'color: ' . $styles['color'] . ';');
+            } else {
+                $node->removeAttribute('style');
+            }
+        }
+
+        $root = $dom->getElementsByTagName('div')->item(0);
+        if (!$root) {
+            return $html;
+        }
+
+        $result = '';
+        foreach ($root->childNodes as $child) {
+            $result .= $dom->saveHTML($child);
+        }
+
+        return $result;
     }
 
     /**
@@ -283,6 +418,9 @@ class RfqNoteHelper
 
         // Normalize <br> variants to newline
         $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+
+        // Normalize inline CSS styles to semantic tags before walking DOM
+        $html = self::normalizeStylesWithDom($html);
 
         // Parse HTML DOM with explicit UTF-8 encoding
         $dom = new DOMDocument();

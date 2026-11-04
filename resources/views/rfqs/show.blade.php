@@ -282,9 +282,12 @@
 
                 @if($rfq->revision_notes)
                 <div class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-sm animate-in">
-                    <div class="flex items-center gap-2 font-bold text-sm text-amber-800 mb-1">
+                    <div class="flex flex-wrap items-center gap-2 font-bold text-sm text-amber-900 mb-1">
                         <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        Catatan Revisi dari Leader:
+                        <span>Catatan Revisi{{ $rfq->revisionAuthor ? ' dari ' . $rfq->revisionAuthor->name . ' (' . ($rfq->revisionAuthor->crm_title ?? $rfq->revisionAuthor->role ?? 'User') . ')' : '' }}:</span>
+                        @if($rfq->revision_at)
+                            <span class="text-xs font-normal text-amber-700/80">&bull; {{ $rfq->revision_at->format('d M Y, H:i') }}</span>
+                        @endif
                     </div>
                     <p class="text-xs text-amber-800 leading-relaxed font-medium pl-7">{{ $rfq->revision_notes }}</p>
                 </div>

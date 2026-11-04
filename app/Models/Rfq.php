@@ -22,6 +22,7 @@ class Rfq extends Model
         'enable_jasa_ceiling', 'jasa_ceiling_step', 'jasa_custom_total',
         'admin_note', 'admin_note_updated_at', 'admin_note_by',
         'po_rejection_note', 'po_rejected_at', 'po_rejected_by',
+        'revision_by', 'revision_at',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Rfq extends Model
         'jasa_custom_total' => 'decimal:2',
         'admin_note_updated_at' => 'datetime',
         'po_rejected_at' => 'datetime',
+        'revision_at' => 'datetime',
     ];
 
     public const STATUS_PENDING_ADMIN = 'Pending Admin';
@@ -270,6 +272,11 @@ class Rfq extends Model
     public function poRejectedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'po_rejected_by')->withTrashed();
+    }
+
+    public function revisionAuthor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'revision_by')->withTrashed();
     }
 
     public function getWhatsAppFormattedNote(): string

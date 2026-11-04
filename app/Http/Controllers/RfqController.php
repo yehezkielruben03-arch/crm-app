@@ -413,7 +413,7 @@ class RfqController extends Controller
             abort(403);
         }
 
-        $rfq->load(['customer', 'sales', 'items.vendor', 'adminNoteAuthor']);
+        $rfq->load(['customer', 'sales', 'items.vendor', 'adminNoteAuthor', 'revisionAuthor']);
 
         $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->with('creator:id,name')
@@ -816,7 +816,7 @@ class RfqController extends Controller
         abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
         abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa diubah dari status saat ini.');
 
-        $rfq->load(['items.components.vendor', 'items.vendor', 'customer']);
+        $rfq->load(['items.components.vendor', 'items.vendor', 'customer', 'revisionAuthor']);
         
         $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
         // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
@@ -1354,6 +1354,8 @@ class RfqController extends Controller
         $rfq->update([
             'status'         => Rfq::STATUS_PENDING_ADMIN,
             'revision_notes' => $notes,
+            'revision_by'    => Auth::id(),
+            'revision_at'    => now(),
         ]);
 
         if ($rfq->sales_id) {
@@ -1774,8 +1776,10 @@ class RfqController extends Controller
             }
 
             $rfq->update([
-                'status' => Rfq::STATUS_PENDING_ADMIN,
+                'status'         => Rfq::STATUS_PENDING_ADMIN,
                 'revision_notes' => $request->revision_notes,
+                'revision_by'    => Auth::id(),
+                'revision_at'    => now(),
             ]);
 
             $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin', 'Leader'])->get();

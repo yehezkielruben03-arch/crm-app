@@ -262,6 +262,7 @@
         .pdf-rich-text li, .item-spec-content li, .note-content li { margin: 0; padding: 0; line-height: inherit; }
         .pdf-rich-text s, .pdf-rich-text del, s, del { text-decoration: line-through; }
         .pdf-rich-text u, u { text-decoration: underline; }
+        .pdf-rich-text b, .pdf-rich-text strong, .item-spec-content b, .item-spec-content strong, b, strong { font-weight: bold; }
     </style>
 </head>
 <body>

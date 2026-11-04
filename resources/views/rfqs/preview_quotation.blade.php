@@ -64,6 +64,15 @@
         .rich-text-preview li {
             margin-bottom: 0.1rem !important;
         }
+        .rich-text-preview b, .rich-text-preview strong {
+            font-weight: bold !important;
+        }
+        .rich-text-preview u {
+            text-decoration: underline !important;
+        }
+        .rich-text-preview s, .rich-text-preview del {
+            text-decoration: line-through !important;
+        }
     </style>
 </head>
 <body class="bg-[#525659] flex flex-col items-center py-8 min-h-screen text-black">

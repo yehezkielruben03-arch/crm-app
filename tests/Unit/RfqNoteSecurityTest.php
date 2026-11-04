@@ -290,4 +290,58 @@ class RfqNoteSecurityTest extends TestCase
         $this->assertStringContainsString('_Stok terbatas_', $wa);
         $this->assertStringContainsString('file sudah dimasukan ke folder sales', $wa);
     }
+
+    public function test_combined_bold_and_color_formatting_is_preserved(): void
+    {
+        // 1. Span with inline CSS color + font-weight: bold (Chromium styleWithCSS output)
+        $input1 = '<span style="color: #dc2626; font-weight: bold;">Interface: HDMI 2 Ports</span>';
+        $san1 = RfqNoteHelper::sanitize($input1);
+        $this->assertStringContainsString('color:#dc2626', $san1);
+        $this->assertStringContainsString('<b>Interface: HDMI 2 Ports</b>', $san1);
+        $this->assertSame('*Interface: HDMI 2 Ports*', RfqNoteHelper::toWhatsApp($input1));
+
+        // 2. Span with RGB color + 700 numeric bold weight
+        $input2 = '<span style="color: rgb(239, 68, 68); font-weight: 700;">USB 1 Port</span>';
+        $san2 = RfqNoteHelper::sanitize($input2);
+        $this->assertStringContainsString('color:rgb(239,68,68)', $san2);
+        $this->assertStringContainsString('<b>USB 1 Port</b>', $san2);
+        $this->assertSame('*USB 1 Port*', RfqNoteHelper::toWhatsApp($input2));
+
+        // 3. HTML5 b tag wrapping colored span
+        $input3 = '<b><span style="color: #dc2626;">Bold Red Text</span></b>';
+        $san3 = RfqNoteHelper::sanitize($input3);
+        $this->assertSame('<b><span style="color:#dc2626;">Bold Red Text</span></b>', $san3);
+        $this->assertSame('*Bold Red Text*', RfqNoteHelper::toWhatsApp($input3));
+
+        // 4. Colored span wrapping b tag
+        $input4 = '<span style="color: #dc2626;"><b>Bold Red Text</b></span>';
+        $san4 = RfqNoteHelper::sanitize($input4);
+        $this->assertSame('<span style="color:#dc2626;"><b>Bold Red Text</b></span>', $san4);
+        $this->assertSame('*Bold Red Text*', RfqNoteHelper::toWhatsApp($input4));
+
+        // 5. Font color with b tag
+        $input5 = '<font color="#dc2626"><b>Bold Red Text</b></font>';
+        $san5 = RfqNoteHelper::sanitize($input5);
+        $this->assertSame('<font color="#dc2626"><b>Bold Red Text</b></font>', $san5);
+        $this->assertSame('*Bold Red Text*', RfqNoteHelper::toWhatsApp($input5));
+
+        // 6. Bold + Italic + Color combined
+        $input6 = '<span style="color: #2563eb; font-weight: bold; font-style: italic;">Blue Bold Italic</span>';
+        $san6 = RfqNoteHelper::sanitize($input6);
+        $this->assertStringContainsString('color:#2563eb', $san6);
+        $this->assertStringContainsString('<b><i>Blue Bold Italic</i></b>', $san6);
+        $this->assertSame('*_Blue Bold Italic_*', RfqNoteHelper::toWhatsApp($input6));
+
+        // 7. Full specification paragraph with mixed regular and bold red text
+        $fullSpec = 'Screen size 43 inches, <span style="color: #dc2626; font-weight: bold;">Interface: HDMI 2 Ports (HDMI 1.4b), USB 1 Port (USB 2.0)</span>';
+        $rendered = RfqNoteHelper::renderHtml($fullSpec);
+        $this->assertStringContainsString('Screen size 43 inches,', $rendered);
+        $this->assertStringContainsString('<b>Interface: HDMI 2 Ports (HDMI 1.4b), USB 1 Port (USB 2.0)</b>', $rendered);
+        $this->assertStringContainsString('color:#dc2626', $rendered);
+
+        $pdfHtml = RfqNoteHelper::renderPdfHtml($fullSpec);
+        $this->assertStringContainsString('<div class="pdf-rich-text">', $pdfHtml);
+        $this->assertStringContainsString('<b>Interface: HDMI 2 Ports', $pdfHtml);
+        $this->assertStringContainsString('color:#dc2626', $pdfHtml);
+    }
 }

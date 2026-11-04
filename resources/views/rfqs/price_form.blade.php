@@ -131,14 +131,17 @@
             </div>
             @endif
 
-            {{-- Alert Catatan Revisi dari Leader (jika ada) --}}
+            {{-- Alert Catatan Revisi (jika ada) --}}
             @if($rfq->revision_notes)
             <div class="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 shadow-xs animate-in">
-                <div class="flex items-center gap-2 font-bold text-sm text-amber-800 mb-1">
+                <div class="flex flex-wrap items-center gap-2 font-bold text-sm text-amber-900 mb-1">
                     <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    Catatan Arahan Revisi dari Leader:
+                    <span>Catatan Arahan Revisi{{ $rfq->revisionAuthor ? ' dari ' . $rfq->revisionAuthor->name . ' (' . ($rfq->revisionAuthor->crm_title ?? $rfq->revisionAuthor->role ?? 'User') . ')' : '' }}:</span>
+                    @if($rfq->revision_at)
+                        <span class="text-xs font-normal text-amber-700/80">&bull; {{ $rfq->revision_at->format('d M Y, H:i') }}</span>
+                    @endif
                 </div>
                 <p class="text-xs text-amber-900 leading-relaxed font-medium pl-7">{{ $rfq->revision_notes }}</p>
             </div>
@@ -593,23 +596,6 @@
                                                 </label>
                                             </div>
                                         </div>
-                                                <div class="relative inline-flex items-center rte-color-wrapper">
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-white rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
-                                                        <span class="font-bold">A</span>
-                                                        <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
-                                                    </button>
-                                                    <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
-                                                        <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
-                                                        <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
-                                                            <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
-                                                        </label>
-                                                    </div>
-                                                </div>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                                 <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-white rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                             </span>
@@ -1095,23 +1081,6 @@
                                         </label>
                                     </div>
                                 </div>
-                                            <div class="relative inline-flex items-center rte-color-wrapper">
-                                                <button type="button" onmousedown="event.preventDefault()" class="rte-color-btn px-1.5 py-0.5 text-[11px] font-bold text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer flex flex-col items-center justify-center leading-none" title="Warna Teks">
-                                                    <span class="font-bold">A</span>
-                                                    <span class="rte-color-bar w-3 h-[2px] bg-red-600 rounded-full mt-0.5"></span>
-                                                </button>
-                                                <div class="rte-color-palette hidden absolute z-50 top-full right-0 sm:left-0 sm:right-auto mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-2 flex items-center gap-1.5">
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-slate-900 border border-slate-300 hover:scale-110 transition cursor-pointer" data-color="#0f172a" title="Hitam (Default)"></button>
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-red-600 border border-red-300 hover:scale-110 transition cursor-pointer" data-color="#dc2626" title="Merah"></button>
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-blue-600 border border-blue-300 hover:scale-110 transition cursor-pointer" data-color="#2563eb" title="Biru"></button>
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-emerald-600 border border-emerald-300 hover:scale-110 transition cursor-pointer" data-color="#16a34a" title="Hijau"></button>
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-amber-500 border border-amber-300 hover:scale-110 transition cursor-pointer" data-color="#d97706" title="Oranye / Amber"></button>
-                                                    <button type="button" onmousedown="event.preventDefault()" class="rte-color-swatch w-4 h-4 rounded-full bg-purple-600 border border-purple-300 hover:scale-110 transition cursor-pointer" data-color="#9333ea" title="Ungu"></button>
-                                                    <label class="w-4 h-4 rounded-full border border-slate-300 cursor-pointer overflow-hidden relative flex items-center justify-center bg-gradient-to-tr from-rose-500 via-amber-400 to-blue-500 hover:scale-110 transition" title="Pilih Warna Custom">
-                                                        <input type="color" class="rte-custom-color absolute opacity-0 w-0 h-0 pointer-events-none" value="#dc2626">
-                                                    </label>
-                                                </div>
-                                            </div>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertUnorderedList" title="Bullet List">&bull;</button>
                                             <button type="button" onmousedown="event.preventDefault()" class="rte-btn px-1.5 py-0.5 text-[11px] text-slate-700 hover:bg-slate-100 rounded transition cursor-pointer" data-cmd="insertOrderedList" title="Numbered List">1.</button>
                                         </span>
@@ -3525,7 +3494,7 @@
 
             if (!editor.innerHTML.trim() && textarea.value) {
                 const raw = textarea.value;
-                if (raw.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br)\b/i.test(raw)) {
+                if (raw.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br|span|font)\b/i.test(raw)) {
                     editor.innerHTML = raw;
                 } else {
                     editor.innerHTML = raw.replace(/\n/g, '<br>');
@@ -3568,6 +3537,9 @@
                     const cmd = btn.getAttribute('data-cmd');
                     if (cmd) {
                         editor.focus();
+                        try {
+                            document.execCommand('styleWithCSS', false, false);
+                        } catch (_) {}
                         document.execCommand(cmd, false, null);
                         syncToTextarea();
                     }
@@ -3601,7 +3573,7 @@
                         const color = swatch.getAttribute('data-color');
                         editor.focus();
                         try {
-                            document.execCommand('styleWithCSS', false, true);
+                            document.execCommand('styleWithCSS', false, false);
                         } catch (_) {}
                         document.execCommand('foreColor', false, color);
                         if (colorBar) colorBar.style.backgroundColor = color;
@@ -3616,7 +3588,7 @@
                         const color = e.target.value;
                         editor.focus();
                         try {
-                            document.execCommand('styleWithCSS', false, true);
+                            document.execCommand('styleWithCSS', false, false);
                         } catch (_) {}
                         document.execCommand('foreColor', false, color);
                         if (colorBar) colorBar.style.backgroundColor = color;
@@ -3673,7 +3645,7 @@
                     }
                 }
                 if (editor && editor !== document.activeElement) {
-                    if (cleanVal.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br)\b/i.test(cleanVal)) {
+                    if (cleanVal.includes('<') && /<\s*(?:b|strong|i|em|u|s|strike|ul|ol|li|p|br|span|font)\b/i.test(cleanVal)) {
                         editor.innerHTML = cleanVal;
                     } else {
                         editor.innerHTML = cleanVal ? cleanVal.replace(/\n/g, '<br>') : '';
