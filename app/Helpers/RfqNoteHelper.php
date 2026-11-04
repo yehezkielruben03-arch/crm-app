@@ -32,8 +32,9 @@ class RfqNoteHelper
             // across all CLI, containerized, and read-only environments.
             $config->set('Cache.DefinitionImpl', null);
 
-            // Whitelist permitted formatting and structural elements, including font with color.
-            $config->set('HTML.Allowed', 'b,strong,i,em,u,s,ul,ol,li,p,br,font[color]');
+            // Whitelist permitted formatting and structural elements, including span[style] and font[color].
+            $config->set('HTML.Allowed', 'b,strong,i,em,u,s,ul,ol,li,p,br,span[style],font[color]');
+            $config->set('CSS.AllowedProperties', ['color']);
 
             // Ensure UTF-8 character encoding and consistent HTML doctype.
             $config->set('Core.Encoding', 'UTF-8');
@@ -113,13 +114,6 @@ class RfqNoteHelper
             return $trimmed;
         }
 
-        // Convert any <span style="...color: #xyz..."> to <font color="#xyz">
-        if (stripos($trimmed, 'color') !== false && stripos($trimmed, '<span') !== false) {
-            $trimmed = preg_replace_callback('/<span\s+[^>]*style="[^"]*color:\s*([^;"]+)[^"]*"[^>]*>/i', function ($m) {
-                return '<font color="' . trim($m[1]) . '">';
-            }, $trimmed);
-        }
-
         // Fast path: if payload contains exclusively clean, whitelisted tags with no attributes
         if (self::isStrictlyCleanHtml($trimmed)) {
             return $trimmed;
@@ -131,6 +125,12 @@ class RfqNoteHelper
             : $trimmed;
 
         $purified = self::getPurifier()->purify($normalized);
+
+        // Strip unstyled / empty-styled span tags while keeping styled spans intact
+        // E.g. <span>Text</span> -> Text, or <span style="">Text</span> -> Text
+        while (preg_match('/<span(?:\s+style="")?\s*>(.*?)<\/span>/is', $purified)) {
+            $purified = preg_replace('/<span(?:\s+style="")?\s*>(.*?)<\/span>/is', '$1', $purified);
+        }
 
         return trim($purified);
     }
