@@ -222,10 +222,10 @@
                                         : ($rfq->isPendingAdmin() && $rfq->sales_id === auth()->id());
                                 @endphp
                                 @if($canDeleteIndexRfq)
-                                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus/Arsipkan RFQ {{ $rfq->rfq_number }}? RFQ ini akan disembunyikan tapi tetap tersimpan.')">
+                                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus RFQ {{ $rfq->rfq_number }}? Data RFQ ini akan dihapus.')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" title="Hapus / Arsipkan"
+                                    <button type="submit" title="Hapus RFQ"
                                         class="p-1.5 rounded-lg transition-colors"
                                         style="color: var(--text-muted);"
                                         onmouseenter="this.style.background='rgba(225,29,72,0.08)'; this.style.color='var(--accent-rose)'"

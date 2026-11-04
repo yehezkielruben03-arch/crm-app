@@ -229,7 +229,7 @@
                     : ($rfq->isPendingAdmin() && $rfq->sales_id === auth()->id());
             @endphp
             @if($canDeleteShowRfq)
-                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus/Arsipkan RFQ {{ $rfq->rfq_number }}? Data ini akan dihapus dari transaksi berjalan.')">
+                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus RFQ {{ $rfq->rfq_number }}? Data ini akan dihapus dari transaksi berjalan.')">
                     @csrf
                     @method('DELETE')
                     <button type="submit"
