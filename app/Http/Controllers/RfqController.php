@@ -712,22 +712,44 @@ class RfqController extends Controller
 
     public function destroy(Rfq $rfq)
     {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
-        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
-            abort(403);
+        $user = $this->authUser();
+        $isAdminOrLeader = $user->isAdminOrAbove() || $user->isLeader() || $user->hasPermission('CRUD');
+
+        if ($isAdminOrLeader) {
+            abort_if(in_array($rfq->status, [
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL,
+            ]), 403, 'RFQ tidak bisa dihapus karena sudah masuk tahap PO atau GOAL.');
+        } else {
+            abort_if(!$user->isSales(), 403);
+            if ($rfq->sales_id !== Auth::id()) {
+                abort(403);
+            }
+            abort_if(!$rfq->isPendingAdmin(), 403, 'RFQ hanya bisa dihapus saat status Pending Admin.');
         }
-        abort_if(!$rfq->isPendingAdmin(), 403, 'RFQ hanya bisa dihapus saat status Pending Admin.');
 
         $rfqNumber = $rfq->rfq_number;
         $salesId = $rfq->sales_id;
+
+        // Hapus draf quotation terkait jika belum menjadi PO
+        $draftQuotations = \App\Models\Quotation::where('rfq_id', $rfq->id)->get();
+        foreach ($draftQuotations as $quo) {
+            $quo->delete();
+        }
+
         $rfq->delete();
 
         if ($salesId) {
             $this->clearDashboardCacheForSales($salesId);
         }
 
-        return redirect()->route('rfq.index')
-            ->with('success', 'RFQ ' . $rfqNumber . ' berhasil diarsipkan.');
+        $prevUrl = url()->previous();
+        $isDetailView = str_contains($prevUrl, '/rfqs/' . $rfq->id);
+        $redirectTarget = $isDetailView ? route('rfq.index') : ($prevUrl ?: route('rfq.index'));
+
+        return redirect()->to($redirectTarget)
+            ->with('success', 'RFQ ' . $rfqNumber . ' berhasil dihapus.');
     }
 
     public function getCustomer(Customer $customer)

@@ -214,11 +214,18 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                                     </svg>
                                 </a>
+                                @endif
 
-                                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Arsipkan RFQ {{ $rfq->rfq_number }}? RFQ ini akan disembunyikan tapi tetap tersimpan.')">
+                                @php
+                                    $canDeleteIndexRfq = (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader() || auth()->user()->hasPermission('CRUD'))
+                                        ? !in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, \App\Models\Rfq::STATUS_GOAL])
+                                        : ($rfq->isPendingAdmin() && $rfq->sales_id === auth()->id());
+                                @endphp
+                                @if($canDeleteIndexRfq)
+                                <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus/Arsipkan RFQ {{ $rfq->rfq_number }}? RFQ ini akan disembunyikan tapi tetap tersimpan.')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" title="Arsipkan"
+                                    <button type="submit" title="Hapus / Arsipkan"
                                         class="p-1.5 rounded-lg transition-colors"
                                         style="color: var(--text-muted);"
                                         onmouseenter="this.style.background='rgba(225,29,72,0.08)'; this.style.color='var(--accent-rose)'"

@@ -340,12 +340,22 @@
                                 <th>Tanggal</th>
                                 <th>Sales Marketing</th>
                                 <th>Status</th>
+                                <th class="text-right">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($activeRFQs as $rfq)
+                            @php
+                                $canDeleteActiveRfq = (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader() || auth()->user()->hasPermission('CRUD'))
+                                    ? !in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, \App\Models\Rfq::STATUS_GOAL])
+                                    : ($rfq->isPendingAdmin() && $rfq->sales_id === auth()->id());
+                            @endphp
                             <tr>
-                                <td class="font-medium" style="color: var(--text-primary);">{{ $rfq->rfq_number }}</td>
+                                <td class="font-medium" style="color: var(--text-primary);">
+                                    <a href="{{ route('rfq.show', $rfq) }}" class="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition" title="Lihat Detail RFQ">
+                                        {{ $rfq->rfq_number }}
+                                    </a>
+                                </td>
                                 <td>{{ $rfq->rfq_date->format('d/m/Y') }}</td>
                                 <td>{{ $rfq->sales->name ?? '-' }}</td>
                                 <td>
@@ -354,10 +364,33 @@
                                         {{ $rfq->status }}
                                     </span>
                                 </td>
+                                <td class="text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <a href="{{ route('rfq.show', $rfq) }}" title="Lihat Detail"
+                                            class="p-1.5 rounded-lg transition-colors hover:bg-blue-50 text-slate-400 hover:text-blue-600">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                            </svg>
+                                        </a>
+                                        @if($canDeleteActiveRfq)
+                                        <form action="{{ route('rfq.destroy', $rfq) }}" method="POST" class="inline" onsubmit="return confirm('Hapus RFQ {{ $rfq->rfq_number }}? Data ini akan dihapus dari transaksi customer ini.')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" title="Hapus RFQ"
+                                                class="p-1.5 rounded-lg transition-colors hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </form>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                             @empty
                             <tr>
-                                <td colspan="4" class="text-center py-8 text-sm" style="color: var(--text-muted);">Tidak ada RFQ yang sedang berjalan.</td>
+                                <td colspan="5" class="text-center py-8 text-sm" style="color: var(--text-muted);">Tidak ada RFQ yang sedang berjalan.</td>
                             </tr>
                             @endforelse
                         </tbody>
@@ -433,7 +466,11 @@
                         <tbody>
                             @forelse($historyRFQs as $rfq)
                             <tr>
-                                <td class="font-medium" style="color: var(--text-primary);">{{ $rfq->rfq_number }}</td>
+                                <td class="font-medium" style="color: var(--text-primary);">
+                                    <a href="{{ route('rfq.show', $rfq) }}" class="font-semibold text-blue-600 hover:text-blue-800 hover:underline transition" title="Lihat Detail RFQ">
+                                        {{ $rfq->rfq_number }}
+                                    </a>
+                                </td>
                                 <td>{{ $rfq->rfq_date->format('d/m/Y') }}</td>
                                 <td>{{ $rfq->sales->name ?? '-' }}</td>
                                 <td>
