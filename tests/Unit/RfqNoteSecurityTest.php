@@ -344,4 +344,37 @@ class RfqNoteSecurityTest extends TestCase
         $this->assertStringContainsString('<b>Interface: HDMI 2 Ports', $pdfHtml);
         $this->assertStringContainsString('color:#dc2626', $pdfHtml);
     }
+
+    public function test_chromium_contenteditable_div_line_breaks_are_preserved_in_specs_and_notes(): void
+    {
+        // 1. Multiline item specification created in Chromium (Enter creates <div>)
+        $specInput = 'Screen size 23.8 inches<div>resolution 1920x1080</div><div>refresh rate 144Hz</div>';
+        $sanSpec = RfqNoteHelper::sanitize($specInput);
+
+        // Assert lines are not concatenated into "inchesresolution" or "1080refresh"
+        $this->assertStringNotContainsString('inchesresolution', $sanSpec);
+        $this->assertStringNotContainsString('1080refresh', $sanSpec);
+        $this->assertSame('Screen size 23.8 inches<br>resolution 1920x1080<br>refresh rate 144Hz', $sanSpec);
+        $this->assertSame("Screen size 23.8 inches\nresolution 1920x1080\nrefresh rate 144Hz", RfqNoteHelper::toWhatsApp($specInput));
+
+        // 2. Multiline notes created in Chromium
+        $noteInput = 'Unit READY LIMITED stok tidak mengikat<div>- Harga tidak termasuk Pemasangan</div>';
+        $sanNote = RfqNoteHelper::sanitize($noteInput);
+        $this->assertStringNotContainsString('mengikat- Harga', $sanNote);
+        $this->assertSame('Unit READY LIMITED stok tidak mengikat<br>- Harga tidak termasuk Pemasangan', $sanNote);
+
+        // Notes extraction should parse into two distinct items
+        $customNotes = RfqNoteHelper::extractCustomNotes($sanNote);
+        $this->assertCount(2, $customNotes);
+        $this->assertSame('- Unit READY LIMITED stok tidak mengikat', $customNotes[0]);
+        $this->assertSame('- Harga tidak termasuk Pemasangan', $customNotes[1]);
+
+        // 3. Formatted note with leading dash inside tags does not produce double dash "- -"
+        $formattedNote = '<span style="color: #dc2626; font-weight: bold;">- Unit READY LIMITED</span>';
+        $sanFormatted = RfqNoteHelper::sanitize($formattedNote);
+        $extracted = RfqNoteHelper::extractCustomNotes($sanFormatted);
+        $this->assertCount(1, $extracted);
+        $this->assertStringNotContainsString('- -', $extracted[0]);
+        $this->assertSame('- <span style="color:#dc2626;"><b>Unit READY LIMITED</b></span>', $extracted[0]);
+    }
 }

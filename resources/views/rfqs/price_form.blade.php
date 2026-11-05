@@ -1770,15 +1770,26 @@
         let isFormDirty = false;
         let isFormSubmitting = false;
 
-        function validatePriceFormSubmit(event) {
+        function flushMiniRichEditors() {
             document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
                 const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
                 const ta = wrap.querySelector('textarea');
                 if (ed && ta) {
                     const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
-                    ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    let val = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    if (val && val.includes('<div')) {
+                        val = val.replace(/<div\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/div>/gi, '<br>')
+                                 .replace(/^\s*<div\b([^>]*)>/gi, '<span$1>')
+                                 .replace(/<div\b([^>]*)>/gi, '<br><span$1>')
+                                 .replace(/<\/div>/gi, '</span>');
+                    }
+                    ta.value = val;
                 }
             });
+        }
+
+        function validatePriceFormSubmit(event) {
+            flushMiniRichEditors();
             const itemCards = document.querySelectorAll('.item-card-row');
             if (itemCards.length === 0) {
                 alert('Mohon tambahkan minimal satu item untuk dihitung HPP & Penawarannya.');
@@ -3506,7 +3517,14 @@
                 if (!textOnly && !editor.querySelector('img')) {
                     textarea.value = '';
                 } else {
-                    textarea.value = editor.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    let val = editor.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                    if (val && val.includes('<div')) {
+                        val = val.replace(/<div\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/div>/gi, '<br>')
+                                 .replace(/^\s*<div\b([^>]*)>/gi, '<span$1>')
+                                 .replace(/<div\b([^>]*)>/gi, '<br><span$1>')
+                                 .replace(/<\/div>/gi, '</span>');
+                    }
+                    textarea.value = val;
                 }
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
                 textarea.dispatchEvent(new Event('change', { bubbles: true }));
@@ -4138,15 +4156,7 @@
         // ─── Autosave LocalStorage & Tab Protection Functions ────────────────
         function saveDraftToStorage() {
             try {
-                // Ensure all mini rich editors flush their innerHTML to the underlying textarea
-                document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
-                    const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
-                    const ta = wrap.querySelector('textarea');
-                    if (ed && ta) {
-                        const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
-                        ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
-                    }
-                });
+                flushMiniRichEditors();
 
                 const form = document.getElementById('price-calculation-form');
                 if (!form) return;
@@ -4530,14 +4540,7 @@
             }
 
             // Pastikan seluruh rich text editor menulis nilai terbarunya ke textarea sebelum submit preview
-            document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
-                const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
-                const ta = wrap.querySelector('textarea');
-                if (ed && ta) {
-                    const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
-                    ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
-                }
-            });
+            flushMiniRichEditors();
 
             const originalAction = form.action;
             const originalTarget = form.target;

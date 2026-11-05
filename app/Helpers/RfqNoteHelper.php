@@ -122,6 +122,9 @@ class RfqNoteHelper
             return $trimmed;
         }
 
+        // Normalize <div> block tags (Chromium contenteditable Enter key) into <br> line breaks
+        $trimmed = self::normalizeBlockElements($trimmed);
+
         // Normalize <del> and <strike> tags to standard <s>
         $normalized = (stripos($trimmed, 'strike') !== false || stripos($trimmed, 'del') !== false)
             ? preg_replace('/<(\/?)(strike|del)\b[^>]*>/i', '<$1s>', $trimmed)
@@ -205,6 +208,35 @@ class RfqNoteHelper
         $cleaned = preg_replace('/[\s\x{00a0}\x{200b}]+/u', '', $decoded);
 
         return $cleaned !== '';
+    }
+
+    /**
+     * Normalize <div> block tags (typically created by Chromium contenteditable on Enter)
+     * into semantic line breaks (<br>) and inline containers (<span>) so multiline text
+     * is never concatenated into a single line during HTML purification.
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function normalizeBlockElements(string $html): string
+    {
+        if (stripos($html, '<div') === false) {
+            return $html;
+        }
+
+        // 1. Replace empty div blocks like <div><br></div> or <div></div> with <br>
+        $html = preg_replace('/<div\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/div>/i', '<br>', $html);
+
+        // 2. If string begins with <div>, preserve attributes as <span ...> without leading <br>
+        $html = preg_replace('/^\s*<div\b([^>]*)>/i', '<span$1>', $html);
+
+        // 3. Replace all subsequent opening <div ...> with <br><span ...>
+        $html = preg_replace('/<div\b([^>]*)>/i', '<br><span$1>', $html);
+
+        // 4. Replace closing </div> with </span>
+        $html = preg_replace('/<\/div>/i', '</span>', $html);
+
+        return $html;
     }
 
     /**
@@ -601,7 +633,7 @@ class RfqNoteHelper
             }
 
             // Normalize bullet prefix: strip leading bullet markers if present, then prefix with '- '
-            $bulletStripped = preg_replace('/^(?:[•\*]\s*|-\s*)/u', '', $trimmed);
+            $bulletStripped = preg_replace('/^((?:<[^>]+>\s*)*)(?:[•\*]\s*|-\s*)/u', '$1', $trimmed);
             $lines[] = '- ' . trim($bulletStripped);
         }
 
