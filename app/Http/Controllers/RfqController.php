@@ -1351,12 +1351,15 @@ class RfqController extends Controller
 
         $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
 
-        $rfq->update([
+        $rfqUpdate = [
             'status'         => Rfq::STATUS_PENDING_ADMIN,
             'revision_notes' => $notes,
-            'revision_by'    => Auth::id(),
-            'revision_at'    => now(),
-        ]);
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+            $rfqUpdate['revision_by'] = Auth::id();
+            $rfqUpdate['revision_at'] = now();
+        }
+        $rfq->update($rfqUpdate);
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
@@ -1775,12 +1778,15 @@ class RfqController extends Controller
                 }
             }
 
-            $rfq->update([
+            $rfqUpdate = [
                 'status'         => Rfq::STATUS_PENDING_ADMIN,
                 'revision_notes' => $request->revision_notes,
-                'revision_by'    => Auth::id(),
-                'revision_at'    => now(),
-            ]);
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+                $rfqUpdate['revision_by'] = Auth::id();
+                $rfqUpdate['revision_at'] = now();
+            }
+            $rfq->update($rfqUpdate);
 
             $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin', 'Leader'])->get();
             foreach ($admins as $admin) {
