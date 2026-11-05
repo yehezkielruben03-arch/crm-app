@@ -583,4 +583,32 @@ class RfqModelAndFormatChallengeTest extends TestCase
         $wa = RfqNoteHelper::toWhatsApp($input);
         $this->assertSame('~Deleted item~ and ~Strikethrough item~', $wa);
     }
+
+    /**
+     * Test grand_total consistency between regular RFQ and Project RFQ with Material/Jasa ceiling.
+     */
+    public function test_rfq_grand_total_regular_vs_projek_with_ceiling(): void
+    {
+        // 1. Regular RFQ
+        $rfqReg = new Rfq(['type' => 'Hardware']);
+        $item1 = new RfqItem(['qty' => 2, 'price_after_margin' => 100000]);
+        $item2 = new RfqItem(['qty' => 1, 'price_after_margin' => 350000]);
+        $rfqReg->setRelation('items', collect([$item1, $item2]));
+
+        $this->assertEquals(550000.0, $rfqReg->grand_total);
+
+        // 2. Projek RFQ with Material Support ceiling rounding
+        $rfqProj = new Rfq([
+            'type' => 'Projek',
+            'enable_material_ceiling' => true,
+            'material_ceiling_step' => 500000,
+        ]);
+        $hwItem = new RfqItem(['product_name' => 'Switch Cisco', 'category' => 'Hardware', 'qty' => 1, 'price_after_margin' => 1000000]);
+        // Material raw total is 700.000, with step 500.000 ceiling it becomes 1.000.000
+        $matItem = new RfqItem(['product_name' => 'Kabel UTP Cat6', 'category' => 'Material Support', 'qty' => 1, 'price_after_margin' => 700000]);
+        $rfqProj->setRelation('items', collect([$hwItem, $matItem]));
+
+        // Expected grand total: 1.000.000 (hw) + 1.000.000 (mat ceiling) = 2.000.000
+        $this->assertEquals(2000000.0, $rfqProj->grand_total);
+    }
 }

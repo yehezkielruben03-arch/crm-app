@@ -318,10 +318,14 @@ class Rfq extends Model
         return $ymd . '-' . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
 
-    public function getGrandTotalAttribute()
+    public function getGrandTotalAttribute(): float
     {
-        return $this->items->filter(fn($item) => empty($item->parent_id))->sum(function($item) {
-            return $item->qty * $item->price_after_margin;
+        if ($this->type === 'Projek') {
+            return (float) $this->customer_quotation_items->sum('row_total');
+        }
+
+        return (float) $this->items->filter(fn($item) => empty($item->parent_id))->sum(function($item) {
+            return (float) ($item->qty * $item->price_after_margin);
         });
     }
 

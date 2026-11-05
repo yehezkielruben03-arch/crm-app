@@ -4529,6 +4529,16 @@
                 return;
             }
 
+            // Pastikan seluruh rich text editor menulis nilai terbarunya ke textarea sebelum submit preview
+            document.querySelectorAll('.mini-rich-wrapper, .mini-rich-editor-wrapper').forEach(function(wrap) {
+                const ed = wrap.querySelector('.mini-rich-editor, .rte-editor, [contenteditable="true"]');
+                const ta = wrap.querySelector('textarea');
+                if (ed && ta) {
+                    const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
+                    ta.value = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
+                }
+            });
+
             const originalAction = form.action;
             const originalTarget = form.target;
             const previewUrl = '{{ route('rfq.preview_draft', $rfq) }}';
