@@ -86,9 +86,28 @@
             </div>
         </div>
 
-        <form action="{{ route('rfq.submit_price', $rfq) }}" method="POST" id="price-calculation-form" onsubmit="return validatePriceFormSubmit(event)">
+        <form action="{{ route('rfq.submit_price', $rfq) }}" method="POST" id="price-calculation-form" novalidate onsubmit="return validatePriceFormSubmit(event)">
             @csrf
             
+            {{-- Validation Error Summary Banner --}}
+            @if ($errors->any())
+                <div class="mb-6 p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-800 shadow-sm animate-in">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shadow-xs flex-shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-rose-950 mb-1">Gagal Menyimpan HPP &amp; Margin:</h4>
+                            <ul class="text-xs text-rose-700 list-disc list-inside space-y-0.5">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             {{-- Autosave Restore Banner --}}
             <div id="draft-restore-banner" class="hidden mb-6 p-4 rounded-2xl bg-gradient-to-r from-blue-50 via-indigo-50/50 to-white border-2 border-blue-200 text-slate-800 shadow-sm animate-in">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
@@ -1796,10 +1815,57 @@
                 if (event) event.preventDefault();
                 return false;
             }
+
+            // Validasi kelengkapan nama item & integritas tiap kartu item
+            for (let i = 0; i < itemCards.length; i++) {
+                const card = itemCards[i];
+                const cardNum = i + 1;
+                const nameInput = card.querySelector('input[name*="[product_name]"]');
+                const nameVal = nameInput ? nameInput.value.trim() : '';
+
+                if (!nameVal) {
+                    alert(`Item #${cardNum} belum memiliki Nama Item / Produk. Mohon lengkapi nama item atau hapus kartu tersebut jika tidak digunakan.`);
+                    if (nameInput) {
+                        nameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        nameInput.focus();
+                    }
+                    if (event) event.preventDefault();
+                    return false;
+                }
+
+                const bundleToggle = card.querySelector('input[id^="toggle-bundle-"]');
+                const isBundle = bundleToggle ? bundleToggle.checked : false;
+                const itemIdMatch = card.id ? card.id.replace('item-card-', '') : null;
+
+                if (isBundle && itemIdMatch) {
+                    calculateBundle(itemIdMatch);
+                } else if (itemIdMatch) {
+                    const hppInput = document.getElementById('hpp-' + itemIdMatch);
+                    if (hppInput && !hppInput.value.trim()) {
+                        hppInput.value = '0';
+                    }
+                }
+            }
+
             isFormSubmitting = true;
             try {
                 localStorage.removeItem(DRAFT_KEY);
             } catch (e) {}
+
+            // Beri visual loading pada tombol submit agar user mendapat umpan balik langsung
+            const submitBtn = event?.submitter || document.querySelector('#price-calculation-form button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+                submitBtn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>Menyimpan &amp; Mengirim...</span>
+                `;
+            }
+
             return true;
         }
 

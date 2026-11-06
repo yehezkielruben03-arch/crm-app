@@ -849,6 +849,9 @@ class RfqController extends Controller
                         $cleanedItems[$key][$field] = $cleanedVal !== '' ? $cleanedVal : 0;
                     }
                 }
+                if (!isset($cleanedItems[$key]['hpp']) || $cleanedItems[$key]['hpp'] === '' || $cleanedItems[$key]['hpp'] === null) {
+                    $cleanedItems[$key]['hpp'] = 0;
+                }
                 if (isset($item['link_referensi']) && is_string($item['link_referensi'])) {
                     $link = trim($item['link_referensi']);
                     if ($link !== '' && !preg_match('~^https?://~i', $link)) {
