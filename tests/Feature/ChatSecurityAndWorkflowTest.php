@@ -92,6 +92,14 @@ class ChatSecurityAndWorkflowTest extends TestCase
         $this->assertDatabaseHas('chat_rooms', ['sales_id' => $this->sales2->id, 'name' => 'Yudi Sales']);
     }
 
+    public function test_sidebar_displays_chat_teams_navigation_link_when_enabled(): void
+    {
+        $dashResp = $this->actingAs($this->admin)->get(route('dashboard'));
+        $dashResp->assertOk();
+        $dashResp->assertSee('Chat Teams');
+        $dashResp->assertSee(route('chat.index'));
+    }
+
     public function test_sales_can_only_access_their_own_room_and_not_other_sales_room(): void
     {
         $room1 = ChatRoom::getOrCreateForSales($this->sales1);

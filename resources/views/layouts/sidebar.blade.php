@@ -31,6 +31,25 @@
             <span class="sidebar-label">Dashboard</span>
         </a>
 
+        @if(config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false)))
+        @php
+            $unreadChat = \Illuminate\Support\Facades\Cache::remember('chat:unread:' . auth()->id(), 15, fn() => auth()->user()->unreadChatCount());
+        @endphp
+        <a href="{{ route('chat.index') }}" class="sidebar-nav-link {{ request()->routeIs('chat.*') ? 'active' : '' }}" title="Chat Teams">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+            </svg>
+            <span class="sidebar-label flex items-center justify-between flex-1">
+                <span>Chat Teams</span>
+                @if($unreadChat > 0)
+                <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-white bg-emerald-500 rounded-full ml-auto">
+                    {{ $unreadChat > 99 ? '99+' : $unreadChat }}
+                </span>
+                @endif
+            </span>
+        </a>
+        @endif
+
         @if(auth()->user()->hasPermission('Customer Access') || in_array(auth()->user()->role, ['Admin', 'Super Admin', 'Sales', 'Leader']))
         <a href="{{ route('customers.index') }}" class="sidebar-nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}" title="Customers">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
