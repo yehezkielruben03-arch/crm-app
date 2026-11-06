@@ -370,6 +370,51 @@ class RfqNoteHelper
     }
 
     /**
+     * Convert rich text content or HTML notes to clean plain text.
+     * Replaces HTML line breaks (<br>, </p>, </div>, </li>) with clean line breaks or spaces,
+     * strips all HTML markup, and decodes HTML entities.
+     *
+     * Ideal for tooltips (HTML title attribute), log messages, and plain-text summaries
+     * so tags like "<br>" never leak into user-facing attribute tooltips.
+     *
+     * @param string|null $content
+     * @param string $separator Line break separator ("\n" by default, or " " for single line)
+     * @return string
+     */
+    public static function toPlainText(?string $content, string $separator = "\n"): string
+    {
+        if ($content === null || !self::hasVisibleContent($content)) {
+            return '';
+        }
+
+        // 1. Normalize line endings
+        $clean = str_replace(["\r\n", "\r"], "\n", $content);
+
+        // 2. Replace non-breaking spaces and zero-width spaces
+        $clean = self::normalizeSpaces($clean);
+
+        // 3. Convert HTML line breaks and block element closings to separator
+        $clean = preg_replace('/<br\s*\/?>/i', $separator, $clean);
+        $clean = preg_replace('/<\/(p|div|li|tr|h[1-6])>/i', $separator, $clean);
+
+        // 4. Strip all remaining HTML tags
+        $stripped = strip_tags($clean);
+
+        // 5. Decode HTML entities (e.g., &amp; -> &, &quot; -> ", &#039; -> ', etc.)
+        $decoded = html_entity_decode($stripped, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+        // 6. Clean redundant whitespace
+        if ($separator === "\n") {
+            $decoded = preg_replace("/[ \t]+/", ' ', $decoded);
+            $decoded = preg_replace("/\n{3,}/", "\n\n", $decoded);
+        } else {
+            $decoded = preg_replace('/\s+/', ' ', $decoded);
+        }
+
+        return trim($decoded);
+    }
+
+    /**
      * Render safe HTML for Web views (show, price_form, preview_quotation).
      *
      * Automatically applies nl2br(e($content)) for legacy plain-text,

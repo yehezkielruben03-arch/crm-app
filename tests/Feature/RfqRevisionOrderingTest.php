@@ -108,6 +108,7 @@ class RfqRevisionOrderingTest extends TestCase
             'sales_name'          => $this->sales->name,
             'rfq_date'            => now()->subDays(3)->format('Y-m-d'),
             'status'              => Rfq::STATUS_PENDING_ADMIN,
+            'admin_note'          => 'Unit READY LIMITED<br>- Harga belum termasuk instalasi',
         ]);
         DB::table('rfqs')->where('id', $rfq2->id)->update([
             'created_at' => now()->subDays(3),
@@ -119,6 +120,9 @@ class RfqRevisionOrderingTest extends TestCase
         $respInitial->assertOk();
         $initialRfqs = $respInitial->viewData('rfqs');
         $this->assertEquals($rfq2->id, $initialRfqs->first()->id);
+        $respInitial->assertSee('Note');
+        $respInitial->assertSee('title="Catatan Admin: Unit READY LIMITED', false);
+        $respInitial->assertDontSee('&lt;br&gt;', false);
 
         // 2. Sekarang Sales mengajukan Revisi QTY pada RFQ 1
         $reviseResp = $this->actingAs($this->sales)->put(route('rfq.update_qty', $rfq1), [

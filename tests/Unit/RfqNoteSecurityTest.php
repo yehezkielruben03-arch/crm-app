@@ -377,4 +377,36 @@ class RfqNoteSecurityTest extends TestCase
         $this->assertStringNotContainsString('- -', $extracted[0]);
         $this->assertSame('- <span style="color:#dc2626;"><b>Unit READY LIMITED</b></span>', $extracted[0]);
     }
+
+    public function test_to_plain_text_cleans_html_and_br_for_tooltips(): void
+    {
+        // 1. Null and empty content
+        $this->assertSame('', RfqNoteHelper::toPlainText(null));
+        $this->assertSame('', RfqNoteHelper::toPlainText(''));
+        $this->assertSame('', RfqNoteHelper::toPlainText('<p><br></p>'));
+
+        // 2. Multiline note with <br> tags (shows no <br> in tooltip)
+        $htmlWithBr = "Catatan baris 1<br>Catatan baris 2<br />Catatan baris 3";
+        $plain = RfqNoteHelper::toPlainText($htmlWithBr);
+        $this->assertStringNotContainsString('<br>', $plain);
+        $this->assertStringNotContainsString('<br />', $plain);
+        $this->assertSame("Catatan baris 1\nCatatan baris 2\nCatatan baris 3", $plain);
+
+        // 3. Single-line mode
+        $singleLine = RfqNoteHelper::toPlainText($htmlWithBr, ' ');
+        $this->assertSame('Catatan baris 1 Catatan baris 2 Catatan baris 3', $singleLine);
+
+        // 4. Note with styling, colors, bold, and HTML entities
+        $complexNote = '<span style="color:#dc2626;"><b>C9115AXI-X</b></span>: Cisco AP &gt; EOL<br>- AIR-DNA-E: &amp; tidak ada&nbsp;stok';
+        $plainComplex = RfqNoteHelper::toPlainText($complexNote);
+        $this->assertStringNotContainsString('<span', $plainComplex);
+        $this->assertStringNotContainsString('<b>', $plainComplex);
+        $this->assertStringNotContainsString('<br>', $plainComplex);
+        $this->assertStringNotContainsString('&nbsp;', $plainComplex);
+        $this->assertSame("C9115AXI-X: Cisco AP > EOL\n- AIR-DNA-E: & tidak ada stok", $plainComplex);
+
+        // 5. Paragraphs and div blocks
+        $blocks = '<p>Paragraf 1</p><div>Paragraf 2</div>';
+        $this->assertSame("Paragraf 1\nParagraf 2", RfqNoteHelper::toPlainText($blocks));
+    }
 }
