@@ -1336,6 +1336,9 @@ class RfqController extends Controller
             );
         }
 
+        // Otomatis kirim kartu pengumuman ke saluran chat Sales terkait
+        $this->broadcastRfqApprovalToChat($rfq, $this->authUser());
+
         return redirect()->back(fallback: route('rfq.show', $rfq))
             ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil disetujui. Dokumen Quotation sudah bisa di-generate.');
     }
@@ -2212,5 +2215,45 @@ class RfqController extends Controller
             abort(403);
         }
         return $user;
+    }
+
+    /**
+     * Otomatis kirim kartu pengumuman ke saluran chat Sales saat RFQ disetujui Leader.
+     */
+    private function broadcastRfqApprovalToChat(Rfq $rfq, User $approver): void
+    {
+        try {
+            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
+                return;
+            }
+
+            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
+            if (!$salesUser && $rfq->sales_name) {
+                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
+            }
+
+            if (!$salesUser) {
+                return;
+            }
+
+            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
+
+            $noteText = trim($rfq->admin_note ?: ($rfq->notes ?: ''));
+            $announcementText = "📢 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah disetujui Leader dan siap dikirim ke klien.";
+            if (!empty($noteText)) {
+                $announcementText .= "\nCatatan: " . $noteText;
+            }
+
+            $room->messages()->create([
+                'user_id'      => $approver->id,
+                'message'      => $announcementText,
+                'message_type' => 'rfq_card',
+                'rfq_id'       => $rfq->id,
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast approval RFQ ke chat: ' . $e->getMessage());
+        }
     }
 }

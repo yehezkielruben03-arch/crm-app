@@ -71,12 +71,15 @@ class ChatMessage extends Model
                 $grandTotalFormatted = null;
             }
 
+            $noteText = trim($rfq->admin_note ?: ($rfq->notes ?: ''));
+
             $rfqData = [
                 'id'            => $rfq->id,
                 'rfq_number'    => $rfq->rfq_number,
                 'customer_name' => $rfq->customer_name,
                 'status'        => $rfq->status,
                 'grand_total'   => $grandTotalFormatted,
+                'note'          => $noteText ?: null,
                 'detail_url'    => route('rfq.show', $rfq),
                 'pdf_url'       => route('rfq.download_quotation', $rfq),
             ];

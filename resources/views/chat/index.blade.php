@@ -244,15 +244,23 @@
                                         @if($grandTotalDisplay)
                                         <p class="text-[11px] text-slate-500">Nilai: <strong class="text-slate-900">{{ $grandTotalDisplay }}</strong></p>
                                         @endif
-                                        <div class="pt-2 flex items-center gap-2">
-                                            <a href="{{ route('rfq.show', $msg->rfq) }}" target="_blank"
-                                               class="flex-1 text-center py-1.5 text-[11px] font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
-                                                Buka RFQ
-                                            </a>
-                                            <a href="{{ route('rfq.download_quotation', $msg->rfq) }}" target="_blank"
-                                               class="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition" title="Download PDF">
-                                                PDF
-                                            </a>
+
+                                        @php
+                                            $rfqNote = $msg->rfq->admin_note ?: $msg->rfq->notes;
+                                        @endphp
+                                        @if(!empty($rfqNote))
+                                        <div class="mt-2.5 p-2.5 bg-amber-50/90 border border-amber-200/80 rounded-lg text-[11px] text-amber-950 leading-snug">
+                                            <span class="font-bold text-[10px] uppercase tracking-wider text-amber-800 block mb-0.5">Catatan RFQ:</span>
+                                            <p class="whitespace-pre-wrap">{{ $rfqNote }}</p>
+                                        </div>
+                                        @endif
+
+                                        <div class="mt-2.5 pt-2 border-t border-indigo-100 flex items-center justify-between text-[10px] text-slate-500">
+                                            <span class="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                Siap dikirim ke klien
+                                            </span>
+                                            <span class="text-slate-400">Pengumuman</span>
                                         </div>
                                     </div>
                                 </div>
@@ -299,13 +307,18 @@
                                             <template x-if="m.rfq.grand_total">
                                                 <p class="text-[11px] text-slate-500">Nilai: <strong class="text-slate-900" x-text="m.rfq.grand_total"></strong></p>
                                             </template>
-                                            <div class="pt-2 flex items-center gap-2">
-                                                <a :href="m.rfq.detail_url" target="_blank" class="flex-1 text-center py-1.5 text-[11px] font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition">
-                                                    Buka RFQ
-                                                </a>
-                                                <a :href="m.rfq.pdf_url" target="_blank" class="px-2.5 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
-                                                    PDF
-                                                </a>
+                                            <template x-if="m.rfq.note">
+                                                <div class="mt-2.5 p-2.5 bg-amber-50/90 border border-amber-200/80 rounded-lg text-[11px] text-amber-950 leading-snug">
+                                                    <span class="font-bold text-[10px] uppercase tracking-wider text-amber-800 block mb-0.5">Catatan RFQ:</span>
+                                                    <p class="whitespace-pre-wrap" x-text="m.rfq.note"></p>
+                                                </div>
+                                            </template>
+                                            <div class="mt-2.5 pt-2 border-t border-indigo-100 flex items-center justify-between text-[10px] text-slate-500">
+                                                <span class="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                    Siap dikirim ke klien
+                                                </span>
+                                                <span class="text-slate-400">Pengumuman</span>
                                             </div>
                                         </div>
                                     </div>

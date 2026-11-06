@@ -208,6 +208,53 @@ class ChatSecurityAndWorkflowTest extends TestCase
         $this->assertEquals(0, $this->sales1->unreadChatCount());
     }
 
+    public function test_leader_approval_automatically_posts_announcement_to_sales_chat_room(): void
+    {
+        $room1 = ChatRoom::getOrCreateForSales($this->sales1);
+
+        // Prepare an RFQ with Pending Leader status and an admin note
+        $pendingRfq = Rfq::create([
+            'rfq_number'          => 'RFQ-PENDING-001',
+            'customer_id'         => $this->customer1->id,
+            'customer_name'       => $this->customer1->company_name,
+            'customer_code'       => $this->customer1->company_code,
+            'customer_contact_id' => $this->customer1->contacts()->first()->id,
+            'type'                => 'Hardware',
+            'sales_id'            => $this->sales1->id,
+            'sales_name'          => $this->sales1->name,
+            'rfq_date'            => now()->format('Y-m-d'),
+            'status'              => Rfq::STATUS_PENDING_LEADER,
+            'admin_note'          => 'unit indent sesuai note dari supplier',
+        ]);
+
+        // Leader approves the RFQ
+        $approveResp = $this->actingAs($this->leader)->post(route('rfq.approve', $pendingRfq));
+        $approveResp->assertSessionHas('success');
+
+        // Verify RFQ status is Approved
+        $this->assertEquals(Rfq::STATUS_APPROVED, $pendingRfq->fresh()->status);
+
+        // Verify announcement message automatically created in Sales 1 chat room
+        $this->assertDatabaseHas('chat_messages', [
+            'chat_room_id' => $room1->id,
+            'user_id'      => $this->leader->id,
+            'message_type' => 'rfq_card',
+            'rfq_id'       => $pendingRfq->id,
+        ]);
+
+        $latestMessage = $room1->messages()->latest('id')->first();
+        $this->assertStringContainsString('Pengumuman:', $latestMessage->message);
+        $this->assertStringContainsString('unit indent sesuai note dari supplier', $latestMessage->message);
+
+        // Sales checks chat view
+        $chatResp = $this->actingAs($this->sales1)->get(route('chat.index', ['room_id' => $room1->id]));
+        $chatResp->assertOk();
+        $chatResp->assertSee('unit indent sesuai note dari supplier');
+        $chatResp->assertSee('Siap dikirim ke klien');
+        // Buttons should not be present
+        $chatResp->assertDontSee('Buka RFQ');
+    }
+
     public function test_chat_returns_404_when_feature_flag_disabled(): void
     {
         config(['app.enable_crm_chat' => false]);
