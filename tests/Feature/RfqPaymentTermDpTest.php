@@ -150,6 +150,11 @@ class RfqPaymentTermDpTest extends TestCase
         ]);
         $postPreviewResp->assertOk();
         $postPreviewResp->assertSee('Sistem pembayaran DP 40% sisanya 21 Hari setelah barang diterima');
+
+        // Test actual PDF Download Generation
+        $pdfResp = $this->get(route('rfq.download_quotation', $this->rfq));
+        $pdfResp->assertOk();
+        $this->assertEquals('application/pdf', $pdfResp->headers->get('content-type'));
     }
 
     public function test_submit_price_controller_saves_dp_percentage(): void
