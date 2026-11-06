@@ -67,11 +67,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('notifications.markAllRead');
 
     // ─── Chat Internal CRM (Teams Style per Sales) ───
-    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-    Route::post('/chat/rooms/{room}/messages', [ChatController::class, 'sendMessage'])->name('chat.send_message');
-    Route::get('/api/chat/rooms/{room}/poll', [ChatController::class, 'pollMessages'])->name('chat.poll_messages');
-    Route::post('/api/chat/rooms/{room}/read', [ChatController::class, 'markAsRead'])->name('chat.mark_read');
-    Route::post('/chat/share-rfq/{rfq}', [ChatController::class, 'shareRfq'])->name('chat.share_rfq');
+    // Internal CRM Chat (Teams-Style) - Feature Gated (Local only until enabled on production server)
+    Route::middleware(\App\Http\Middleware\EnsureCrmChatEnabled::class)->group(function () {
+        Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
+        Route::post('/chat/rooms/{room}/messages', [ChatController::class, 'sendMessage'])->name('chat.send_message');
+        Route::get('/api/chat/rooms/{room}/poll', [ChatController::class, 'pollMessages'])->name('chat.poll_messages');
+        Route::post('/api/chat/rooms/{room}/read', [ChatController::class, 'markAsRead'])->name('chat.mark_read');
+        Route::post('/chat/share-rfq/{rfq}', [ChatController::class, 'shareRfq'])->name('chat.share_rfq');
+    });
 
     // ─── API Wilayah Indonesia (Dependent Select: Provinsi -> Kota -> Kec -> Kel) ───
     Route::get('/api/region/cities',    [RegionController::class, 'cities'])->name('region.cities');

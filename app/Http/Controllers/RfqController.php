@@ -905,6 +905,7 @@ class RfqController extends Controller
             'tax_type'                           => 'nullable|string|in:auto,include,exclude',
             'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
             'payment_term_days'                  => 'nullable|integer|min:1|max:365',
+            'payment_term_dp_percent'            => 'nullable|integer|min:1|max:99',
             'material_package_unit'              => 'nullable|string|max:30',
             'jasa_package_unit'                  => 'nullable|string|max:30',
             'enable_material_ceiling'            => 'nullable',
@@ -1006,8 +1007,10 @@ class RfqController extends Controller
                 $rfqUpdate['payment_term_type'] = $termType;
                 if ($termType === 'tempo') {
                     $rfqUpdate['payment_term_days'] = $request->filled('payment_term_days') ? (int) $request->payment_term_days : 14;
+                    $rfqUpdate['payment_term_dp_percent'] = $request->filled('payment_term_dp_percent') ? (int) $request->payment_term_dp_percent : null;
                 } else {
                     $rfqUpdate['payment_term_days'] = null;
+                    $rfqUpdate['payment_term_dp_percent'] = null;
                 }
             }
             if (!empty($rfqUpdate)) {
@@ -1592,8 +1595,10 @@ class RfqController extends Controller
             $rfq->payment_term_type = $termType;
             if ($termType === 'tempo') {
                 $rfq->payment_term_days = $request->filled('payment_term_days') ? (int) $request->input('payment_term_days') : 14;
+                $rfq->payment_term_dp_percent = $request->filled('payment_term_dp_percent') ? (int) $request->input('payment_term_dp_percent') : null;
             } else {
                 $rfq->payment_term_days = null;
+                $rfq->payment_term_dp_percent = null;
             }
         }
 

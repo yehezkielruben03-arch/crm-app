@@ -25,6 +25,7 @@ class ChatSecurityAndWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        config(['app.enable_crm_chat' => true]);
         if (\App\Models\RolePermission::count() === 0) {
             $this->seed(\Database\Seeders\RolePermissionSeeder::class);
         }
@@ -168,5 +169,14 @@ class ChatSecurityAndWorkflowTest extends TestCase
         $this->assertEquals('rfq_card', $data['messages'][0]['message_type']);
         $this->assertEquals($this->rfq1->rfq_number, $data['messages'][0]['rfq']['rfq_number']);
         $this->assertEquals($this->rfq1->customer_name, $data['messages'][0]['rfq']['customer_name']);
+    }
+
+    public function test_chat_returns_404_when_feature_flag_disabled(): void
+    {
+        config(['app.enable_crm_chat' => false]);
+        $this->actingAs($this->admin);
+
+        $response = $this->get(route('chat.index'));
+        $response->assertNotFound();
     }
 }

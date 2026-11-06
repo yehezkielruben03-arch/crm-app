@@ -526,13 +526,14 @@
                     </tr>
                 </table>
             @else
-                @php $termDays = $rfq->getPaymentTermDays(); @endphp
                 <table class="terms-table" style="width: 100%; table-layout: fixed; border: none;">
                     <tr>
                         <td class="check" style="width: 4.6%; vertical-align: top; font-size: {{ $termFontSize }}; border: none; text-align: center;">&#10003;</td>
                         <td style="width: 95.4%; border: none; line-height: 1.12;">
-                            <div style="font-style: italic; line-height: 1.12;">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
-                            <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                            <div style="font-style: italic; line-height: 1.12;">{{ $rfq->getPaymentTermFormattedText() }}</div>
+                            @if($rfq->getPaymentTermFormattedJapaneseText())
+                                <div style="color: #000; font-size: {{ $termJpSize }}; line-height: 1.15;" class="jp">{{ $rfq->getPaymentTermFormattedJapaneseText() }}</div>
+                            @endif
                         </td>
                     </tr>
                     <tr>

@@ -446,12 +446,13 @@
                         </div>
                     </div>
                 @else
-                    @php $termDays = $rfq->getPaymentTermDays(); @endphp
                     <div class="flex items-start">
                         <span class="w-[4.6%] flex-shrink-0 text-center text-black font-normal">✓</span>
                         <div class="w-[95.4%] min-w-0 break-words">
-                            <div class="italic">Sistem pembayaran {{ $termDays }} hari setelah invoice diterima</div>
-                            <div class="text-black">お支払い条件は、請求書受領後{{ $termDays }}日以内となります。</div>
+                            <div class="italic">{{ $rfq->getPaymentTermFormattedText() }}</div>
+                            @if($rfq->getPaymentTermFormattedJapaneseText())
+                                <div class="text-black">{{ $rfq->getPaymentTermFormattedJapaneseText() }}</div>
+                            @endif
                         </div>
                     </div>
                     <div class="flex items-start">

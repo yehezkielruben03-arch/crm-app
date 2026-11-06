@@ -16,7 +16,7 @@ class Rfq extends Model
         'rfq_number', 'customer_id', 'customer_name', 'customer_code',
         'sales_id', 'sales_name', 'rfq_date', 'status', 'notes',
         'need_date', 'customer_contact_id', 'type', 'priority', 'revision_notes',
-        'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days',
+        'po_file_path', 'tax_type', 'payment_term_type', 'payment_term_days', 'payment_term_dp_percent',
         'material_package_unit', 'jasa_package_unit',
         'enable_material_ceiling', 'material_ceiling_step', 'material_custom_total',
         'enable_jasa_ceiling', 'jasa_ceiling_step', 'jasa_custom_total',
@@ -29,6 +29,7 @@ class Rfq extends Model
         'rfq_date' => 'date',
         'need_date' => 'date',
         'payment_term_days' => 'integer',
+        'payment_term_dp_percent' => 'integer',
         'enable_material_ceiling' => 'boolean',
         'material_ceiling_step' => 'decimal:2',
         'material_custom_total' => 'decimal:2',
@@ -75,6 +76,49 @@ class Rfq extends Model
     public function getPaymentTermDays(): int
     {
         return (int) ($this->payment_term_days ?: 14);
+    }
+
+    public function getPaymentTermDpPercent(): ?int
+    {
+        return (!empty($this->payment_term_dp_percent) && (int)$this->payment_term_dp_percent > 0)
+            ? (int) $this->payment_term_dp_percent
+            : null;
+    }
+
+    public function hasPaymentTermDp(): bool
+    {
+        return $this->getPaymentTermDpPercent() !== null;
+    }
+
+    public function getPaymentTermFormattedText(): string
+    {
+        if ($this->isPaymentTermCbdPersonal() || $this->isPaymentTermCbdB2b()) {
+            return 'Sistem pembayaran Cash Before Delivery';
+        }
+
+        $days = $this->getPaymentTermDays();
+        if ($this->hasPaymentTermDp()) {
+            return "Sistem pembayaran DP {$this->getPaymentTermDpPercent()}% sisanya {$days} Hari setelah barang diterima";
+        }
+
+        return "Sistem pembayaran {$days} hari setelah invoice diterima";
+    }
+
+    public function getPaymentTermFormattedJapaneseText(): string
+    {
+        if ($this->isPaymentTermCbdPersonal()) {
+            return '';
+        }
+        if ($this->isPaymentTermCbdB2b()) {
+            return '支払条件：前払い（納品前）';
+        }
+
+        $days = $this->getPaymentTermDays();
+        if ($this->hasPaymentTermDp()) {
+            return "お支払い条件は、前受金（DP）{$this->getPaymentTermDpPercent()}％、残金は納品後{$days}日以内となります。";
+        }
+
+        return "お支払い条件は、請求書受領後{$days}日以内となります。";
     }
 
     public function isPaymentTermTempo(): bool

@@ -223,17 +223,19 @@
                 </a>
             @endif
 
-            <form action="{{ route('chat.share_rfq', $rfq) }}" method="POST" class="inline">
-                @csrf
-                <button type="submit"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition border border-indigo-200 cursor-pointer shadow-xs"
-                    title="Kirim pemberitahuan RFQ ke saluran Chat Sales">
-                    <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
-                    </svg>
-                    Kirim ke Chat
-                </button>
-            </form>
+            @if(config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false)))
+                <form action="{{ route('chat.share_rfq', $rfq) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition border border-indigo-200 cursor-pointer shadow-xs"
+                        title="Kirim pemberitahuan RFQ ke saluran Chat Sales">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                        </svg>
+                        Kirim ke Chat
+                    </button>
+                </form>
+            @endif
 
             @php
                 $canDeleteShowRfq = (auth()->user()->isAdminOrAbove() || auth()->user()->isLeader() || auth()->user()->hasPermission('CRUD'))

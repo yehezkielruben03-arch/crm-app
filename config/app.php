@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | CRM Internal Chat Feature Flag
+    |--------------------------------------------------------------------------
+    | Keep chat local-only until explicitly enabled in production server .env
+    */
+    'enable_crm_chat' => (bool) env('ENABLE_CRM_CHAT', false),
+
 ];

@@ -117,13 +117,16 @@ class RfqNoteHelper
             return $trimmed;
         }
 
+        // Normalize <div> and <p> block tags into <br> line breaks
+        $trimmed = self::normalizeBlockElements($trimmed);
+
+        // Normalize raw newlines to <br> so multiline text is never collapsed into a single line
+        $trimmed = self::normalizeNewlinesToBreaks($trimmed);
+
         // Fast path: if payload contains exclusively clean, whitelisted tags with no attributes
         if (self::isStrictlyCleanHtml($trimmed)) {
             return $trimmed;
         }
-
-        // Normalize <div> block tags (Chromium contenteditable Enter key) into <br> line breaks
-        $trimmed = self::normalizeBlockElements($trimmed);
 
         // Normalize <del> and <strike> tags to standard <s>
         $normalized = (stripos($trimmed, 'strike') !== false || stripos($trimmed, 'del') !== false)
@@ -237,6 +240,34 @@ class RfqNoteHelper
         $html = preg_replace('/<\/div>/i', '</span>', $html);
 
         return $html;
+    }
+
+    /**
+     * Normalize standalone raw newlines into <br> tags while preserving existing <br>
+     * and block tag boundaries to prevent multiple breaks or line collapsing.
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function normalizeNewlinesToBreaks(string $html): string
+    {
+        if (!str_contains($html, "\n") && !str_contains($html, "\r")) {
+            return $html;
+        }
+
+        // 1. Standardize line endings
+        $html = str_replace(["\r\n", "\r"], "\n", $html);
+
+        // 2. Remove newlines directly adjacent to existing <br> tags
+        $html = preg_replace('/<br\s*\/?>\s*\n+/i', '<br>', $html);
+        $html = preg_replace('/\n+\s*<br\s*\/?>/i', '<br>', $html);
+
+        // 3. Remove newlines between block tag boundaries
+        $html = preg_replace('/(<\/(?:p|div|li|ol|ul|tr|td|th|table|blockquote)>)\s*\n+/i', '$1', $html);
+        $html = preg_replace('/\n+\s*(<(?:p|div|li|ol|ul|tr|td|th|table|blockquote)\b[^>]*>)/i', '$1', $html);
+
+        // 4. Convert all remaining standalone \n into <br>
+        return str_replace("\n", '<br>', $html);
     }
 
     /**
@@ -644,6 +675,9 @@ class RfqNoteHelper
         }
 
         $raw = trim($notes);
+
+        // Disentangle glued bullet points like "mengikat- Harga" or "mengikat - Harga"
+        $raw = preg_replace('/(?<=[^\s\->])\s*-\s+([A-Za-z0-9])/u', "\n- $1", $raw);
 
         if (self::isLegacyPlainText($raw)) {
             $rawLines = preg_split('/\r\n|\r|\n/', $raw);

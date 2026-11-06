@@ -1644,26 +1644,50 @@
                             </select>
                         </div>
 
-                        <div id="custom-days-wrapper" class="{{ $selectedPreset === 'tempo_custom' ? '' : 'hidden' }}">
-                            <label for="payment_term_days" class="block text-xs font-bold text-slate-700 mb-1">
-                                Masukkan Jumlah Hari Tempo
-                            </label>
-                            <div class="relative w-full max-w-xs">
-                                <input type="number" 
-                                       name="payment_term_days" 
-                                       id="payment_term_days" 
-                                       value="{{ $currentTermDays }}" 
-                                       min="1" 
-                                       max="365" 
-                                       placeholder="Contoh: 21"
-                                       class="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl py-2 pl-3 pr-14 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
-                                <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-slate-500 pointer-events-none">
-                                    Hari
+                        <div id="tempo-options-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4 {{ str_starts_with($selectedPreset, 'tempo_') ? '' : 'hidden' }}">
+                            <div id="custom-days-wrapper" class="{{ $selectedPreset === 'tempo_custom' ? '' : 'hidden' }}">
+                                <label for="payment_term_days" class="block text-xs font-bold text-slate-700 mb-1">
+                                    Masukkan Jumlah Hari Tempo
+                                </label>
+                                <div class="relative w-full max-w-xs">
+                                    <input type="number" 
+                                           name="payment_term_days" 
+                                           id="payment_term_days" 
+                                           value="{{ $currentTermDays }}" 
+                                           min="1" 
+                                           max="365" 
+                                           placeholder="Contoh: 21"
+                                           class="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl py-2 pl-3 pr-14 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-medium text-slate-500 pointer-events-none">
+                                        Hari
+                                    </span>
+                                </div>
+                                <span class="block text-[11px] text-slate-500 mt-1">
+                                    Tentukan berapa hari jangka waktu tempo invoice untuk klien ini.
                                 </span>
                             </div>
-                            <span class="block text-[11px] text-slate-500 mt-1">
-                                Tentukan berapa hari jangka waktu tempo invoice untuk klien ini.
-                            </span>
+
+                            <div id="dp-percent-wrapper">
+                                <label for="payment_term_dp_percent" class="block text-xs font-bold text-slate-700 mb-1">
+                                    Uang Muka / DP (%) (Opsional)
+                                </label>
+                                <div class="relative w-full max-w-xs">
+                                    <input type="number" 
+                                           name="payment_term_dp_percent" 
+                                           id="payment_term_dp_percent" 
+                                           value="{{ old('payment_term_dp_percent', $rfq->payment_term_dp_percent ?? '') }}" 
+                                           min="1" 
+                                           max="99" 
+                                           placeholder="Contoh: 50"
+                                           class="w-full text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl py-2 pl-3 pr-10 focus:bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition">
+                                    <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-xs font-bold text-slate-500 pointer-events-none">
+                                        %
+                                    </span>
+                                </div>
+                                <span class="block text-[11px] text-slate-500 mt-1">
+                                    Isi jika ada DP (misal 50). Kosongkan jika tempo normal tanpa uang muka.
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -1796,11 +1820,11 @@
                 if (ed && ta) {
                     const textOnly = ed.innerText.replace(/[\s\u00a0\u200b]+/g, '').trim();
                     let val = (!textOnly && !ed.querySelector('img')) ? '' : ed.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
-                    if (val && val.includes('<div')) {
-                        val = val.replace(/<div\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/div>/gi, '<br>')
-                                 .replace(/^\s*<div\b([^>]*)>/gi, '<span$1>')
-                                 .replace(/<div\b([^>]*)>/gi, '<br><span$1>')
-                                 .replace(/<\/div>/gi, '</span>');
+                    if (val && (val.includes('<div') || val.includes('<p'))) {
+                        val = val.replace(/<(?:div|p)\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>/gi, '<br>')
+                                 .replace(/^\s*<(?:div|p)\b([^>]*)>/gi, '<span$1>')
+                                 .replace(/<(?:div|p)\b([^>]*)>/gi, '<br><span$1>')
+                                 .replace(/<\/(?:div|p)>/gi, '</span>');
                     }
                     ta.value = val;
                 }
@@ -3584,11 +3608,11 @@
                     textarea.value = '';
                 } else {
                     let val = editor.innerHTML.replace(/(?:&amp;nbsp;|&nbsp;|&#160;|&nbsp)(?![a-zA-Z0-9])/gi, ' ');
-                    if (val && val.includes('<div')) {
-                        val = val.replace(/<div\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/div>/gi, '<br>')
-                                 .replace(/^\s*<div\b([^>]*)>/gi, '<span$1>')
-                                 .replace(/<div\b([^>]*)>/gi, '<br><span$1>')
-                                 .replace(/<\/div>/gi, '</span>');
+                    if (val && (val.includes('<div') || val.includes('<p'))) {
+                        val = val.replace(/<(?:div|p)\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:div|p)>/gi, '<br>')
+                                 .replace(/^\s*<(?:div|p)\b([^>]*)>/gi, '<span$1>')
+                                 .replace(/<(?:div|p)\b([^>]*)>/gi, '<br><span$1>')
+                                 .replace(/<\/(?:div|p)>/gi, '</span>');
                     }
                     textarea.value = val;
                 }
@@ -4074,16 +4098,20 @@
             const presetSelect = document.getElementById('payment_term_preset');
             const typeInput = document.getElementById('payment_term_type');
             const daysInput = document.getElementById('payment_term_days');
+            const dpInput = document.getElementById('payment_term_dp_percent');
             const customDaysWrapper = document.getElementById('custom-days-wrapper');
+            const tempoOptionsWrapper = document.getElementById('tempo-options-wrapper');
             const previewEl = document.getElementById('payment-term-preview-content');
             const badgeEl = document.getElementById('payment-term-badge');
 
             if (!presetSelect || !typeInput || !previewEl) return;
 
             const val = presetSelect.value;
+            const dpVal = dpInput && dpInput.value ? parseInt(dpInput.value, 10) : 0;
 
             if (val.startsWith('tempo_')) {
                 typeInput.value = 'tempo';
+                if (tempoOptionsWrapper) tempoOptionsWrapper.classList.remove('hidden');
                 let days = 14;
                 if (val === 'tempo_custom') {
                     if (customDaysWrapper) customDaysWrapper.classList.remove('hidden');
@@ -4095,13 +4123,23 @@
                     if (daysInput) daysInput.value = days;
                 }
 
-                if (badgeEl) badgeEl.innerText = 'Tempo ' + days + ' Hari';
+                let badgeText = 'Tempo ' + days + ' Hari';
+                let formattedText = `Sistem pembayaran ${days} hari setelah invoice diterima`;
+                let formattedJp = `お支払い条件は、請求書受領後${days}日以内となります。`;
+
+                if (dpVal > 0 && dpVal < 100) {
+                    badgeText = `DP ${dpVal}% + Tempo ${days} Hari`;
+                    formattedText = `Sistem pembayaran DP ${dpVal}% sisanya ${days} Hari setelah barang diterima`;
+                    formattedJp = `お支払い条件は、前受金（DP）${dpVal}％、残金は納品後${days}日以内となります。`;
+                }
+
+                if (badgeEl) badgeEl.innerText = badgeText;
 
                 previewEl.innerHTML = `
                     <div class="space-y-1.5 text-slate-800">
                         <div>
-                            <div class="font-bold text-slate-900">✓ Sistem pembayaran ${days} hari setelah invoice diterima</div>
-                            <div class="text-[10px] text-slate-500 italic">お支払い条件は、請求書受領後${days}日以内となります。</div>
+                            <div class="font-bold text-slate-900">✓ ${formattedText}</div>
+                            <div class="text-[10px] text-slate-500 italic">${formattedJp}</div>
                         </div>
                         <div class="pt-1 border-t border-slate-100">
                             <div>✓ Dengan menandatangani penawaran ini, pihak Pemesan menyetujui...</div>
@@ -4111,6 +4149,7 @@
                 `;
             } else if (val === 'cbd_b2b') {
                 typeInput.value = 'cbd_b2b';
+                if (tempoOptionsWrapper) tempoOptionsWrapper.classList.add('hidden');
                 if (customDaysWrapper) customDaysWrapper.classList.add('hidden');
                 if (badgeEl) badgeEl.innerText = 'Cash Before Delivery (B2B)';
 
@@ -4128,6 +4167,7 @@
                 `;
             } else if (val === 'cbd_personal') {
                 typeInput.value = 'cbd_personal';
+                if (tempoOptionsWrapper) tempoOptionsWrapper.classList.add('hidden');
                 if (customDaysWrapper) customDaysWrapper.classList.add('hidden');
                 if (badgeEl) badgeEl.innerText = 'Cash Before Delivery (Pribadi + Mandiri)';
 
@@ -4173,6 +4213,12 @@
                     if (presetSelect && presetSelect.value === 'tempo_custom') {
                         updatePaymentTermUI();
                     }
+                });
+            }
+            const dpInput = document.getElementById('payment_term_dp_percent');
+            if (dpInput) {
+                dpInput.addEventListener('input', function() {
+                    updatePaymentTermUI();
                 });
             }
             updatePaymentTermUI();
@@ -4284,6 +4330,10 @@
                     notes: notesEl ? notesEl.value : '',
                     admin_note: adminNoteEl ? adminNoteEl.value : '',
                     tax_type: taxTypeChecked ? taxTypeChecked.value : '',
+                    payment_term_type: document.getElementById('payment_term_type') ? document.getElementById('payment_term_type').value : '',
+                    payment_term_days: document.getElementById('payment_term_days') ? document.getElementById('payment_term_days').value : '',
+                    payment_term_dp_percent: document.getElementById('payment_term_dp_percent') ? document.getElementById('payment_term_dp_percent').value : '',
+                    payment_term_preset: document.getElementById('payment_term_preset') ? document.getElementById('payment_term_preset').value : '',
                     jasa_package_unit: jasaUnitEl ? jasaUnitEl.value : '',
                     material_package_unit: matUnitEl ? matUnitEl.value : '',
                     items: itemsData
@@ -4366,6 +4416,17 @@
                 if (draft.material_package_unit) {
                     const mUnit = document.getElementById('material_package_unit');
                     if (mUnit) mUnit.value = draft.material_package_unit;
+                }
+                if (draft.payment_term_dp_percent !== undefined) {
+                    const dpEl = document.getElementById('payment_term_dp_percent');
+                    if (dpEl) dpEl.value = draft.payment_term_dp_percent;
+                }
+                if (draft.payment_term_preset) {
+                    const pPreset = document.getElementById('payment_term_preset');
+                    if (pPreset) {
+                        pPreset.value = draft.payment_term_preset;
+                        updatePaymentTermUI();
+                    }
                 }
 
                 const activeDraftIds = new Set(draft.items.map(function(it) { return String(it.id); }));
