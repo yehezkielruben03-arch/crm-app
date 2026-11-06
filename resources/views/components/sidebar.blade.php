@@ -39,6 +39,25 @@
             Dashboard
         </a>
 
+        <!-- Chat Internal (Teams Style) -->
+        @php
+            $unreadChat = \Illuminate\Support\Facades\Cache::remember('chat:unread:' . auth()->id(), 15, fn() => auth()->user()->unreadChatCount());
+        @endphp
+        <a href="{{ route('chat.index') }}" 
+           class="flex items-center justify-between px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('chat.*') ? 'bg-indigo-600 text-white font-medium shadow-md' : 'hover:bg-indigo-800/50 text-indigo-200 hover:text-white' }}">
+            <div class="flex items-center gap-3">
+                <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                </svg>
+                <span>Chat</span>
+            </div>
+            @if($unreadChat > 0)
+            <span class="flex items-center justify-center px-1.5 py-0.5 text-[11px] font-bold text-white bg-emerald-500 rounded-full shadow-sm">
+                {{ $unreadChat > 99 ? '99+' : $unreadChat }}
+            </span>
+            @endif
+        </a>
+
         @if(auth()->user()->hasPermission('Customer Access'))
             <p class="px-3 pt-4 pb-2 text-xs font-semibold tracking-wider text-indigo-400 uppercase">Sales Marketing & Clients</p>
             

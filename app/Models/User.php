@@ -160,4 +160,25 @@ class User extends Authenticatable
     {
         return $this->notifications()->whereNull('read_at')->count();
     }
+
+    // Chat room khusus sales ini
+    public function salesChatRoom(): HasOne
+    {
+        return $this->hasOne(ChatRoom::class, 'sales_id');
+    }
+
+    // Total unread chat messages across all accessible rooms
+    public function unreadChatCount(): int
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('chat_rooms')) {
+            return 0;
+        }
+
+        $rooms = ChatRoom::accessibleFor($this)->get();
+        $total = 0;
+        foreach ($rooms as $room) {
+            $total += $room->unreadCountFor($this);
+        }
+        return $total;
+    }
 }
