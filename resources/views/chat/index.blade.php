@@ -231,8 +231,18 @@
                                     </div>
                                     <div class="p-3 text-xs space-y-1">
                                         <p class="font-semibold text-slate-800 truncate">{{ $msg->rfq->customer_name }}</p>
-                                        @if($msg->rfq->grand_total)
-                                        <p class="text-[11px] text-slate-500">Nilai: <strong class="text-slate-900">Rp {{ number_format($msg->rfq->grand_total, 0, ',', '.') }}</strong></p>
+                                        @php
+                                            $grandTotalDisplay = null;
+                                            try {
+                                                if ($msg->rfq->grand_total) {
+                                                    $grandTotalDisplay = 'Rp ' . number_format($msg->rfq->grand_total, 0, ',', '.');
+                                                }
+                                            } catch (\Throwable $e) {
+                                                $grandTotalDisplay = null;
+                                            }
+                                        @endphp
+                                        @if($grandTotalDisplay)
+                                        <p class="text-[11px] text-slate-500">Nilai: <strong class="text-slate-900">{{ $grandTotalDisplay }}</strong></p>
                                         @endif
                                         <div class="pt-2 flex items-center gap-2">
                                             <a href="{{ route('rfq.show', $msg->rfq) }}" target="_blank"

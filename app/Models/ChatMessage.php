@@ -62,12 +62,21 @@ class ChatMessage extends Model
         $rfqData = null;
         if ($this->isRfqCard() && $this->rfq) {
             $rfq = $this->rfq;
+            $grandTotalFormatted = null;
+            try {
+                if ($rfq->grand_total) {
+                    $grandTotalFormatted = 'Rp ' . number_format($rfq->grand_total, 0, ',', '.');
+                }
+            } catch (\Throwable $e) {
+                $grandTotalFormatted = null;
+            }
+
             $rfqData = [
                 'id'            => $rfq->id,
                 'rfq_number'    => $rfq->rfq_number,
                 'customer_name' => $rfq->customer_name,
                 'status'        => $rfq->status,
-                'grand_total'   => $rfq->grand_total ? 'Rp ' . number_format($rfq->grand_total, 0, ',', '.') : null,
+                'grand_total'   => $grandTotalFormatted,
                 'detail_url'    => route('rfq.show', $rfq),
                 'pdf_url'       => route('rfq.download_quotation', $rfq),
             ];

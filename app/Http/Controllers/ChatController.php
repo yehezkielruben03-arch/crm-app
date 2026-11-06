@@ -140,7 +140,7 @@ class ChatController extends Controller
                 ])
                 ->orderByDesc('updated_at')
                 ->take(15)
-                ->get(['id', 'rfq_number', 'customer_name', 'status', 'grand_total', 'updated_at']);
+                ->get(['id', 'rfq_number', 'customer_name', 'status', 'type', 'updated_at']);
         }
 
         $initialRoomsStatus = $this->getRoomsStatusFor($user);
