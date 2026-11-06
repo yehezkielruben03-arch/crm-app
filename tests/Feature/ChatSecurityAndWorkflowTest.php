@@ -169,6 +169,35 @@ class ChatSecurityAndWorkflowTest extends TestCase
         $this->assertEquals('rfq_card', $data['messages'][0]['message_type']);
         $this->assertEquals($this->rfq1->rfq_number, $data['messages'][0]['rfq']['rfq_number']);
         $this->assertEquals($this->rfq1->customer_name, $data['messages'][0]['rfq']['customer_name']);
+        $this->assertArrayHasKey('rooms_status', $data);
+    }
+
+    public function test_send_message_and_poll_updates_realtime_rooms_status_and_clears_cache(): void
+    {
+        $room1 = ChatRoom::getOrCreateForSales($this->sales1);
+
+        // Leader sends message to Sales 1 room
+        $sendResp = $this->actingAs($this->leader)->postJson(route('chat.send_message', $room1), [
+            'message' => 'Halo Ade, tolong follow up penawaran.',
+        ]);
+        $sendResp->assertOk();
+        $sendData = $sendResp->json();
+        $this->assertTrue($sendData['success']);
+        $this->assertArrayHasKey('rooms_status', $sendData);
+
+        // Sales 1 checks unread count in User model
+        $this->assertEquals(1, $this->sales1->unreadChatCount());
+
+        // Sales 1 polls messages -> marks room as read
+        $pollResp = $this->actingAs($this->sales1)->getJson(route('chat.poll_messages', $room1));
+        $pollResp->assertOk();
+        $pollData = $pollResp->json();
+        $this->assertTrue($pollData['success']);
+        $this->assertCount(1, $pollData['messages']);
+        $this->assertArrayHasKey('rooms_status', $pollData);
+
+        // After polling, unread count should be 0
+        $this->assertEquals(0, $this->sales1->unreadChatCount());
     }
 
     public function test_chat_returns_404_when_feature_flag_disabled(): void

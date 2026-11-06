@@ -28,7 +28,9 @@ class InitSalesChatRooms extends Command
     public function handle(): int
     {
         $salesUsers = User::whereIn('role', ['Sales', 'Sales Marketing'])
-            ->where('status', 'Active')
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'Active');
+            })
             ->get();
 
         if ($salesUsers->isEmpty()) {

@@ -20,12 +20,48 @@ class ChatController extends Controller
     private function autoInitSalesRooms(): void
     {
         $salesUsers = User::whereIn('role', ['Sales', 'Sales Marketing'])
-            ->where('status', 'Active')
+            ->where(function ($query) {
+                $query->whereNull('status')->orWhere('status', 'Active');
+            })
             ->get();
 
         foreach ($salesUsers as $sales) {
             ChatRoom::getOrCreateForSales($sales);
         }
+    }
+
+    /**
+     * Get real-time status summary of accessible rooms for the current user.
+     *
+     * @return array<int, array{id: int, unread_count: int, latest_snippet: ?string, latest_sender: ?string, latest_time: ?string}>
+     */
+    private function getRoomsStatusFor(User $user): array
+    {
+        return ChatRoom::accessibleFor($user)
+            ->with(['latestMessage.user'])
+            ->get()
+            ->map(function ($r) use ($user) {
+                $latest = $r->latestMessage;
+                $snippet = null;
+                $senderName = null;
+                $time = null;
+
+                if ($latest) {
+                    $snippet = $latest->message ?: 'Mengirim kartu penawaran RFQ';
+                    $senderName = $latest->user ? explode(' ', $latest->user->name)[0] : 'User';
+                    $time = $latest->created_at ? $latest->created_at->format('H:i') : null;
+                }
+
+                return [
+                    'id'             => $r->id,
+                    'unread_count'   => $r->unreadCountFor($user),
+                    'latest_snippet' => $snippet,
+                    'latest_sender'  => $senderName,
+                    'latest_time'    => $time,
+                ];
+            })
+            ->values()
+            ->toArray();
     }
 
     /**
@@ -88,6 +124,7 @@ class ChatController extends Controller
             // Mark as read immediately when user views room
             $activeRoom->markAsReadFor($user);
             $activeRoom->unread_count = 0;
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $user->id);
         }
 
         // RFQ options for quick share modal (accessible to this sales room)
@@ -106,7 +143,9 @@ class ChatController extends Controller
                 ->get(['id', 'rfq_number', 'customer_name', 'status', 'grand_total', 'updated_at']);
         }
 
-        return view('chat.index', compact('rooms', 'activeRoom', 'messages', 'rfqOptions'));
+        $initialRoomsStatus = $this->getRoomsStatusFor($user);
+
+        return view('chat.index', compact('rooms', 'activeRoom', 'messages', 'rfqOptions', 'initialRoomsStatus'));
     }
 
     /**
@@ -137,11 +176,13 @@ class ChatController extends Controller
 
         // Sender automatically has read this message
         $room->markAsReadFor($user);
+        \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $user->id);
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
-                'success' => true,
-                'message' => $chatMessage->toPayloadFor($user),
+                'success'      => true,
+                'message'      => $chatMessage->toPayloadFor($user),
+                'rooms_status' => $this->getRoomsStatusFor($user),
             ]);
         }
 
@@ -166,11 +207,13 @@ class ChatController extends Controller
 
         if ($newMessages->isNotEmpty()) {
             $room->markAsReadFor($user);
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $user->id);
         }
 
         return response()->json([
-            'success'  => true,
-            'messages' => $newMessages->map(fn($m) => $m->toPayloadFor($user)),
+            'success'      => true,
+            'messages'     => $newMessages->map(fn($m) => $m->toPayloadFor($user)),
+            'rooms_status' => $this->getRoomsStatusFor($user),
         ]);
     }
 
@@ -183,8 +226,12 @@ class ChatController extends Controller
         $this->authorizeRoomAccess($user, $room);
 
         $room->markAsReadFor($user);
+        \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $user->id);
 
-        return response()->json(['success' => true]);
+        return response()->json([
+            'success'      => true,
+            'rooms_status' => $this->getRoomsStatusFor($user),
+        ]);
     }
 
     /**

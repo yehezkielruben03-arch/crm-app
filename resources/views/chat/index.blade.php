@@ -6,7 +6,8 @@
     pollUrl: '{{ $activeRoom ? route('chat.poll_messages', $activeRoom) : '' }}',
     sendUrl: '{{ $activeRoom ? route('chat.send_message', $activeRoom) : '' }}',
     markReadUrl: '{{ $activeRoom ? route('chat.mark_read', $activeRoom) : '' }}',
-    csrfToken: '{{ csrf_token() }}'
+    csrfToken: '{{ csrf_token() }}',
+    initialRoomsStatus: {{ json_encode($initialRoomsStatus ?? []) }}
 })" x-init="initChat()">
 
     <!-- Main Container: Teams 2-Column Split -->
@@ -64,25 +65,28 @@
                             <h3 class="text-xs font-bold truncate {{ ($activeRoom && $activeRoom->id === $room->id) ? 'text-indigo-950 font-extrabold' : 'text-slate-800' }}">
                                 {{ $room->name }}
                             </h3>
-                            @if($room->latestMessage)
-                            <span class="text-[10px] text-slate-400 flex-shrink-0 ml-1">
-                                {{ $room->latestMessage->created_at->format('H:i') }}
+                            <span class="text-[10px] text-slate-400 flex-shrink-0 ml-1"
+                                  x-text="getRoomTime({{ $room->id }}, '{{ $room->latestMessage?->created_at?->format('H:i') ?? '' }}')">
+                                {{ $room->latestMessage?->created_at?->format('H:i') }}
                             </span>
-                            @endif
                         </div>
                         <div class="flex items-center justify-between">
                             <p class="text-[11px] text-slate-500 truncate pr-2">
-                                @if($room->latestMessage)
-                                    <span class="font-medium text-slate-600">{{ $room->latestMessage->user?->name ? explode(' ', $room->latestMessage->user->name)[0] . ': ' : '' }}</span>{{ $room->latestMessage->message ?: 'Mengirim kartu penawaran RFQ' }}
-                                @else
-                                    <span class="italic text-slate-400">Belum ada obrolan</span>
-                                @endif
+                                <span class="font-medium text-slate-600" 
+                                      x-text="getRoomSenderPrefix({{ $room->id }}, '{{ $room->latestMessage?->user?->name ? explode(' ', $room->latestMessage->user->name)[0] . ': ' : '' }}')">
+                                    {{ $room->latestMessage?->user?->name ? explode(' ', $room->latestMessage->user->name)[0] . ': ' : '' }}
+                                </span>
+                                <span x-text="getRoomSnippet({{ $room->id }}, '{{ $room->latestMessage ? ($room->latestMessage->message ?: 'Mengirim kartu penawaran RFQ') : 'Belum ada obrolan' }}')">
+                                    {{ $room->latestMessage ? ($room->latestMessage->message ?: 'Mengirim kartu penawaran RFQ') : 'Belum ada obrolan' }}
+                                </span>
                             </p>
-                            @if($room->unread_count > 0)
-                            <span class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-white bg-emerald-500 rounded-full shadow-2xs">
+                            
+                            <!-- Unread Badge -->
+                            <span x-show="getRoomUnread({{ $room->id }}, {{ $room->unread_count }}) > 0"
+                                  x-text="getRoomUnread({{ $room->id }}, {{ $room->unread_count }})"
+                                  class="inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold text-white bg-emerald-500 rounded-full shadow-2xs">
                                 {{ $room->unread_count }}
                             </span>
-                            @endif
                         </div>
                     </div>
                 </a>
@@ -95,7 +99,7 @@
         </aside>
 
         <!-- ─── Main Chat Window (Kanan) ──────────────────────────────────── -->
-        <main class="flex-1 flex flex-col bg-slate-50 overflow-hidden"
+        <main class="flex-1 flex flex-col bg-slate-50 overflow-hidden relative"
               :class="!mobileShowChat ? 'hidden md:flex' : 'flex'">
             @if($activeRoom)
                 <!-- Chat Window Header -->
@@ -139,14 +143,36 @@
                 </header>
 
                 <!-- Message Stream Feed -->
-                <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" x-ref="messageBox">
+                <div class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4" x-ref="messageBox" @scroll="handleScroll()">
                     <div class="text-center my-2">
                         <span class="px-3 py-1 text-[11px] font-medium text-slate-400 bg-slate-200/60 rounded-full">
                             Awal percakapan saluran koordinasi {{ $activeRoom->name }}
                         </span>
                     </div>
 
+                    @php
+                        $prevDate = null;
+                    @endphp
+
                     @forelse($messages as $msg)
+                        @php
+                            $msgDate = $msg->created_at ? $msg->created_at->format('Y-m-d') : null;
+                        @endphp
+
+                        @if($msgDate && $prevDate !== $msgDate)
+                            @php
+                                $prevDate = $msgDate;
+                                $dateLabel = $msg->created_at->isToday() ? 'Hari Ini' : ($msg->created_at->isYesterday() ? 'Kemarin' : $msg->created_at->format('d M Y'));
+                            @endphp
+                            <div class="flex items-center my-4">
+                                <div class="flex-1 border-t border-slate-200"></div>
+                                <span class="mx-3 px-3 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-200/80 rounded-full tracking-wide">
+                                    {{ $dateLabel }}
+                                </span>
+                                <div class="flex-1 border-t border-slate-200"></div>
+                            </div>
+                        @endif
+
                         @php
                             $isMine = ($msg->user_id === auth()->id());
                             $sender = $msg->user;
@@ -177,19 +203,19 @@
                                     <span class="px-1.5 py-0.2 text-[9px] font-semibold rounded-md border {{ $roleBadgeColor }}">
                                         {{ $roleName }}
                                     </span>
-                                    <span class="text-slate-400 font-normal">&bull; {{ $msg->created_at->format('H:i') }}</span>
+                                    <span class="text-slate-400 font-normal">&bull; {{ $msg->created_at?->format('H:i') }}</span>
                                 </div>
 
                                 <!-- Text Message Bubble -->
                                 @if(!empty($msg->message))
-                                <div class="p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs {{ $isMine ? 'bg-indigo-600 text-white rounded-tr-xs' : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs' }}">
+                                <div class="p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs whitespace-pre-wrap break-words {{ $isMine ? 'bg-indigo-600 text-white rounded-tr-xs' : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs' }}">
                                     {!! nl2br(e($msg->message)) !!}
                                 </div>
                                 @endif
 
                                 <!-- RFQ Card Attachment -->
                                 @if($msg->isRfqCard() && $msg->rfq)
-                                <div class="mt-2 w-full sm:w-84 bg-white border border-indigo-200 rounded-xl shadow-xs overflow-hidden">
+                                <div class="mt-2 w-full sm:w-84 bg-white border border-indigo-200 rounded-xl shadow-xs overflow-hidden text-left">
                                     <div class="p-3 bg-indigo-50/70 border-b border-indigo-100 flex items-center justify-between">
                                         <div class="flex items-center gap-2">
                                             <div class="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center">
@@ -244,13 +270,13 @@
                                 </div>
 
                                 <template x-if="m.message">
-                                    <div class="p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs"
+                                    <div class="p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs whitespace-pre-wrap break-words"
                                          :class="m.is_mine ? 'bg-indigo-600 text-white rounded-tr-xs' : 'bg-white text-slate-800 border border-slate-200/80 rounded-tl-xs'"
                                          x-text="m.message"></div>
                                 </template>
 
                                 <template x-if="m.message_type === 'rfq_card' && m.rfq">
-                                    <div class="mt-2 w-full sm:w-84 bg-white border border-indigo-200 rounded-xl shadow-xs overflow-hidden">
+                                    <div class="mt-2 w-full sm:w-84 bg-white border border-indigo-200 rounded-xl shadow-xs overflow-hidden text-left">
                                         <div class="p-3 bg-indigo-50/70 border-b border-indigo-100 flex items-center justify-between">
                                             <div class="flex items-center gap-2">
                                                 <div class="w-6 h-6 rounded-md bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">RFQ</div>
@@ -278,6 +304,18 @@
                         </div>
                     </template>
                 </div>
+
+                <!-- Floating Jump to Bottom Button -->
+                <button type="button" 
+                        x-show="hasNewMessagesBelow" 
+                        x-transition 
+                        @click="scrollToBottom(true)"
+                        class="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 px-3.5 py-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-lg flex items-center gap-1.5 transition cursor-pointer animate-bounce">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                    </svg>
+                    <span>Pesan baru masuk &darr;</span>
+                </button>
 
                 <!-- Chat Input Bar -->
                 <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 flex-shrink-0">
@@ -308,21 +346,32 @@
                     <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden" @click.away="openRfqModal = false">
                         <div class="p-4 bg-indigo-900 text-white flex items-center justify-between">
                             <h3 class="text-xs font-bold uppercase tracking-wider">Pilih RFQ untuk Dibagikan</h3>
-                            <button type="button" @click="openRfqModal = false" class="text-indigo-200 hover:text-white">&times;</button>
+                            <button type="button" @click="openRfqModal = false" class="text-indigo-200 hover:text-white text-lg">&times;</button>
                         </div>
                         <div class="p-4 space-y-3">
                             <p class="text-xs text-slate-600">Pilih salah satu penawaran milik sales <strong>{{ $activeRoom->name }}</strong> untuk dibagikan ke obrolan:</p>
-                            <div class="max-h-60 overflow-y-auto space-y-2">
+                            
+                            <!-- Search in RFQ options -->
+                            <div class="relative">
+                                <input type="text" x-model="rfqFilter" placeholder="Filter nomor RFQ / nama klien..." 
+                                       class="w-full text-xs pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-indigo-500">
+                                <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </div>
+
+                            <div class="max-h-56 overflow-y-auto space-y-2">
                                 @foreach($rfqOptions as $opt)
-                                <label class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
-                                    <div class="flex items-center gap-2">
+                                <label x-show="matchesRfqFilter('{{ strtolower($opt->rfq_number) }}', '{{ strtolower($opt->customer_name) }}')"
+                                       class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+                                    <div class="flex items-center gap-2 min-w-0">
                                         <input type="radio" name="modal_rfq_pick" value="{{ $opt->id }}" @change="selectedRfqId = {{ $opt->id }}" class="text-indigo-600 focus:ring-indigo-500">
-                                        <div>
+                                        <div class="truncate">
                                             <p class="text-xs font-bold text-slate-800">{{ $opt->rfq_number }}</p>
-                                            <p class="text-[11px] text-slate-500">{{ $opt->customer_name }}</p>
+                                            <p class="text-[11px] text-slate-500 truncate">{{ $opt->customer_name }}</p>
                                         </div>
                                     </div>
-                                    <span class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-slate-100 text-slate-700">
+                                    <span class="px-2 py-0.5 text-[9px] font-bold rounded-md bg-slate-100 text-slate-700 flex-shrink-0">
                                         {{ $opt->status }}
                                     </span>
                                 </label>
@@ -330,7 +379,7 @@
                             </div>
                             <div>
                                 <label class="block text-[11px] font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional):</label>
-                                <input type="text" x-model="rfqNote" placeholder="Contoh: Sudah di-ACC Leader, siap kirim." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
+                                <input type="text" x-model="rfqNote" placeholder="Contoh: Sudah di-ACC Leader, siap kirim ke klien." class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:border-indigo-500 focus:outline-none">
                             </div>
                         </div>
                         <div class="p-3 bg-slate-50 border-t border-slate-200 flex justify-end gap-2">
@@ -362,6 +411,7 @@ function crmChatApp(config) {
         sendUrl: config.sendUrl,
         markReadUrl: config.markReadUrl,
         csrfToken: config.csrfToken,
+        roomsStatusMap: {},
 
         searchQuery: '',
         newMessage: '',
@@ -372,25 +422,116 @@ function crmChatApp(config) {
         openRfqModal: false,
         selectedRfqId: null,
         rfqNote: '',
+        rfqFilter: '',
         pollTimer: null,
+        hasNewMessagesBelow: false,
+        originalTitle: document.title,
 
         initChat() {
+            // Seed initial rooms status
+            if (config.initialRoomsStatus && Array.isArray(config.initialRoomsStatus)) {
+                config.initialRoomsStatus.forEach(r => {
+                    this.roomsStatusMap[r.id] = r;
+                });
+            }
+
             if (this.activeRoomId) {
-                this.scrollToBottom();
+                this.scrollToBottom(true);
                 this.startPolling();
             }
+
+            window.addEventListener('focus', () => {
+                document.title = this.originalTitle;
+            });
         },
 
         matchesSearch(name) {
             if (!this.searchQuery) return true;
-            return name.includes(this.searchQuery.toLowerCase());
+            return name.includes(this.searchQuery.toLowerCase().trim());
         },
 
-        scrollToBottom() {
+        matchesRfqFilter(rfqNum, custName) {
+            if (!this.rfqFilter) return true;
+            const q = this.rfqFilter.toLowerCase().trim();
+            return rfqNum.includes(q) || custName.includes(q);
+        },
+
+        getRoomUnread(roomId, fallback = 0) {
+            if (this.roomsStatusMap[roomId] && this.roomsStatusMap[roomId].unread_count !== undefined) {
+                return this.roomsStatusMap[roomId].unread_count;
+            }
+            return fallback;
+        },
+
+        getRoomSnippet(roomId, fallback = '') {
+            if (this.roomsStatusMap[roomId] && this.roomsStatusMap[roomId].latest_snippet !== undefined) {
+                return this.roomsStatusMap[roomId].latest_snippet || fallback;
+            }
+            return fallback;
+        },
+
+        getRoomSenderPrefix(roomId, fallback = '') {
+            if (this.roomsStatusMap[roomId] && this.roomsStatusMap[roomId].latest_sender) {
+                return this.roomsStatusMap[roomId].latest_sender + ': ';
+            }
+            return fallback;
+        },
+
+        getRoomTime(roomId, fallback = '') {
+            if (this.roomsStatusMap[roomId] && this.roomsStatusMap[roomId].latest_time) {
+                return this.roomsStatusMap[roomId].latest_time;
+            }
+            return fallback;
+        },
+
+        handleScroll() {
+            const el = this.$refs.messageBox;
+            if (!el) return;
+            const isNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 150;
+            if (isNearBottom) {
+                this.hasNewMessagesBelow = false;
+            }
+        },
+
+        scrollToBottom(force = false) {
             this.$nextTick(() => {
                 const el = this.$refs.messageBox;
-                if (el) el.scrollTop = el.scrollHeight;
+                if (!el) return;
+                const isNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 180;
+                if (force || isNearBottom) {
+                    el.scrollTop = el.scrollHeight;
+                    this.hasNewMessagesBelow = false;
+                } else {
+                    this.hasNewMessagesBelow = true;
+                }
             });
+        },
+
+        playNotificationChime() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.08); // A5
+                gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.22);
+            } catch (err) {
+                // Audio autoplay policy fail-safe
+            }
+        },
+
+        notifyTabTitle() {
+            if (document.hidden) {
+                document.title = '(🔔 Pesan Baru) ' + this.originalTitle;
+            }
         },
 
         startPolling() {
@@ -406,14 +547,32 @@ function crmChatApp(config) {
                 const res = await fetch(`${this.pollUrl}?last_id=${this.lastMessageId}`);
                 if (!res.ok) return;
                 const data = await res.json();
+                
+                // Update rooms statuses across all channels
+                if (data.rooms_status && Array.isArray(data.rooms_status)) {
+                    data.rooms_status.forEach(r => {
+                        this.roomsStatusMap[r.id] = r;
+                    });
+                }
+
                 if (data.success && data.messages && data.messages.length > 0) {
+                    let hasOtherMsg = false;
                     data.messages.forEach(msg => {
                         this.polledMessages.push(msg);
                         if (msg.id > this.lastMessageId) {
                             this.lastMessageId = msg.id;
                         }
+                        if (!msg.is_mine) {
+                            hasOtherMsg = true;
+                        }
                     });
-                    this.scrollToBottom();
+
+                    if (hasOtherMsg) {
+                        this.playNotificationChime();
+                        this.notifyTabTitle();
+                    }
+
+                    this.scrollToBottom(false);
                 }
             } catch (err) {
                 // Fail silently in network jitter
@@ -447,9 +606,14 @@ function crmChatApp(config) {
                         if (data.message.id > this.lastMessageId) {
                             this.lastMessageId = data.message.id;
                         }
+                        if (data.rooms_status && Array.isArray(data.rooms_status)) {
+                            data.rooms_status.forEach(r => {
+                                this.roomsStatusMap[r.id] = r;
+                            });
+                        }
                         this.newMessage = '';
                         this.selectedRfqId = null;
-                        this.scrollToBottom();
+                        this.scrollToBottom(true);
                     }
                 }
             } catch (err) {
