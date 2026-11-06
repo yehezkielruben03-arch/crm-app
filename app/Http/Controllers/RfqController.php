@@ -46,11 +46,14 @@ class RfqController extends Controller
             if ($request->status === Rfq::STATUS_GOAL) {
                 $query->whereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
             } else {
-                $query->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+                $query->where(function ($q) use ($dateFilter) {
+                    $q->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']])
+                      ->orWhereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+                });
             }
         }
 
-        $rfqs = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
+        $rfqs = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(10)->withQueryString();
 
         return view('rfqs.index', compact('rfqs', 'dateFilter'));
     }
@@ -1009,6 +1012,7 @@ class RfqController extends Controller
             }
             if (!empty($rfqUpdate)) {
                 $rfq->update($rfqUpdate);
+                $rfq->touch();
             }
 
             $submittedItemIds = [];
@@ -1294,6 +1298,7 @@ class RfqController extends Controller
         }
 
         $rfq->update(['status' => Rfq::STATUS_APPROVED]);
+        $rfq->touch();
 
         $latestPriceHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
             ->orderByDesc('version')
@@ -1363,6 +1368,7 @@ class RfqController extends Controller
             $rfqUpdate['revision_at'] = now();
         }
         $rfq->update($rfqUpdate);
+        $rfq->touch();
 
         if ($rfq->sales_id) {
             $this->clearDashboardCacheForSales($rfq->sales_id);
@@ -1790,6 +1796,7 @@ class RfqController extends Controller
                 $rfqUpdate['revision_at'] = now();
             }
             $rfq->update($rfqUpdate);
+            $rfq->touch();
 
             $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin', 'Leader'])->get();
             foreach ($admins as $admin) {

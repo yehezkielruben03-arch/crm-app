@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('sales_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('sales_name', 100);
             $table->date('rfq_date');
-            $table->enum('status', ['Draft', 'Converted', 'Cancelled'])->default('Draft');
+            $table->string('status', 50)->default('Pending Admin');
             $table->text('notes')->nullable();
             $table->timestamps();
         });

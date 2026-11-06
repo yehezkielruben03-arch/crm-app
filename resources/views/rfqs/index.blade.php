@@ -148,6 +148,18 @@
                                         <span>Note</span>
                                     </span>
                                     @endif
+                                    @if(!empty($rfq->revision_notes) && $rfq->status === \App\Models\Rfq::STATUS_PENDING_ADMIN)
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs cursor-help"
+                                          title="Catatan Revisi: {{ \Illuminate\Support\Str::limit($rfq->revision_notes, 150) }}">
+                                        <svg class="w-3 h-3 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                        </svg>
+                                        <span>Revisi Qty</span>
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="text-[11px] text-slate-400 font-normal">
+                                    {{ $rfq->updated_at ? $rfq->updated_at->diffForHumans() : $rfq->created_at->diffForHumans() }}
                                 </div>
                                 @if($rfq->priority === 'Urgent' || $rfq->priority === 'High Priority')
                                     <span class="px-1.5 py-0.5 text-[9px] font-bold rounded" style="background: rgba(239,68,68,0.1); color: var(--accent-rose); border: 1px solid rgba(239,68,68,0.2);">{{ $rfq->priority }}</span>

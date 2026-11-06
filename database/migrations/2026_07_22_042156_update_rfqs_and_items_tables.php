@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Alter rfqs table
-        \Illuminate\Support\Facades\DB::statement("ALTER TABLE rfqs MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending Admin'");
+        if (\Illuminate\Support\Facades\DB::getDriverName() === 'mysql') {
+            \Illuminate\Support\Facades\DB::statement("ALTER TABLE rfqs MODIFY COLUMN status VARCHAR(50) NOT NULL DEFAULT 'Pending Admin'");
+        }
 
         Schema::table('rfqs', function (Blueprint $table) {
             $table->date('need_date')->nullable()->after('rfq_date');
