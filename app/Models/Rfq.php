@@ -177,11 +177,13 @@ class Rfq extends Model
         $allowed = match ($this->status) {
             self::STATUS_PENDING_ADMIN => [
                 self::STATUS_PENDING_LEADER,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_PENDING_LEADER => [
                 self::STATUS_APPROVED,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PENDING_LEADER,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_APPROVED => [
                 self::STATUS_PENDING_LEADER,
@@ -191,6 +193,7 @@ class Rfq extends Model
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PO_PENDING_ADMIN,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_QUOTATION_CREATED => [
                 self::STATUS_PENDING_LEADER,
@@ -200,6 +203,7 @@ class Rfq extends Model
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PO_PENDING_ADMIN,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_QUOTATION_SENT => [
                 self::STATUS_PENDING_LEADER,
@@ -208,18 +212,21 @@ class Rfq extends Model
                 self::STATUS_GOAL,
                 self::STATUS_PENDING_ADMIN,
                 self::STATUS_PO_PENDING_ADMIN,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_PO_PENDING_ADMIN => [
                 self::STATUS_PO_PENDING_LEADER,
                 self::STATUS_QUOTATION_SENT,
                 self::STATUS_QUOTATION_CREATED,
                 self::STATUS_APPROVED,
+                self::STATUS_CANCELLED,
             ],
             self::STATUS_PO_PENDING_LEADER => [
                 self::STATUS_GOAL,
                 self::STATUS_QUOTATION_SENT,
                 self::STATUS_QUOTATION_CREATED,
                 self::STATUS_APPROVED,
+                self::STATUS_CANCELLED,
             ],
             default => [],
         };
@@ -249,6 +256,7 @@ class Rfq extends Model
             self::STATUS_PO_PENDING_ADMIN => 'Menunggu verifikasi PO Admin',
             self::STATUS_PO_PENDING_LEADER => 'Menunggu approval GOAL Leader',
             self::STATUS_GOAL => 'Sudah menjadi GOAL',
+            self::STATUS_CANCELLED => 'RFQ Dibatalkan / Ditolak',
             default => 'Tahap sedang diproses',
         };
     }
@@ -264,6 +272,7 @@ class Rfq extends Model
             self::STATUS_PO_PENDING_ADMIN => 80,
             self::STATUS_PO_PENDING_LEADER => 90,
             self::STATUS_GOAL => 100,
+            self::STATUS_CANCELLED => 0,
             default => 0,
         };
     }
@@ -279,8 +288,14 @@ class Rfq extends Model
             self::STATUS_PO_PENDING_ADMIN => 'Tahap 5 - Menunggu verifikasi PO',
             self::STATUS_PO_PENDING_LEADER => 'Tahap 6 - Menunggu GOAL',
             self::STATUS_GOAL => 'Tahap 7 - GOAL selesai',
+            self::STATUS_CANCELLED => 'Dibatalkan',
             default => 'Tahap belum jelas',
         };
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->status === self::STATUS_CANCELLED;
     }
 
     public function canBeEdited(): bool

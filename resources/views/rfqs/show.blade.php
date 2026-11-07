@@ -347,7 +347,7 @@
                 </div>
                 @endif
 
-                @if($rfq->revision_notes)
+                @if($rfq->revision_notes && $rfq->status !== \App\Models\Rfq::STATUS_CANCELLED)
                 <div class="mt-4 p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-sm animate-in">
                     <div class="flex flex-wrap items-center gap-2 font-bold text-sm text-amber-900 mb-1">
                         <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -357,6 +357,21 @@
                         @endif
                     </div>
                     <p class="text-xs text-amber-800 leading-relaxed font-medium pl-7">{{ $rfq->revision_notes }}</p>
+                </div>
+                @endif
+
+                @if($rfq->status === \App\Models\Rfq::STATUS_CANCELLED)
+                <div class="mt-4 p-4 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 shadow-sm animate-in">
+                    <div class="flex flex-wrap items-center gap-2 font-bold text-sm text-rose-900 mb-1">
+                        <svg class="w-5 h-5 text-rose-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>RFQ Ditolak / Dibatalkan{{ $rfq->revisionAuthor ? ' oleh ' . $rfq->revisionAuthor->name . ' (' . ($rfq->revisionAuthor->crm_title ?? $rfq->revisionAuthor->role ?? 'Leader') . ')' : '' }}:</span>
+                        @if($rfq->revision_at)
+                            <span class="text-xs font-normal text-rose-700/80">&bull; {{ $rfq->revision_at->format('d M Y, H:i') }}</span>
+                        @endif
+                    </div>
+                    <p class="text-xs text-rose-800 leading-relaxed font-medium pl-7">{{ $rfq->revision_notes ?: 'RFQ ini telah resmi ditolak dan dibatalkan.' }}</p>
                 </div>
                 @endif
                 <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 mt-4 pt-4" style="border-top: 1px solid #e2e8f0;">
@@ -1578,22 +1593,39 @@
                     <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    Tolak & Minta Revisi HPP
+                    Tindak Lanjut / Penolakan RFQ
                 </h3>
                 <button type="button" onclick="closeRejectModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
-            <p class="text-xs text-gray-600 mb-4" id="rejectModalSubtitle">Masukkan catatan revisi untuk Admin Purchase:</p>
-            <form id="rejectForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Mengirim...'; return true;">
+            <p class="text-xs text-gray-600 mb-3" id="rejectModalSubtitle">Pilih tindakan untuk RFQ ini:</p>
+            <form id="rejectForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses...'; return true;">
                 @csrf
+                <!-- Pilihan Tipe Penolakan -->
+                <div class="space-y-2 mb-4">
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-50 cursor-pointer transition">
+                        <input type="radio" name="action_type" value="revision" checked class="mt-0.5 text-amber-600 focus:ring-amber-500" onchange="updateRejectModalUI('revision')">
+                        <div>
+                            <span class="block text-xs font-bold text-amber-900">Kembalikan ke Admin (Minta Revisi HPP)</span>
+                            <span class="block text-[11px] text-amber-700/90 leading-tight mt-0.5">RFQ tetap aktif. Admin Purchase akan diminta menghitung ulang harga/margin.</span>
+                        </div>
+                    </label>
+                    <label class="flex items-start gap-3 p-3 rounded-xl border border-rose-200 bg-rose-50/60 hover:bg-rose-50 cursor-pointer transition">
+                        <input type="radio" name="action_type" value="cancel" class="mt-0.5 text-rose-600 focus:ring-rose-500" onchange="updateRejectModalUI('cancel')">
+                        <div>
+                            <span class="block text-xs font-bold text-rose-900">Tolak & Batalkan RFQ (Reject Final)</span>
+                            <span class="block text-[11px] text-rose-700/90 leading-tight mt-0.5">Status menjadi Cancelled. RFQ gugur dan tidak diproses lebih lanjut.</span>
+                        </div>
+                    </label>
+                </div>
                 <div class="mb-4">
-                    <label for="modalRevisionNotes" class="block text-xs font-semibold text-gray-700 mb-1">Alasan / Catatan Revisi:</label>
-                    <textarea id="modalRevisionNotes" name="revision_notes" rows="4" required class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Margin item hardware terlalu tipis, tolong nego vendor turun 5%"></textarea>
+                    <label for="modalRevisionNotes" id="labelRejectNotes" class="block text-xs font-semibold text-gray-700 mb-1">Catatan Revisi untuk Admin Purchase:</label>
+                    <textarea id="modalRevisionNotes" name="revision_notes" rows="3" required class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Margin item hardware terlalu tipis, tolong nego vendor turun 5%"></textarea>
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeRejectModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm">Kirim & Minta Revisi</button>
+                    <button type="submit" id="btnSubmitReject" class="px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition shadow-sm">Kirim Revisi ke Admin</button>
                 </div>
             </form>
         </div>
@@ -1657,10 +1689,39 @@
             const textarea = document.getElementById('modalRevisionNotes');
 
             form.action = '/rfqs/' + rfqId + '/reject';
-            subtitle.textContent = 'Masukkan catatan revisi untuk Admin Purchase terkait RFQ ' + rfqNumber + ':';
+            subtitle.textContent = 'Pilih tindakan untuk RFQ ' + rfqNumber + ':';
             textarea.value = '';
+
+            const defaultRadio = document.querySelector('input[name="action_type"][value="revision"]');
+            if (defaultRadio) {
+                defaultRadio.checked = true;
+                updateRejectModalUI('revision');
+            }
+
             modal.classList.remove('hidden');
             setTimeout(() => textarea.focus(), 100);
+        }
+
+        function updateRejectModalUI(actionType) {
+            const label = document.getElementById('labelRejectNotes');
+            const btn = document.getElementById('btnSubmitReject');
+            const textarea = document.getElementById('modalRevisionNotes');
+
+            if (actionType === 'cancel') {
+                if (label) label.textContent = 'Alasan Penolakan / Pembatalan RFQ (Wajib diisi):';
+                if (textarea) textarea.placeholder = 'Contoh: Proyek tidak feasible / barang diskontinu / klien membatalkan penawaran...';
+                if (btn) {
+                    btn.textContent = 'Tolak & Batalkan RFQ';
+                    btn.className = 'px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm';
+                }
+            } else {
+                if (label) label.textContent = 'Catatan Revisi untuk Admin Purchase:';
+                if (textarea) textarea.placeholder = 'Contoh: Margin item hardware terlalu tipis, tolong nego vendor turun 5%';
+                if (btn) {
+                    btn.textContent = 'Kirim Revisi ke Admin';
+                    btn.className = 'px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-xl transition shadow-sm';
+                }
+            }
         }
 
         function closeRejectModal() {

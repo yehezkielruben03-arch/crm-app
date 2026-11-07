@@ -1347,23 +1347,72 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
 
-        // Idempoten: jika sudah dikembalikan ke admin sebelumnya
-        if ($rfq->status === Rfq::STATUS_PENDING_ADMIN) {
-            return redirect()->back(fallback: route('rfq.show', $rfq))
-                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah dikembalikan untuk revisi sebelumnya.');
-        }
-
-        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
-            return redirect()->back(fallback: route('rfq.show', $rfq))
-                ->with('error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dikembalikan ke Admin dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
-        }
-
         $validated = $request->validate([
+            'action_type'    => 'nullable|in:revision,cancel',
             'notes'          => 'nullable|string|max:2000',
             'revision_notes' => 'nullable|string|max:2000',
         ]);
 
+        $actionType = $validated['action_type'] ?? 'revision';
         $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
+
+        if ($actionType === 'cancel') {
+            // Idempoten jika sudah Cancelled
+            if ($rfq->status === Rfq::STATUS_CANCELLED) {
+                return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dibatalkan sebelumnya.');
+            }
+
+            if (!$rfq->canTransitionTo(Rfq::STATUS_CANCELLED)) {
+                return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dibatalkan dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+            }
+
+            $rfqUpdate = [
+                'status'         => Rfq::STATUS_CANCELLED,
+                'revision_notes' => $notes,
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+                $rfqUpdate['revision_by'] = Auth::id();
+                $rfqUpdate['revision_at'] = now();
+            }
+            $rfq->update($rfqUpdate);
+            $rfq->touch();
+
+            if ($rfq->sales_id) {
+                $this->clearDashboardCacheForSales($rfq->sales_id);
+                \App\Models\Notification::send(
+                    $rfq->sales_id,
+                    'error',
+                    'RFQ Ditolak / Dibatalkan ❌',
+                    'RFQ ' . $rfq->rfq_number . ' resmi ditolak/dibatalkan oleh Leader ' . $this->authUser()->name . '. Alasan: ' . ($notes ?: '-'),
+                    route('rfq.show', $rfq)
+                );
+            }
+
+            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    $admin->id,
+                    'warning',
+                    'RFQ Dibatalkan: ' . $rfq->rfq_number,
+                    'Leader ' . $this->authUser()->name . ' membatalkan RFQ ' . $rfq->rfq_number . '. Alasan: ' . ($notes ?: '-'),
+                    route('rfq.show', $rfq)
+                );
+            }
+
+            $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: true);
+
+            return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' resmi DITOLAK dan DIBATALKAN (Cancelled).');
+        }
+
+        // Default: Kembalikan ke Admin Purchase untuk revisi HPP
+        // Idempoten: jika sudah dikembalikan ke admin sebelumnya
+        if ($rfq->status === Rfq::STATUS_PENDING_ADMIN) {
+            return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dikembalikan untuk revisi sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
+            return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dikembalikan ke Admin dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+        }
 
         $rfqUpdate = [
             'status'         => Rfq::STATUS_PENDING_ADMIN,
@@ -1400,8 +1449,9 @@ class RfqController extends Controller
             );
         }
 
-        return redirect()->back()
-            ->with('warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
+        $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: false);
+
+        return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
     }
 
     public function downloadQuotation(Request $request, Rfq $rfq)
@@ -2255,5 +2305,63 @@ class RfqController extends Controller
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::warning('Gagal broadcast approval RFQ ke chat: ' . $e->getMessage());
         }
+    }
+
+    private function broadcastRfqRejectionToChat(Rfq $rfq, User $rejector, ?string $notes, bool $isCancellation = false): void
+    {
+        try {
+            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
+                return;
+            }
+
+            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
+            if (!$salesUser && $rfq->sales_name) {
+                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
+            }
+
+            if (!$salesUser) {
+                return;
+            }
+
+            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
+
+            if ($isCancellation) {
+                $announcementText = "🚫 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah DITOLAK / DIBATALKAN oleh Leader.";
+            } else {
+                $announcementText = "⚠️ Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) dikembalikan oleh Leader ke Admin Purchase untuk revisi harga.";
+            }
+
+            if (!empty($notes)) {
+                $announcementText .= "\nAlasan / Catatan: " . trim($notes);
+            }
+
+            $room->messages()->create([
+                'user_id'      => $rejector->id,
+                'message'      => $announcementText,
+                'message_type' => 'text',
+                'rfq_id'       => $rfq->id,
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast rejection RFQ ke chat: ' . $e->getMessage());
+        }
+    }
+
+    private function redirectAfterReject(Request $request, Rfq $rfq, string $flashType, string $flashMessage)
+    {
+        $referer = (string) $request->header('referer');
+
+        // Jika request datang dari halaman approvals, kembalikan ke approvals
+        if (str_contains($referer, '/approvals')) {
+            return redirect()->route('approvals.index')->with($flashType, $flashMessage);
+        }
+
+        // Jika request datang dari rfq.show atau rfq list, arahkan ke daftar RFQ agar tidak terjebak di halaman yang sama
+        if (str_contains($referer, '/rfqs/') || str_contains($referer, '/rfq')) {
+            return redirect()->route('rfq.index')->with($flashType, $flashMessage);
+        }
+
+        return redirect()->back(fallback: route('rfq.index'))->with($flashType, $flashMessage);
     }
 }
