@@ -123,6 +123,9 @@ class RfqNoteHelper
         // Normalize raw newlines to <br> so multiline text is never collapsed into a single line
         $trimmed = self::normalizeNewlinesToBreaks($trimmed);
 
+        // Collapse 3+ consecutive <br> tags to max 2 <br> (<br><br> = 1 blank line)
+        $trimmed = preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $trimmed);
+
         // Fast path: if payload contains exclusively clean, whitelisted tags with no attributes
         if (self::isStrictlyCleanHtml($trimmed)) {
             return $trimmed;
@@ -143,6 +146,9 @@ class RfqNoteHelper
         while (preg_match('/<span(?:\s+style="")?\s*>(.*?)<\/span>/is', $purified)) {
             $purified = preg_replace('/<span(?:\s+style="")?\s*>(.*?)<\/span>/is', '$1', $purified);
         }
+
+        // Collapse 3+ consecutive <br> tags (with optional whitespace) to max 2 <br> (<br><br> = 1 blank line)
+        $purified = preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $purified);
 
         return trim($purified);
     }
@@ -245,29 +251,32 @@ class RfqNoteHelper
     /**
      * Normalize standalone raw newlines into <br> tags while preserving existing <br>
      * and block tag boundaries to prevent multiple breaks or line collapsing.
+     * Collapses 3+ consecutive newlines/breaks to max 2 (<br><br> = 1 blank line).
      *
      * @param string $html
      * @return string
      */
     public static function normalizeNewlinesToBreaks(string $html): string
     {
-        if (!str_contains($html, "\n") && !str_contains($html, "\r")) {
-            return $html;
-        }
-
         // 1. Standardize line endings
         $html = str_replace(["\r\n", "\r"], "\n", $html);
 
-        // 2. Remove newlines directly adjacent to existing <br> tags
+        // 2. Collapse 3+ newlines to max 2 newlines (\n\n = 1 blank line)
+        $html = preg_replace("/\n{3,}/", "\n\n", $html);
+
+        // 3. Remove newlines directly adjacent to existing <br> tags
         $html = preg_replace('/<br\s*\/?>\s*\n+/i', '<br>', $html);
         $html = preg_replace('/\n+\s*<br\s*\/?>/i', '<br>', $html);
 
-        // 3. Remove newlines between block tag boundaries
+        // 4. Remove newlines between block tag boundaries
         $html = preg_replace('/(<\/(?:p|div|li|ol|ul|tr|td|th|table|blockquote)>)\s*\n+/i', '$1', $html);
         $html = preg_replace('/\n+\s*(<(?:p|div|li|ol|ul|tr|td|th|table|blockquote)\b[^>]*>)/i', '$1', $html);
 
-        // 4. Convert all remaining standalone \n into <br>
-        return str_replace("\n", '<br>', $html);
+        // 5. Convert all remaining standalone \n into <br>
+        $html = str_replace("\n", '<br>', $html);
+
+        // 6. Collapse 3+ consecutive <br> tags (with optional spaces/entities) to max 2 <br> (<br><br> = 1 blank line)
+        return preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $html);
     }
 
     /**
@@ -463,10 +472,13 @@ class RfqNoteHelper
         $normalized = self::normalizeSpaces($content);
 
         if (self::isLegacyPlainText($normalized)) {
+            // Collapse 3+ newlines to max 2 (\n\n = 1 blank line)
+            $normalized = preg_replace("/\n{3,}/", "\n\n", $normalized);
             return nl2br(e($normalized));
         }
 
-        return self::sanitize($normalized) ?? '';
+        $sanitized = self::sanitize($normalized) ?? '';
+        return preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $sanitized);
     }
 
     /**

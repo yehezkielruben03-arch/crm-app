@@ -3614,6 +3614,7 @@
                                  .replace(/<(?:div|p)\b([^>]*)>/gi, '<br><span$1>')
                                  .replace(/<\/(?:div|p)>/gi, '</span>');
                     }
+                    val = val.replace(/(?:<br\s*\/?>[\s\u00a0]*){3,}/gi, '<br><br>');
                     textarea.value = val;
                 }
                 textarea.dispatchEvent(new Event('input', { bubbles: true }));
