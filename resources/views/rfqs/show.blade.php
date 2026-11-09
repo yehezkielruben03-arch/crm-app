@@ -1277,15 +1277,29 @@
                 </div>
             </div>
 
-            @if($rfq->isPendingAdmin() && auth()->user()->isAdminOrAbove())
-            <a href="{{ route('rfq.price_form', $rfq) }}"
-               class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
-               style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 14px rgba(5,150,105,0.35);">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Isi Harga Modal & Margin
-            </a>
+            @if($rfq->isPendingAdmin())
+            <div class="flex flex-col gap-2">
+                @if(auth()->user()->isAdminOrAbove())
+                <a href="{{ route('rfq.price_form', $rfq) }}"
+                   class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-xl transition-all hover:-translate-y-0.5"
+                   style="background: linear-gradient(135deg, #059669, #0d9488); box-shadow: 0 4px 14px rgba(5,150,105,0.35);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Isi Harga Modal & Margin
+                </a>
+                @endif
+                @if(auth()->user()->isAdminOrAbove() || auth()->user()->isLeader())
+                <button type="button" onclick="openRejectModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}', true)"
+                    class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl transition-colors hover:bg-rose-100"
+                    style="background: rgba(225,29,72,0.08); color: var(--accent-rose); border: 1px solid rgba(225,29,72,0.2);">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    Batalkan / Tolak RFQ
+                </button>
+                @endif
+            </div>
             @endif
 
             @if($rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER)
@@ -1603,7 +1617,7 @@
             <form id="rejectForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Memproses...'; return true;">
                 @csrf
                 <!-- Pilihan Tipe Penolakan -->
-                <div class="space-y-2 mb-4">
+                <div id="rejectActionRadioContainer" class="space-y-2 mb-4">
                     <label class="flex items-start gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50/60 hover:bg-amber-50 cursor-pointer transition">
                         <input type="radio" name="action_type" value="revision" checked class="mt-0.5 text-amber-600 focus:ring-amber-500" onchange="updateRejectModalUI('revision')">
                         <div>
@@ -1682,20 +1696,29 @@
         document.getElementById('rejectPoModal')?.addEventListener('click', function(e) {
             if (e.target === this) closeRejectPoModal();
         });
-        function openRejectModal(rfqId, rfqNumber) {
+        function openRejectModal(rfqId, rfqNumber, isCancelOnly = false) {
             const modal = document.getElementById('rejectModal');
             const form = document.getElementById('rejectForm');
             const subtitle = document.getElementById('rejectModalSubtitle');
             const textarea = document.getElementById('modalRevisionNotes');
+            const radioContainer = document.getElementById('rejectActionRadioContainer');
 
             form.action = '/rfqs/' + rfqId + '/reject';
-            subtitle.textContent = 'Pilih tindakan untuk RFQ ' + rfqNumber + ':';
+            subtitle.textContent = isCancelOnly ? 'Batalkan / Tolak RFQ ' + rfqNumber + ':' : 'Pilih tindakan untuk RFQ ' + rfqNumber + ':';
             textarea.value = '';
 
-            const defaultRadio = document.querySelector('input[name="action_type"][value="revision"]');
-            if (defaultRadio) {
-                defaultRadio.checked = true;
-                updateRejectModalUI('revision');
+            if (isCancelOnly) {
+                if (radioContainer) radioContainer.classList.add('hidden');
+                const cancelRadio = document.querySelector('input[name="action_type"][value="cancel"]');
+                if (cancelRadio) cancelRadio.checked = true;
+                updateRejectModalUI('cancel');
+            } else {
+                if (radioContainer) radioContainer.classList.remove('hidden');
+                const defaultRadio = document.querySelector('input[name="action_type"][value="revision"]');
+                if (defaultRadio) {
+                    defaultRadio.checked = true;
+                    updateRejectModalUI('revision');
+                }
             }
 
             modal.classList.remove('hidden');

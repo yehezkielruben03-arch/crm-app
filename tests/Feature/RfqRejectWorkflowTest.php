@@ -141,6 +141,61 @@ class RfqRejectWorkflowTest extends TestCase
         $this->assertEquals(Rfq::STATUS_CANCELLED, $rfq->status);
     }
 
+    public function test_leader_and_admin_can_cancel_rfq_when_in_pending_admin(): void
+    {
+        $rfq = Rfq::create([
+            'rfq_number'    => 'RFQ-TEST-ADMIN-CANCEL-' . uniqid(),
+            'customer_id'   => $this->customer->id,
+            'customer_name' => $this->customer->company_name,
+            'sales_id'      => $this->sales->id,
+            'sales_name'    => $this->sales->name,
+            'rfq_date'      => now(),
+            'status'        => Rfq::STATUS_PENDING_ADMIN,
+        ]);
+
+        // 1. Leader can cancel directly from Pending Admin
+        $response = $this->actingAs($this->leader)
+            ->from(route('rfq.show', $rfq))
+            ->post(route('rfq.reject', $rfq), [
+                'action_type'    => 'cancel',
+                'revision_notes' => 'Leader membatalkan langsung dari antrean Admin',
+            ]);
+
+        $response->assertRedirect(route('rfq.index'));
+        $rfq->refresh();
+        $this->assertEquals(Rfq::STATUS_CANCELLED, $rfq->status);
+
+        // 2. Admin can also cancel from Pending Admin
+        $rfq2 = Rfq::create([
+            'rfq_number'    => 'RFQ-TEST-ADMIN-CANCEL-2-' . uniqid(),
+            'customer_id'   => $this->customer->id,
+            'customer_name' => $this->customer->company_name,
+            'sales_id'      => $this->sales->id,
+            'sales_name'    => $this->sales->name,
+            'rfq_date'      => now(),
+            'status'        => Rfq::STATUS_PENDING_ADMIN,
+        ]);
+
+        $response2 = $this->actingAs($this->admin)
+            ->from(route('rfq.show', $rfq2))
+            ->post(route('rfq.reject', $rfq2), [
+                'action_type'    => 'cancel',
+                'revision_notes' => 'Customer batalkan permintaan harga',
+            ]);
+
+        $response2->assertRedirect(route('rfq.index'));
+        $rfq2->refresh();
+        $this->assertEquals(Rfq::STATUS_CANCELLED, $rfq2->status);
+
+        // 3. Admin cannot request revision
+        $response3 = $this->actingAs($this->admin)
+            ->post(route('rfq.reject', $rfq2), [
+                'action_type'    => 'revision',
+                'revision_notes' => 'Admin cannot do revision',
+            ]);
+        $response3->assertStatus(403);
+    }
+
     public function test_sales_user_cannot_reject_rfq(): void
     {
         $rfq = $this->createPendingLeaderRfq();

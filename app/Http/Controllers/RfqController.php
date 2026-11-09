@@ -1345,8 +1345,6 @@ class RfqController extends Controller
 
     public function reject(Request $request, Rfq $rfq)
     {
-        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-
         $validated = $request->validate([
             'action_type'    => 'nullable|in:revision,cancel',
             'notes'          => 'nullable|string|max:2000',
@@ -1357,6 +1355,9 @@ class RfqController extends Controller
         $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
 
         if ($actionType === 'cancel') {
+            // Membatalkan RFQ diizinkan untuk Leader, Admin, atau Super Admin
+            abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdminOrAbove(), 403);
+
             // Idempoten jika sudah Cancelled
             if ($rfq->status === Rfq::STATUS_CANCELLED) {
                 return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dibatalkan sebelumnya.');
@@ -1383,7 +1384,7 @@ class RfqController extends Controller
                     $rfq->sales_id,
                     'error',
                     'RFQ Ditolak / Dibatalkan ❌',
-                    'RFQ ' . $rfq->rfq_number . ' resmi ditolak/dibatalkan oleh Leader ' . $this->authUser()->name . '. Alasan: ' . ($notes ?: '-'),
+                    'RFQ ' . $rfq->rfq_number . ' resmi ditolak/dibatalkan oleh ' . $this->authUser()->name . '. Alasan: ' . ($notes ?: '-'),
                     route('rfq.show', $rfq)
                 );
             }
@@ -1394,7 +1395,7 @@ class RfqController extends Controller
                     $admin->id,
                     'warning',
                     'RFQ Dibatalkan: ' . $rfq->rfq_number,
-                    'Leader ' . $this->authUser()->name . ' membatalkan RFQ ' . $rfq->rfq_number . '. Alasan: ' . ($notes ?: '-'),
+                    $this->authUser()->name . ' membatalkan RFQ ' . $rfq->rfq_number . '. Alasan: ' . ($notes ?: '-'),
                     route('rfq.show', $rfq)
                 );
             }
@@ -1403,6 +1404,9 @@ class RfqController extends Controller
 
             return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' resmi DITOLAK dan DIBATALKAN (Cancelled).');
         }
+
+        // Action revisi HPP hanya boleh dilakukan Leader atau Super Admin saat tahap Pending Leader
+        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
 
         // Default: Kembalikan ke Admin Purchase untuk revisi HPP
         // Idempoten: jika sudah dikembalikan ke admin sebelumnya
