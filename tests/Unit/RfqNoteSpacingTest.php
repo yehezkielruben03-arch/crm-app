@@ -31,6 +31,16 @@ class RfqNoteSpacingTest extends TestCase
     }
 
     #[Test]
+    public function it_collapses_breaks_with_literal_nbsp_and_empty_spans(): void
+    {
+        $input = '<u>Hasil pengecekan unit:</u><br>- Hardware lain belum bisa dicek terlebih dahulu<br>&nbsp;<br>&nbsp;<br><span>&nbsp;</span><br><span style="color: #dc2626;"><u>Perbaikan service:</u></span>';
+        $rendered = RfqNoteHelper::renderPdfHtml($input);
+
+        $this->assertStringNotContainsString('<br><br><br>', $rendered);
+        $this->assertStringContainsString('terlebih dahulu<br><br><span style="color:#dc2626;"><u>Perbaikan service:</u></span>', $rendered);
+    }
+
+    #[Test]
     public function it_normalizes_empty_div_blocks_into_compact_spacing(): void
     {
         $input = '<div>Hasil pengecekan unit:</div><div>- Kendala laptop tidak nyala</div><div><br></div><div><br></div><div><br></div><div><u>Perbaikan service:</u></div>';

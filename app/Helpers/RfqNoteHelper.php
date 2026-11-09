@@ -147,10 +147,7 @@ class RfqNoteHelper
             $purified = preg_replace('/<span(?:\s+style="")?\s*>(.*?)<\/span>/is', '$1', $purified);
         }
 
-        // Collapse 3+ consecutive <br> tags (with optional whitespace) to max 2 <br> (<br><br> = 1 blank line)
-        $purified = preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $purified);
-
-        return trim($purified);
+        return trim(self::collapseLineBreaks($purified));
     }
 
     /**
@@ -478,7 +475,7 @@ class RfqNoteHelper
         }
 
         $sanitized = self::sanitize($normalized) ?? '';
-        return preg_replace('/(?:<br\s*\/?>[\s\x{00a0}]*){3,}/ui', '<br><br>', $sanitized);
+        return self::collapseLineBreaks($sanitized);
     }
 
     /**
@@ -743,6 +740,34 @@ class RfqNoteHelper
     }
 
     /**
+     * Collapse excessive line breaks, empty paragraph/div blocks, and non-breaking spaces.
+     * Ensures any gap never exceeds exactly 1 blank line (<br><br> = 1 visual empty line),
+     * regardless of whether &nbsp;, <span>&nbsp;</span>, or multiple enters were entered.
+     *
+     * @param string $html
+     * @return string
+     */
+    public static function collapseLineBreaks(string $html): string
+    {
+        // 1. Normalize all non-breaking spaces and whitespace entities
+        $html = preg_replace('/&(?:amp;)?nbsp;?|&#160;?|&#xA0;?|&ensp;?|&emsp;?/i', ' ', $html);
+        $html = str_replace(["\xc2\xa0", "\u{00a0}", "\u{200b}", "\u{feff}"], ' ', $html);
+
+        // 2. Remove empty inline tags that sit between breaks (e.g. <br><span> </span><br>)
+        while (preg_match('/<(?:span|b|strong|i|em|u|font)\b[^>]*>\s*<\/(?:span|b|strong|i|em|u|font)>/i', $html)) {
+            $html = preg_replace('/<(?:span|b|strong|i|em|u|font)\b[^>]*>\s*<\/(?:span|b|strong|i|em|u|font)>/i', '', $html);
+        }
+
+        // 3. Normalize empty block tags like <p> </p> or <p><br></p> or <div><br></div> into <br>
+        $html = preg_replace('/<(?:p|div)\b[^>]*>\s*(?:<br\s*\/?>)?\s*<\/(?:p|div)>/i', '<br>', $html);
+
+        // 4. Collapse 3+ consecutive <br> tags (with optional spaces/entities between them) to max 2 <br> (<br><br> = 1 blank line)
+        $html = preg_replace('/(?:<br\s*\/?>\s*){3,}/i', '<br><br>', $html);
+
+        return $html;
+    }
+
+    /**
      * Render HTML formatted specifically for DomPDF inside the .pdf-rich-text container.
      *
      * @param string|null $content
@@ -759,6 +784,6 @@ class RfqNoteHelper
             return '';
         }
 
-        return '<div class="pdf-rich-text">' . $rendered . '</div>';
+        return '<div class="pdf-rich-text">' . self::collapseLineBreaks($rendered) . '</div>';
     }
 }
