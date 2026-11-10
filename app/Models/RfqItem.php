@@ -221,7 +221,7 @@ class RfqItem extends Model
     public function isInternalLaborOrAccommodation(): bool
     {
         $name = strtolower(trim($this->product_name ?? ''));
-        $vendor = strtolower(trim($this->vendor?->nama_vendor ?? ($this->attributes['vendor_name'] ?? '')));
+        $vendor = strtolower(trim(($this->relationLoaded('vendor') ? $this->vendor?->nama_vendor : null) ?? ($this->attributes['vendor_name'] ?? '')));
 
         if (str_contains($name, 'mp team pedia') 
             || str_contains($name, 'mainpower pedia') 

@@ -611,4 +611,67 @@ class RfqModelAndFormatChallengeTest extends TestCase
         // Expected grand total: 1.000.000 (hw) + 1.000.000 (mat ceiling) = 2.000.000
         $this->assertEquals(2000000.0, $rfqProj->grand_total);
     }
+
+    /**
+     * Test Projek RFQ Jasa Pemasangan updates correctly from 29 million to 21 million.
+     */
+    public function test_projek_rfq_jasa_pemasangan_price_update_from_29m_to_21m(): void
+    {
+        $rfq = new Rfq([
+            'type' => 'Projek',
+            'enable_jasa_ceiling' => true,
+            'jasa_ceiling_step' => 500000,
+            'jasa_custom_total' => null, // Dynamic / automatic mode
+        ]);
+
+        $jasaItem = new RfqItem([
+            'product_name' => 'Jasa Pemasangan & Konfigurasi',
+            'category' => 'Jasa Pemasangan',
+            'qty' => 1,
+            'price_after_margin' => 29000000,
+        ]);
+        $rfq->setRelation('items', collect([$jasaItem]));
+
+        $items = $rfq->customer_quotation_items;
+        $jasaQuo = $items->firstWhere('category', RfqItem::CATEGORY_JASA);
+        $this->assertNotNull($jasaQuo);
+        $this->assertEquals(29000000.0, $jasaQuo->row_total);
+
+        // Admin changes price to 21 million
+        $jasaItem->price_after_margin = 21000000;
+        $itemsUpdated = $rfq->formatCustomerQuotationItems(collect([$jasaItem]));
+        $jasaQuoUpdated = $itemsUpdated->firstWhere('category', RfqItem::CATEGORY_JASA);
+        $this->assertNotNull($jasaQuoUpdated);
+        $this->assertEquals(21000000.0, $jasaQuoUpdated->row_total);
+    }
+
+    /**
+     * Test that manual custom total override works when set, and clears back to dynamic calculation.
+     */
+    public function test_projek_rfq_jasa_custom_total_manual_override_and_reset(): void
+    {
+        $rfq = new Rfq([
+            'type' => 'Projek',
+            'enable_jasa_ceiling' => true,
+            'jasa_ceiling_step' => 500000,
+            'jasa_custom_total' => 29000000, // Locked manual total from previous session
+        ]);
+
+        $jasaItem = new RfqItem([
+            'product_name' => 'Jasa Pemasangan & Konfigurasi',
+            'category' => 'Jasa Pemasangan',
+            'qty' => 1,
+            'price_after_margin' => 21000000,
+        ]);
+        $rfq->setRelation('items', collect([$jasaItem]));
+
+        // With lock, it stays 29 million
+        $lockedItems = $rfq->customer_quotation_items;
+        $this->assertEquals(29000000.0, $lockedItems->firstWhere('category', RfqItem::CATEGORY_JASA)->row_total);
+
+        // When reset to auto (jasa_custom_total = null), it immediately updates to 21 million
+        $rfq->jasa_custom_total = null;
+        $unlockedItems = $rfq->customer_quotation_items;
+        $this->assertEquals(21000000.0, $unlockedItems->firstWhere('category', RfqItem::CATEGORY_JASA)->row_total);
+    }
 }

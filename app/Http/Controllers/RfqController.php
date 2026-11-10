@@ -911,9 +911,11 @@ class RfqController extends Controller
             'enable_material_ceiling'            => 'nullable',
             'material_ceiling_step'              => 'nullable',
             'material_custom_total'              => 'nullable',
+            'is_manual_material_custom_total'    => 'nullable',
             'enable_jasa_ceiling'                => 'nullable',
             'jasa_ceiling_step'                  => 'nullable',
             'jasa_custom_total'                  => 'nullable',
+            'is_manual_jasa_custom_total'        => 'nullable',
             'items'                              => 'required|array',
             'items.*.is_bundle'                  => 'nullable',
             'items.*.category'                   => 'nullable|string',
@@ -989,8 +991,10 @@ class RfqController extends Controller
                 $rfqUpdate['material_ceiling_step'] = $cleanPrice($request->material_ceiling_step, 500000.0);
             }
             if ($request->has('material_custom_total')) {
+                $hasManualFlag = $request->has('is_manual_material_custom_total');
+                $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
                 $customMat = $cleanPrice($request->material_custom_total, 0.0);
-                $rfqUpdate['material_custom_total'] = $customMat > 0 ? $customMat : null;
+                $rfqUpdate['material_custom_total'] = ($isManualMat && $customMat > 0) ? $customMat : null;
             }
             if ($request->has('enable_jasa_ceiling')) {
                 $rfqUpdate['enable_jasa_ceiling'] = $request->boolean('enable_jasa_ceiling');
@@ -999,8 +1003,10 @@ class RfqController extends Controller
                 $rfqUpdate['jasa_ceiling_step'] = $cleanPrice($request->jasa_ceiling_step, 500000.0);
             }
             if ($request->has('jasa_custom_total')) {
+                $hasManualFlag = $request->has('is_manual_jasa_custom_total');
+                $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
                 $customJasa = $cleanPrice($request->jasa_custom_total, 0.0);
-                $rfqUpdate['jasa_custom_total'] = $customJasa > 0 ? $customJasa : null;
+                $rfqUpdate['jasa_custom_total'] = ($isManualJasa && $customJasa > 0) ? $customJasa : null;
             }
             if ($request->has('payment_term_type')) {
                 $termType = $request->payment_term_type ?: 'tempo';
@@ -1634,8 +1640,10 @@ class RfqController extends Controller
             $rfq->material_ceiling_step = $cleanNum($request->input('material_ceiling_step'), 500000.0);
         }
         if ($request->has('material_custom_total')) {
+            $hasManualFlag = $request->has('is_manual_material_custom_total');
+            $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
             $cMat = $cleanNum($request->input('material_custom_total'), 0.0);
-            $rfq->material_custom_total = $cMat > 0 ? $cMat : null;
+            $rfq->material_custom_total = ($isManualMat && $cMat > 0) ? $cMat : null;
         }
         if ($request->has('enable_jasa_ceiling')) {
             $rfq->enable_jasa_ceiling = $request->boolean('enable_jasa_ceiling');
@@ -1644,8 +1652,10 @@ class RfqController extends Controller
             $rfq->jasa_ceiling_step = $cleanNum($request->input('jasa_ceiling_step'), 500000.0);
         }
         if ($request->has('jasa_custom_total')) {
+            $hasManualFlag = $request->has('is_manual_jasa_custom_total');
+            $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
             $cJasa = $cleanNum($request->input('jasa_custom_total'), 0.0);
-            $rfq->jasa_custom_total = $cJasa > 0 ? $cJasa : null;
+            $rfq->jasa_custom_total = ($isManualJasa && $cJasa > 0) ? $cJasa : null;
         }
         if ($request->has('payment_term_type')) {
             $termType = $request->input('payment_term_type') ?: 'tempo';

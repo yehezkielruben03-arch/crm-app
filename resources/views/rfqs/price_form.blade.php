@@ -1179,7 +1179,18 @@
 
                     $enableCeiling = $rfq->$toggleName ?? true;
                     $ceilingStep = (float)($rfq->$stepName ?? 500000);
-                    $customVal = $rfq->$customName ? (float)$rfq->$customName : null;
+                    $rawCustomVal = $rfq->$customName ? (float)$rfq->$customName : null;
+
+                    $blockItemsRawTotal = (float) $categoryItems->sum(function($it) {
+                        return (float) ($it->price_after_margin ?: $it->calculatePriceAfterMargin()) * (float) ($it->qty ?: 1);
+                    });
+                    $blockCeilTotal = ($enableCeiling && $ceilingStep > 0 && $blockItemsRawTotal > 0)
+                        ? ceil($blockItemsRawTotal / $ceilingStep) * $ceilingStep
+                        : $blockItemsRawTotal;
+
+                    // Jika customVal di database sama dengan hasil rumus otomatis (karena auto-save lama), jangan anggap manual
+                    $isManualVal = ($rawCustomVal !== null && abs($rawCustomVal - $blockCeilTotal) > 0.01 && abs($rawCustomVal - $blockItemsRawTotal) > 0.01);
+                    $customVal = $isManualVal ? $rawCustomVal : null;
 
                     $cleanTitle = trim(preg_replace('/^blok\s+/i', '', $block['title']));
                 @endphp
@@ -1266,11 +1277,22 @@
                                     <span>Total Penawaran Klien:</span>
                                     <span class="text-[10px] text-amber-600 font-normal lowercase">(di quotation)</span>
                                 </label>
-                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300" id="manual-indicator-{{ $blockKey }}" style="{{ $customVal ? '' : 'display: none;' }}">
-                                    ✎ Diedit Manual
-                                </span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300" id="manual-indicator-{{ $blockKey }}" style="{{ $customVal ? '' : 'display: none;' }}">
+                                        ✎ Diedit Manual
+                                    </span>
+                                    <button type="button" 
+                                            id="btn-reset-auto-{{ $blockKey }}"
+                                            onclick="resetBlockToAuto('{{ $blockKey }}')"
+                                            style="{{ $customVal ? '' : 'display: none;' }}"
+                                            class="text-[10px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 px-2 py-0.5 rounded-md border border-blue-300 transition cursor-pointer"
+                                            title="Kembalikan total blok ke kalkulasi otomatis rumus">
+                                        ↺ Reset Otomatis
+                                    </button>
+                                </div>
                             </div>
                             
+                            <input type="hidden" name="is_manual_{{ $customName }}" id="is-manual-{{ $blockKey }}" value="{{ $customVal ? '1' : '0' }}">
                             <div class="relative rounded-xl shadow-inner group">
                                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-sm font-extrabold text-amber-600">Rp</span>
                                 <input type="text" 
@@ -1279,6 +1301,7 @@
                                        data-type="rupiah"
                                        data-block-key="{{ $blockKey }}"
                                        data-is-manual="{{ $customVal ? '1' : '0' }}"
+                                       data-user-typed="0"
                                        value="{{ $customVal ? number_format($customVal, 0, ',', '.') : '' }}"
                                        placeholder="Otomatis dari rumus"
                                        oninput="onCustomTotalInput('{{ $blockKey }}')"
@@ -1995,6 +2018,18 @@
             }
 
             card.remove();
+            if (['material_support', 'jasa_pemasangan'].includes(blockKey)) {
+                const cInput = document.getElementById('custom-total-' + blockKey);
+                if (cInput && cInput.dataset.userTyped !== '1') {
+                    cInput.dataset.isManual = '0';
+                    const isManInput = document.getElementById('is-manual-' + blockKey);
+                    if (isManInput) isManInput.value = '0';
+                    const manBadge = document.getElementById('manual-indicator-' + blockKey);
+                    if (manBadge) manBadge.style.display = 'none';
+                    const rstBtn = document.getElementById('btn-reset-auto-' + blockKey);
+                    if (rstBtn) rstBtn.style.display = 'none';
+                }
+            }
             updateBlockCount(blockKey);
             updateAllCardNumbers();
             updateGrandTotals();
@@ -3517,6 +3552,22 @@
                 const finalProfitEl = document.getElementById('final-profit-row-' + itemId);
                 if (finalProfitEl) finalProfitEl.innerText = '+Rp ' + formatRupiah(grandBundleProfit);
 
+                const cardEl = document.getElementById('card-item-' + itemId);
+                const parentBlock = cardEl?.closest('#items-container-material_support, #items-container-jasa_pemasangan');
+                if (parentBlock) {
+                    const blkKey = parentBlock.id === 'items-container-material_support' ? 'material_support' : 'jasa_pemasangan';
+                    const cInput = document.getElementById('custom-total-' + blkKey);
+                    if (cInput && cInput.dataset.userTyped !== '1') {
+                        cInput.dataset.isManual = '0';
+                        const isManInput = document.getElementById('is-manual-' + blkKey);
+                        if (isManInput) isManInput.value = '0';
+                        const manBadge = document.getElementById('manual-indicator-' + blkKey);
+                        if (manBadge) manBadge.style.display = 'none';
+                        const rstBtn = document.getElementById('btn-reset-auto-' + blkKey);
+                        if (rstBtn) rstBtn.style.display = 'none';
+                    }
+                }
+
                 updateGrandTotals();
             } catch (err) {
                 console.error('Error saat calculateBundle untuk item ' + itemId + ':', err);
@@ -3855,6 +3906,22 @@
                 activeBtn.classList.add('bg-blue-600', 'text-white', 'border-blue-600', 'shadow-sm');
             }
 
+            const cardEl = document.getElementById('card-item-' + itemId);
+            const parentBlock = cardEl?.closest('#items-container-material_support, #items-container-jasa_pemasangan');
+            if (parentBlock) {
+                const blkKey = parentBlock.id === 'items-container-material_support' ? 'material_support' : 'jasa_pemasangan';
+                const cInput = document.getElementById('custom-total-' + blkKey);
+                if (cInput && cInput.dataset.userTyped !== '1') {
+                    cInput.dataset.isManual = '0';
+                    const isManInput = document.getElementById('is-manual-' + blkKey);
+                    if (isManInput) isManInput.value = '0';
+                    const manBadge = document.getElementById('manual-indicator-' + blkKey);
+                    if (manBadge) manBadge.style.display = 'none';
+                    const rstBtn = document.getElementById('btn-reset-auto-' + blkKey);
+                    if (rstBtn) rstBtn.style.display = 'none';
+                }
+            }
+
             updateGrandTotals();
         }
 
@@ -3877,8 +3944,15 @@
                 }
             }
 
-            if (customInput) customInput.dataset.isManual = '0';
+            if (customInput) {
+                customInput.dataset.isManual = '0';
+                customInput.dataset.userTyped = '0';
+            }
+            const isManToggle = document.getElementById('is-manual-' + blockKey);
+            if (isManToggle) isManToggle.value = '0';
             if (manualBadge) manualBadge.style.display = 'none';
+            const rstBtnToggle = document.getElementById('btn-reset-auto-' + blockKey);
+            if (rstBtnToggle) rstBtnToggle.style.display = 'none';
 
             if (badgeFormula) {
                 if (isChecked) {
@@ -3904,8 +3978,15 @@
             const customInput = document.getElementById('custom-total-' + blockKey);
             const manualBadge = document.getElementById('manual-indicator-' + blockKey);
 
-            if (customInput) customInput.dataset.isManual = '0';
+            if (customInput) {
+                customInput.dataset.isManual = '0';
+                customInput.dataset.userTyped = '0';
+            }
+            const isManStep = document.getElementById('is-manual-' + blockKey);
+            if (isManStep) isManStep.value = '0';
             if (manualBadge) manualBadge.style.display = 'none';
+            const rstBtnStep = document.getElementById('btn-reset-auto-' + blockKey);
+            if (rstBtnStep) rstBtnStep.style.display = 'none';
 
             if (badgeFormula) {
                 badgeFormula.innerText = '=CEILING(SUM; ' + formatRupiah(step > 0 ? step : 1) + ')';
@@ -3917,15 +3998,44 @@
         function onCustomTotalInput(blockKey) {
             const customInput = document.getElementById('custom-total-' + blockKey);
             const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const resetBtn = document.getElementById('btn-reset-auto-' + blockKey);
+            const isManInput = document.getElementById('is-manual-' + blockKey);
             const val = parseRupiah(customInput?.value || '0');
 
             if (val > 0) {
-                if (customInput) customInput.dataset.isManual = '1';
+                if (customInput) {
+                    customInput.dataset.isManual = '1';
+                    customInput.dataset.userTyped = '1';
+                }
+                if (isManInput) isManInput.value = '1';
                 if (manualBadge) manualBadge.style.display = 'inline-block';
+                if (resetBtn) resetBtn.style.display = 'inline-block';
             } else {
-                if (customInput) customInput.dataset.isManual = '0';
+                if (customInput) {
+                    customInput.dataset.isManual = '0';
+                    customInput.dataset.userTyped = '0';
+                }
+                if (isManInput) isManInput.value = '0';
                 if (manualBadge) manualBadge.style.display = 'none';
+                if (resetBtn) resetBtn.style.display = 'none';
             }
+
+            updateGrandTotals();
+        }
+
+        function resetBlockToAuto(blockKey) {
+            const customInput = document.getElementById('custom-total-' + blockKey);
+            const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const resetBtn = document.getElementById('btn-reset-auto-' + blockKey);
+            const isManInput = document.getElementById('is-manual-' + blockKey);
+
+            if (customInput) {
+                customInput.dataset.isManual = '0';
+                customInput.dataset.userTyped = '0';
+            }
+            if (isManInput) isManInput.value = '0';
+            if (manualBadge) manualBadge.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'none';
 
             updateGrandTotals();
         }
@@ -3936,11 +4046,18 @@
             const stepInput = document.getElementById('input-step-' + blockKey);
             const customInput = document.getElementById('custom-total-' + blockKey);
             const manualBadge = document.getElementById('manual-indicator-' + blockKey);
+            const resetBtn = document.getElementById('btn-reset-auto-' + blockKey);
+            const isManInput = document.getElementById('is-manual-' + blockKey);
             const badgeFormula = document.getElementById('badge-formula-' + blockKey);
             const deltaDesc = document.getElementById('block-delta-desc-' + blockKey);
 
-            if (customInput) customInput.dataset.isManual = '0';
+            if (customInput) {
+                customInput.dataset.isManual = '0';
+                customInput.dataset.userTyped = '0';
+            }
+            if (isManInput) isManInput.value = '0';
             if (manualBadge) manualBadge.style.display = 'none';
+            if (resetBtn) resetBtn.style.display = 'none';
 
             if (typeOrStep === 'raw') {
                 if (toggle) toggle.checked = false;
@@ -4017,10 +4134,12 @@
                 const matToggle = document.getElementById('toggle-ceiling-material_support');
                 const matStepInput = document.getElementById('input-step-material_support');
                 const isMatManual = matCustomInput?.dataset.isManual === '1';
+                const isManMatHidden = document.getElementById('is-manual-material_support');
                 let matFinalSales = 0;
 
                 if (isMatManual && matCustomInput && parseRupiah(matCustomInput.value) > 0) {
                     matFinalSales = parseRupiah(matCustomInput.value);
+                    if (isManMatHidden) isManMatHidden.value = '1';
                 } else {
                     const isMatCeil = matToggle ? matToggle.checked : true;
                     const matStep = parseInt(matStepInput?.value, 10) || 500000;
@@ -4028,6 +4147,7 @@
                     if (matCustomInput && document.activeElement !== matCustomInput) {
                         matCustomInput.value = matFinalSales > 0 ? formatRupiah(matFinalSales) : '';
                     }
+                    if (isManMatHidden) isManMatHidden.value = '0';
                 }
 
                 const rawMatEl = document.getElementById('block-raw-total-material_support');
@@ -4048,10 +4168,12 @@
                 const jasaToggle = document.getElementById('toggle-ceiling-jasa_pemasangan');
                 const jasaStepInput = document.getElementById('input-step-jasa_pemasangan');
                 const isJasaManual = jasaCustomInput?.dataset.isManual === '1';
+                const isManJasaHidden = document.getElementById('is-manual-jasa_pemasangan');
                 let jasaFinalSales = 0;
 
                 if (isJasaManual && jasaCustomInput && parseRupiah(jasaCustomInput.value) > 0) {
                     jasaFinalSales = parseRupiah(jasaCustomInput.value);
+                    if (isManJasaHidden) isManJasaHidden.value = '1';
                 } else {
                     const isJasaCeil = jasaToggle ? jasaToggle.checked : true;
                     const jasaStep = parseInt(jasaStepInput?.value, 10) || 500000;
@@ -4059,6 +4181,7 @@
                     if (jasaCustomInput && document.activeElement !== jasaCustomInput) {
                         jasaCustomInput.value = jasaFinalSales > 0 ? formatRupiah(jasaFinalSales) : '';
                     }
+                    if (isManJasaHidden) isManJasaHidden.value = '0';
                 }
 
                 const rawJasaEl = document.getElementById('block-raw-total-jasa_pemasangan');
