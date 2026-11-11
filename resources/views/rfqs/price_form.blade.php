@@ -4142,7 +4142,7 @@
                     if (isManMatHidden) isManMatHidden.value = '1';
                 } else {
                     const isMatCeil = matToggle ? matToggle.checked : true;
-                    const matStep = parseInt(matStepInput?.value, 10) || 500000;
+                    const matStep = parseRupiah(matStepInput?.value) || 500000;
                     matFinalSales = isMatCeil ? (matRawSales > 0 ? (Math.ceil(matRawSales / matStep) * matStep) : 0) : matRawSales;
                     if (matCustomInput && document.activeElement !== matCustomInput) {
                         matCustomInput.value = matFinalSales > 0 ? formatRupiah(matFinalSales) : '';
@@ -4176,7 +4176,7 @@
                     if (isManJasaHidden) isManJasaHidden.value = '1';
                 } else {
                     const isJasaCeil = jasaToggle ? jasaToggle.checked : true;
-                    const jasaStep = parseInt(jasaStepInput?.value, 10) || 500000;
+                    const jasaStep = parseRupiah(jasaStepInput?.value) || 500000;
                     jasaFinalSales = isJasaCeil ? (jasaRawSales > 0 ? (Math.ceil(jasaRawSales / jasaStep) * jasaStep) : 0) : jasaRawSales;
                     if (jasaCustomInput && document.activeElement !== jasaCustomInput) {
                         jasaCustomInput.value = jasaFinalSales > 0 ? formatRupiah(jasaFinalSales) : '';
