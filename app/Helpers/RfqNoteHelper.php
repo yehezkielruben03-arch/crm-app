@@ -668,11 +668,27 @@ class RfqNoteHelper
     }
 
     /**
+     * Check whether a cleaned note line matches the hardcoded standard template notices
+     * so boilerplate lines are deduplicated without dropping user-authored custom notes
+     * (e.g. "- Harga dapat berubah setiap bulan mengikuti Kurs").
+     */
+    private static function isStandardTemplateNote(string $cleanText): bool
+    {
+        $normalized = preg_replace('/\s+/u', ' ', trim(self::normalizeSpaces($cleanText), " \t\n\r\0\x0B.,;:"));
+        if ($normalized === '') {
+            return true;
+        }
+
+        return (bool) preg_match('/^harga\s+dapat\s+berubah(?:\s+sewaktu[-\s]?waktu)?\s+tanpa\s+pemberitahuan(?:\s+(?:terlebih\s+dahulu|sebelumnya))?$/iu', $normalized)
+            || (bool) preg_match('/^(?:mohon\s+)?(?:untuk\s+)?(?:menanyakan|tanyakan)\s+stok(?:\s+dan\s+warna)?\s+terlebih\s+dahulu\s+sebelum\s+mengirim(?:kan)?\s+po$/iu', $normalized);
+    }
+
+    /**
      * Parse and extract custom notes into distinct note lines.
      *
      * Supports both HTML elements (<div>, <p>, <br>, <li>, etc.) and
-     * plain-text newlines (\r\n, \n) while preserving existing exclusion
-     * filters ('harga dapat berubah', 'tanyakan stok').
+     * plain-text newlines (\r\n, \n) while excluding only exact standard
+     * template boilerplate lines.
      *
      * @param string|null $notes
      * @return array<int, string>
@@ -712,11 +728,12 @@ class RfqNoteHelper
                 continue;
             }
 
-            // Extract plain text for exclusion checking
-            $textOnly = strtolower(trim(strip_tags($trimmed)));
+            // Extract decoded plain text for standard template exclusion checking
+            $decodedPlain = html_entity_decode(self::normalizeSpaces(strip_tags($trimmed)), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $textOnly = strtolower(trim($decodedPlain));
             $clean = trim(ltrim($textOnly, "-•*\t\n\r\0\x0B "));
 
-            if ($clean === '' || str_contains($clean, 'harga dapat berubah') || str_contains($clean, 'tanyakan stok')) {
+            if ($clean === '' || self::isStandardTemplateNote($clean)) {
                 continue;
             }
 

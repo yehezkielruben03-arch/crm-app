@@ -910,10 +910,18 @@ class RfqRichTextE2ETest extends TestCase
         $this->assertCount(2, $extractedBr);
 
         // 4. Case: Standard notice exclusions filtered out
-        $mixedHtml = '<div>- Unit READY LIMITED stok tidak mengikat</div><div>- Harga dapat berubah tanpa pemberitahuan</div><div>- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>';
+        $mixedHtml = '<div>- Unit READY LIMITED stok tidak mengikat</div><div>- Harga dapat berubah tanpa pemberitahuan</div><div>- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div><div>- Mohon tanyakan stok dan warna terlebih dahulu sebelum mengirim PO</div>';
         $extractedMixed = $this->callHelper('extractCustomNotes', $mixedHtml);
         $this->assertCount(1, $extractedMixed);
         $this->assertEquals('- Unit READY LIMITED stok tidak mengikat', $extractedMixed[0]);
+
+        // 4b. Case: Custom notes sharing boilerplate prefix (e.g. Kurs note or custom stock instruction) MUST NOT be dropped
+        $customKursHtml = '<div>- Proses License 1-2 Weeks setelah Data end user lengkap</div><div>- Harga dapat berubah setiap bulan mengikuti Kurs</div><div>- Tanyakan stok unit ke vendor sebelum PO</div>';
+        $extractedKurs = $this->callHelper('extractCustomNotes', $customKursHtml);
+        $this->assertCount(3, $extractedKurs);
+        $this->assertEquals('- Proses License 1-2 Weeks setelah Data end user lengkap', $extractedKurs[0]);
+        $this->assertEquals('- Harga dapat berubah setiap bulan mengikuti Kurs', $extractedKurs[1]);
+        $this->assertEquals('- Tanyakan stok unit ke vendor sebelum PO', $extractedKurs[2]);
 
         // 5. Case: Legacy plain text with \n
         $plainText = "- Unit READY LIMITED stok tidak mengikat\n- Harga tidak termasuk Pemasangan";
