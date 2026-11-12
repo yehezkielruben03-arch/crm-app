@@ -2133,8 +2133,7 @@
                                 <th class="py-2.5 px-3 min-w-[340px]">Nama Komponen / Spesifikasi Part <span class="text-rose-500">*</span></th>
                                 <th class="py-2.5 px-2 w-28 min-w-[105px] text-center">Qty / PC<span class="block text-[9px] font-normal text-slate-400 font-sans normal-case">Resep 1 Unit</span></th>
                                 <th class="py-2.5 px-2.5 w-40 min-w-[150px]">Vendor / Toko</th>
-                                <th class="py-2.5 px-2.5 w-36 min-w-[145px] text-right">Harga Beli (Inc PPN)</th>
-                                <th class="py-2.5 px-2.5 w-36 min-w-[140px] text-right bg-slate-50/80 whitespace-nowrap">Modal Ex PPN</th>
+                                <th class="py-2.5 px-2.5 w-40 min-w-[155px] text-right bg-amber-50/60 text-amber-900 font-extrabold whitespace-nowrap">Modal HPP (Ex PPN) <span class="text-rose-500">*</span></th>
                                 <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Ongkir Vendor</th>
                                 <th class="py-2.5 px-2.5 w-32 min-w-[115px] text-right">Biaya Kirim</th>
                                 <th class="py-2.5 px-1.5 w-20 min-w-[80px] text-center">Margin %</th>

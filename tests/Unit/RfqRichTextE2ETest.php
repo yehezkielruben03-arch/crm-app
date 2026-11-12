@@ -970,4 +970,36 @@ class RfqRichTextE2ETest extends TestCase
         $this->assertStringContainsString('Unit READY LIMITED garansi 1 Tahun', $waText);
         $this->assertStringNotContainsString('<span', $waText);
     }
+
+    /**
+     * Regression guard: PC Rakitan / Bundling table headers must consistently use
+     * Modal HPP (Ex PPN) across both Blade-rendered items and JS-added items.
+     */
+    public function test_pc_rakitan_bundle_table_headers_match_component_cells_contract(): void
+    {
+        $priceFormPath = $this->getResourcePath('views/rfqs/price_form.blade.php');
+        $this->assertFileExists($priceFormPath);
+        $content = file_get_contents($priceFormPath);
+
+        $this->assertStringNotContainsString('Harga Beli (Inc PPN)', $content);
+
+        // Both Blade and JS bundle tables must use the 12-column Ex PPN header
+        $this->assertEquals(2, substr_count($content, 'Modal HPP (Ex PPN)'));
+
+        preg_match('/id="bundle-table-\{\{\s*\$item->id\s*\}\}"[^>]*>\s*<thead[^>]*>(.*?)<\/thead>/s', $content, $bladeThead);
+        preg_match('/id="bundle-table-\$\{itemId\}"[^>]*>\s*<thead[^>]*>(.*?)<\/thead>/s', $content, $jsThead);
+        preg_match('/function addPcComponentRow.*?tr\.innerHTML\s*=\s*`(.*?)`;\s*tbody\.appendChild/s', $content, $jsRowBody);
+
+        $this->assertNotEmpty($bladeThead[1] ?? '');
+        $this->assertNotEmpty($jsThead[1] ?? '');
+        $this->assertNotEmpty($jsRowBody[1] ?? '');
+
+        $bladeCols = substr_count($bladeThead[1], '<th');
+        $jsHeaderCols = substr_count($jsThead[1], '<th');
+        $jsRowCols = substr_count($jsRowBody[1], '<td');
+
+        $this->assertSame(12, $bladeCols);
+        $this->assertSame(12, $jsHeaderCols);
+        $this->assertSame(12, $jsRowCols);
+    }
 }
