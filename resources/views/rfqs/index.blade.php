@@ -248,6 +248,20 @@
                                     </button>
                                 </form>
                                 @endif
+
+                                @if($rfq->canPreviewQuotation(auth()->user()))
+                                <a href="{{ route('rfq.preview_quotation', $rfq) }}" target="_blank" rel="noopener noreferrer"
+                                    title="{{ $rfq->status === \App\Models\Rfq::STATUS_PENDING_LEADER ? 'Preview Draf Penawaran / PDF' : 'Preview Penawaran / PDF' }}"
+                                    aria-label="Preview Penawaran PDF {{ $rfq->rfq_number }}"
+                                    class="p-1.5 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                    style="color: var(--text-muted);"
+                                    onmouseenter="this.style.background='rgba(79,70,229,0.08)'; this.style.color='#4f46e5'"
+                                    onmouseleave="this.style.background=''; this.style.color='var(--text-muted)'">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </a>
+                                @endif
                             </div>
                         </td>
                     </tr>

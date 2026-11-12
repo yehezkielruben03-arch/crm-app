@@ -148,6 +148,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/rfqs/{rfq}/reject-po', [RfqController::class, 'rejectPo'])->name('rfq.reject_po');
         Route::get('/rfqs/{rfq}/po-file', [RfqController::class, 'viewPoFile'])->name('rfq.view_po');
         Route::post('/rfqs/{rfq}/approve-goal', [RfqController::class, 'approveGoal'])->name('rfq.approve_goal');
+        Route::post('/rfqs/{rfq}/reject-goal', [RfqController::class, 'rejectGoal'])->name('rfq.reject_goal');
 
         Route::get('/sales/history', [RfqController::class, 'history'])->name('sales.history');
 

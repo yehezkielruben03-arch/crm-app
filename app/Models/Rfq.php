@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Rfq extends Model
 {
@@ -228,6 +229,9 @@ class Rfq extends Model
                 self::STATUS_APPROVED,
                 self::STATUS_CANCELLED,
             ],
+            self::STATUS_GOAL => [
+                self::STATUS_QUOTATION_SENT,
+            ],
             default => [],
         };
 
@@ -303,9 +307,74 @@ class Rfq extends Model
         return $this->isPendingAdmin();
     }
 
+    /**
+     * Determine whether the given user is allowed to open the quotation web/PDF preview
+     * directly without an explicit archived history snapshot.
+     */
+    public function canPreviewQuotation(?User $user): bool
+    {
+        if (!$user || (!$user->isAdminOrAbove() && (int) $this->sales_id !== (int) $user->id)) {
+            return false;
+        }
+
+        if ($this->status === self::STATUS_PENDING_LEADER) {
+            return $user->isAdminOrAbove() || $user->isLeader();
+        }
+
+        return in_array($this->status, [
+            self::STATUS_APPROVED,
+            self::STATUS_QUOTATION_CREATED,
+            self::STATUS_QUOTATION_SENT,
+            self::STATUS_PO_PENDING_ADMIN,
+            self::STATUS_PO_PENDING_LEADER,
+            self::STATUS_GOAL,
+        ], true);
+    }
+
+    /**
+     * Determine whether the user is allowed to reject a GOAL RFQ back to revision.
+     */
+    public function canRejectGoal(?User $user): bool
+    {
+        return $user !== null
+            && ($user->isAdminOrAbove() || $user->isLeader())
+            && $this->status === self::STATUS_GOAL;
+    }
+
+    public function getNormalizedPoFilePath(): ?string
+    {
+        if (empty($this->po_file_path)) {
+            return null;
+        }
+
+        return str_starts_with($this->po_file_path, 'public/')
+            ? substr($this->po_file_path, 7)
+            : $this->po_file_path;
+    }
+
+    public function hasStoredPoFile(): bool
+    {
+        $path = $this->getNormalizedPoFilePath();
+
+        return $path !== null && Storage::disk('public')->exists($path);
+    }
+
+    public function deleteStoredPoFile(): void
+    {
+        $path = $this->getNormalizedPoFilePath();
+        if ($path !== null && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(RfqItem::class);
+    }
+
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     public function customer(): BelongsTo

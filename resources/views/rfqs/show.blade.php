@@ -1440,7 +1440,7 @@
                     </svg>
                     <div class="flex-1 text-xs">
                         <div class="font-bold text-rose-800 mb-1 flex items-center justify-between gap-2">
-                            <span>Bukti PO Ditolak oleh {{ $rfq->poRejectedBy?->role_display_name ?? ($rfq->poRejectedBy?->role ?? 'Admin / Leader') }} {{ $rfq->poRejectedBy?->name ? '('.$rfq->poRejectedBy->name.')' : '' }}</span>
+                            <span>PO / Status GOAL Ditolak oleh {{ $rfq->poRejectedBy?->role_display_name ?? ($rfq->poRejectedBy?->role ?? 'Admin / Leader') }} {{ $rfq->poRejectedBy?->name ? '('.$rfq->poRejectedBy->name.')' : '' }}</span>
                             @if($rfq->po_rejected_at)
                             <span class="font-normal text-[11px] text-rose-600">{{ $rfq->po_rejected_at->format('d/m/Y H:i') }}</span>
                             @endif
@@ -1448,7 +1448,7 @@
                         <div class="p-2 bg-white/90 rounded-lg border border-rose-200 text-rose-950 font-medium whitespace-pre-line mb-1.5 shadow-sm">
                             "{{ $rfq->po_rejection_note }}"
                         </div>
-                        <p class="text-rose-700">Silakan periksa alasan di atas. Lakukan penyesuaian harga (oleh Admin/Leader) atau revisi QTY (oleh Sales) sebelum mengunggah kembali bukti PO yang sesuai.</p>
+                        <p class="text-rose-700">Silakan periksa catatan di atas. Lakukan penyesuaian data/QTY/harga (oleh Admin/Leader lewat Edit HPP atau Sales lewat Revisi QTY) lalu ajukan atau unggah kembali bukti PO.</p>
                     </div>
                 </div>
             </div>
@@ -1499,6 +1499,30 @@
             <div class="p-4 rounded-xl border mt-4" style="border-color: #e2e8f0; background: #ffffff;">
                 <h3 class="text-sm font-semibold mb-2" style="color: var(--text-primary);">Upload PO Customer (Menjadi GOAL)</h3>
                 <p class="text-xs mb-3" style="color: var(--text-muted);">Jika klien setuju, silakan upload bukti PO di sini untuk diproses menjadi GOAL.</p>
+
+                @if($rfq->hasStoredPoFile())
+                <div class="mb-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50/70">
+                    <div class="flex items-center justify-between gap-2 mb-1.5">
+                        <span class="text-xs font-semibold text-emerald-900">File PO Lama Masih Tersimpan</span>
+                        <a href="{{ route('rfq.view_po', $rfq) }}" target="_blank" class="text-[11px] font-semibold text-emerald-700 underline hover:text-emerald-900">
+                            Lihat File PO
+                        </a>
+                    </div>
+                    <p class="text-[11px] text-emerald-800 mb-2.5">Jika data RFQ sudah direvisi dan file PO ini sudah sesuai, langsung ajukan verifikasi ulang tanpa upload ulang:</p>
+                    <form action="{{ route('rfq.upload_po', $rfq) }}" method="POST"
+                          onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Mengajukan...'; return true;">
+                        @csrf
+                        <input type="hidden" name="use_existing_po" value="1">
+                        <button type="submit" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition shadow-xs cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            Gunakan File PO Tersimpan &amp; Ajukan Verifikasi
+                        </button>
+                    </form>
+                </div>
+                <p class="text-[11px] font-medium mb-2" style="color: var(--text-muted);">Atau upload file PO baru (menggantikan file lama):</p>
+                @endif
 
                 <form action="{{ route('rfq.upload_po', $rfq) }}" method="POST" enctype="multipart/form-data">
                     @csrf
@@ -1568,7 +1592,23 @@
             </div>
             @endif
 
-            @if(in_array($rfq->status, [\App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER, \App\Models\Rfq::STATUS_GOAL]) && $rfq->po_file_path)
+            @if($rfq->canRejectGoal(auth()->user()))
+            <div class="p-4 rounded-xl border border-rose-200 bg-rose-50/70 mt-4">
+                <h3 class="text-sm font-semibold mb-1.5 text-rose-900">Koreksi Data Setelah GOAL</h3>
+                <p class="text-xs mb-3 text-rose-700 leading-relaxed">
+                    Ditemukan kesalahan data antara PO customer dan RFQ (misalnya perbedaan QTY atau harga)? Reject status GOAL agar Admin maupun Leader dapat merevisi data RFQ.
+                </p>
+                <button type="button" onclick="openRejectPoModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}', 'goal')"
+                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-sm cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    Reject GOAL &amp; Revisi Data
+                </button>
+            </div>
+            @endif
+
+            @if(!$rfq->isCancelled() && !empty($rfq->po_file_path))
             <div class="mt-4 flex flex-col gap-2">
                 <a href="{{ route('rfq.view_po', $rfq) }}" target="_blank"
                    class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors"
@@ -1645,7 +1685,7 @@
         </div>
     </div>
 
-    <!-- MODAL REJECT PO DARI ADMIN -->
+    <!-- MODAL REJECT PO / REJECT GOAL -->
     <div id="rejectPoModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
         <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100 animate-in">
             <div class="flex items-center justify-between mb-3">
@@ -1653,7 +1693,7 @@
                     <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    Tolak Bukti PO Customer
+                    <span id="rejectPoModalTitle">Tolak Bukti PO Customer</span>
                 </h3>
                 <button type="button" onclick="closeRejectPoModal()" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -1663,26 +1703,61 @@
             <form id="rejectPoForm" method="POST" action="" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; btn.innerText = 'Mengirim...'; return true;">
                 @csrf
                 <div class="mb-4">
-                    <label for="modalPoRejectionReason" class="block text-xs font-semibold text-gray-700 mb-1">Alasan Penolakan / Catatan untuk Sales:</label>
-                    <textarea id="modalPoRejectionReason" name="rejection_reason" rows="4" required class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Nomor PO tidak cocok dengan nama PT customer, mohon upload ulang PO yang sesuai..."></textarea>
+                    <label for="modalPoRejectionReason" class="block text-xs font-semibold text-gray-700 mb-1">Alasan Penolakan / Catatan Revisi:</label>
+                    <textarea id="modalPoRejectionReason" name="rejection_reason" rows="4" required minlength="3" class="w-full text-sm border-gray-300 rounded-xl focus:ring-rose-500 focus:border-rose-500" placeholder="Contoh: Nomor PO tidak cocok dengan nama PT customer, mohon upload ulang PO yang sesuai..."></textarea>
+                </div>
+                <div id="rejectGoalRemovePoContainer" class="mb-4 hidden p-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <label class="flex items-start gap-2.5 cursor-pointer text-xs text-amber-900">
+                        <input type="checkbox" id="modalGoalRemovePoFile" name="remove_po_file" value="1" class="mt-0.5 rounded border-amber-400 text-rose-600 focus:ring-rose-500">
+                        <span>
+                            <strong class="block">Sekalian hapus file bukti PO lama</strong>
+                            <span class="text-[11px] text-amber-800">Centang hanya jika file PO yang terupload salah. Biarkan kosong jika file PO sudah benar agar tetap tersimpan sebagai acuan &amp; bisa dipakai ulang.</span>
+                        </span>
+                    </label>
                 </div>
                 <div class="flex justify-end gap-2">
                     <button type="button" onclick="closeRejectPoModal()" class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-xl transition">Batal</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm">Tolak & Minta Upload Ulang</button>
+                    <button type="submit" id="btnSubmitRejectPo" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition shadow-sm">Tolak &amp; Minta Upload Ulang</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
-        function openRejectPoModal(rfqId, rfqNumber) {
+        function openRejectPoModal(rfqId, rfqNumber, mode = 'po') {
             const modal = document.getElementById('rejectPoModal');
             const form = document.getElementById('rejectPoForm');
+            const title = document.getElementById('rejectPoModalTitle');
             const subtitle = document.getElementById('rejectPoModalSubtitle');
             const textarea = document.getElementById('modalPoRejectionReason');
+            const removeContainer = document.getElementById('rejectGoalRemovePoContainer');
+            const removeCheckbox = document.getElementById('modalGoalRemovePoFile');
+            const submitBtn = document.getElementById('btnSubmitRejectPo');
 
-            form.action = '/rfqs/' + rfqId + '/reject-po';
-            subtitle.textContent = 'Masukkan alasan penolakan bukti PO untuk Sales terkait RFQ ' + rfqNumber + ':';
+            if (mode === 'goal') {
+                form.action = '/rfqs/' + rfqId + '/reject-goal';
+                title.textContent = 'Reject Status GOAL (Revisi Data)';
+                subtitle.textContent = 'Masukkan alasan penolakan status GOAL untuk RFQ ' + rfqNumber + ' agar Admin/Leader dapat mengedit ulang penawaran:';
+                textarea.placeholder = 'Contoh: Pada PO customer tercatat QTY 2 unit, sedangkan di RFQ masih 1 unit...';
+                submitBtn.textContent = 'Reject GOAL & Revisi Data';
+                if (removeContainer) removeContainer.classList.remove('hidden');
+                if (removeCheckbox) {
+                    removeCheckbox.disabled = false;
+                    removeCheckbox.checked = false;
+                }
+            } else {
+                form.action = '/rfqs/' + rfqId + '/reject-po';
+                title.textContent = 'Tolak Bukti PO Customer';
+                subtitle.textContent = 'Masukkan alasan penolakan bukti PO untuk Sales terkait RFQ ' + rfqNumber + ':';
+                textarea.placeholder = 'Contoh: Nomor PO tidak cocok dengan nama PT customer, mohon upload ulang PO yang sesuai...';
+                submitBtn.textContent = 'Tolak & Minta Upload Ulang';
+                if (removeContainer) removeContainer.classList.add('hidden');
+                if (removeCheckbox) {
+                    removeCheckbox.checked = false;
+                    removeCheckbox.disabled = true;
+                }
+            }
+
             textarea.value = '';
             modal.classList.remove('hidden');
             setTimeout(() => textarea.focus(), 100);

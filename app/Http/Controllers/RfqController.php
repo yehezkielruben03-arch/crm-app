@@ -779,29 +779,36 @@ class RfqController extends Controller
         ]);
     }
 
-    private function clearDashboardCacheForSales(int $salesId): void
+    private function clearDashboardCacheForSales(?int $salesId): void
     {
         $ym = now()->format('Y-m');
         $currFilterKey = now()->startOfMonth()->format('Ymd') . '_' . now()->endOfMonth()->format('Ymd');
 
-        Cache::forget('dash:cust_stats:' . $salesId);
-        Cache::forget('dash:rfq_stats:' . $salesId);
-        Cache::forget('dash:quo_stats:' . $salesId);
-        Cache::forget('dash:cust_health:' . $salesId);
-        Cache::forget('dash:po_stats:' . $salesId);
-        Cache::forget('dash:rev:' . $salesId . ':' . $ym);
-        Cache::forget('dash:goal_cnt:' . $salesId . ':' . $ym);
-        Cache::forget('dash:stats:' . $salesId . ':' . $ym);
-        Cache::forget("dash:rev:{$salesId}:{$currFilterKey}");
-        Cache::forget("dash:goal_cnt:{$salesId}:{$currFilterKey}");
-        Cache::forget("dash:stats:{$salesId}:{$currFilterKey}");
-        Cache::forget("dash:pipeline:{$salesId}:{$currFilterKey}");
-        Cache::forget('dash:pipeline:' . $salesId);
-        Cache::forget('dash:chart:' . $salesId);
-        Cache::forget('dash:recent:' . $salesId);
-        Cache::forget("dash:recent_goal:{$salesId}");
-        Cache::forget('dash:recent_quo:' . $salesId);
+        if ($salesId) {
+            Cache::forget('dash:cust_stats:' . $salesId);
+            Cache::forget('dash:rfq_stats:' . $salesId);
+            Cache::forget('dash:quo_stats:' . $salesId);
+            Cache::forget('dash:cust_health:' . $salesId);
+            Cache::forget('dash:po_stats:' . $salesId);
+            Cache::forget('dash:rev:' . $salesId . ':' . $ym);
+            Cache::forget('dash:goal_cnt:' . $salesId . ':' . $ym);
+            Cache::forget('dash:stats:' . $salesId . ':' . $ym);
+            Cache::forget("dash:rev:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:goal_cnt:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:stats:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:pipeline:{$salesId}:{$currFilterKey}");
+            Cache::forget('dash:pipeline:' . $salesId);
+            Cache::forget('dash:chart:' . $salesId);
+            Cache::forget('dash:recent:' . $salesId);
+            Cache::forget("dash:recent_goal:{$salesId}");
+            Cache::forget('dash:recent_quo:' . $salesId);
+        }
+
+        Cache::forget('dash:admin:quo_global');
         Cache::forget('dash:admin:global');
+        Cache::forget('dash:admin:total_rfq');
+        Cache::forget('dash:admin:total_rfq_items');
+        Cache::forget('dash:admin:action_queue');
         Cache::forget('dash:admin:rev:' . $ym);
         Cache::forget("dash:admin:rev:{$currFilterKey}");
         Cache::forget("dash:admin:pipeline:{$currFilterKey}");
@@ -811,6 +818,9 @@ class RfqController extends Controller
         Cache::forget('dash:admin:perf:' . $ym);
         Cache::forget('dash:admin:recent_quo');
         Cache::forget('dash:admin:recent');
+        Cache::forget('analytics:pending_review_count');
+        Cache::forget('analytics:revenue_this_month');
+        Cache::forget('analytics:monthly_revenue');
     }
 
     public function priceForm(Rfq $rfq)
@@ -1796,7 +1806,13 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403, 'Revisi QTY hanya bisa dilakukan setelah di-approve.');
+        abort_if(
+            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
+            403,
+            $rfq->status === Rfq::STATUS_GOAL
+                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
+                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
+        );
 
         $rfq->load('items');
         return view('rfqs.edit_qty', compact('rfq'));
@@ -1806,7 +1822,13 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL]), 403);
+        abort_if(
+            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
+            403,
+            $rfq->status === Rfq::STATUS_GOAL
+                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
+                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
+        );
 
         $request->validate([
             'items'                 => 'nullable|array',
@@ -1882,6 +1904,8 @@ class RfqController extends Controller
             }
         });
 
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
         return redirect()->route('rfq.show', $rfq)
             ->with('success', 'Penawaran berhasil direvisi dan dikembalikan ke Admin Purchase.');
     }
@@ -1950,21 +1974,28 @@ class RfqController extends Controller
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak upload PO untuk RFQ ini.');
         abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Upload PO hanya bisa dilakukan saat status Approved, Quotation Created, atau Quotation Sent.');
 
-        $request->validate([
-            'po_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-        ], [
-            'po_file.required' => 'Bukti PO wajib diupload.',
-            'po_file.max'      => 'Ukuran file terlalu besar (maksimal 5 MB).',
-            'po_file.mimes'    => 'Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.',
-        ]);
+        $useExistingPo = $request->boolean('use_existing_po') && !$request->hasFile('po_file');
 
-        // Hapus file lama jika ada sebelum replace file baru
-        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
-            Storage::disk('public')->delete($rfq->po_file_path);
+        if ($useExistingPo) {
+            if (!$rfq->hasStoredPoFile()) {
+                return redirect()->route('rfq.show', $rfq)
+                    ->with('error', 'File bukti PO sebelumnya tidak ditemukan di server. Silakan upload ulang file PO.');
+            }
+            $poPath = $rfq->po_file_path;
+        } else {
+            $request->validate([
+                'po_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            ], [
+                'po_file.required' => 'Bukti PO wajib diupload.',
+                'po_file.max'      => 'Ukuran file terlalu besar (maksimal 5 MB).',
+                'po_file.mimes'    => 'Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.',
+            ]);
+
+            // Hapus file lama jika ada sebelum replace file baru
+            $rfq->deleteStoredPoFile();
+            $poPath = $request->file('po_file')->store('purchase_orders', 'public');
         }
 
-        $poPath = $request->file('po_file')->store('purchase_orders', 'public');
-        
         $rfq->update([
             'po_file_path'      => $poPath,
             'status'            => Rfq::STATUS_PO_PENDING_ADMIN,
@@ -1973,24 +2004,28 @@ class RfqController extends Controller
             'po_rejected_by'    => null,
         ]);
 
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-        }
+        $this->clearDashboardCacheForSales($rfq->sales_id);
 
-        // Notif ke Admin
-        $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+        // Notif ke Admin Purchase
+        $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->where('id', '!=', Auth::id())->get();
+        $poActionText = $useExistingPo
+            ? ($this->authUser()->name . ' mengajukan verifikasi ulang PO (menggunakan file PO tersimpan) untuk RFQ ' . $rfq->rfq_number . '.')
+            : ($this->authUser()->name . ' mengupload PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu verifikasi Anda.');
+
         foreach ($admins as $admin) {
             \App\Models\Notification::send(
                 $admin->id,
                 'info',
                 'PO Diterima',
-                'Sales ' . $this->authUser()->name . ' mengupload PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu verifikasi Anda.',
+                $poActionText,
                 route('rfq.show', $rfq)
             );
         }
 
         return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'Bukti PO berhasil diupload. Menunggu verifikasi Admin Purchase.');
+            ->with('success', $useExistingPo
+                ? 'Bukti PO tersimpan berhasil diajukan ulang. Menunggu verifikasi Admin Purchase.'
+                : 'Bukti PO berhasil diupload. Menunggu verifikasi Admin Purchase.');
     }
 
     public function cancelPo(Rfq $rfq)
@@ -2000,9 +2035,7 @@ class RfqController extends Controller
         abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat dibatalkan.');
 
         // Hapus file PO fisik dari storage
-        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
-            Storage::disk('public')->delete($rfq->po_file_path);
-        }
+        $rfq->deleteStoredPoFile();
 
         $rfq->update([
             'po_file_path'      => null,
@@ -2012,9 +2045,7 @@ class RfqController extends Controller
             'po_rejected_by'    => null,
         ]);
 
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-        }
+        $this->clearDashboardCacheForSales($rfq->sales_id);
 
         return redirect()->route('rfq.show', $rfq)
             ->with('success', 'Bukti PO berhasil dibatalkan. Silakan unggah kembali file PO yang sesuai.');
@@ -2034,9 +2065,7 @@ class RfqController extends Controller
         ]);
 
         // Hapus file PO fisik yang salah dari storage
-        if ($rfq->po_file_path && Storage::disk('public')->exists($rfq->po_file_path)) {
-            Storage::disk('public')->delete($rfq->po_file_path);
-        }
+        $rfq->deleteStoredPoFile();
 
         $rejectionReason = trim($request->rejection_reason);
         $userRole = $this->authUser()->isLeader() ? 'Leader' : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
@@ -2049,9 +2078,9 @@ class RfqController extends Controller
             'po_rejected_by'    => Auth::id(),
         ]);
 
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
+        $this->clearDashboardCacheForSales($rfq->sales_id);
 
+        if ($rfq->sales_id) {
             // Kirim notifikasi peringatan ke Sales pemilik RFQ
             \App\Models\Notification::send(
                 userId:  $rfq->sales_id,
@@ -2080,6 +2109,82 @@ class RfqController extends Controller
             ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales dan Admin telah diberitahu untuk melakukan penyesuaian.');
     }
 
+    public function rejectGoal(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin Purchase, Leader, atau Super Admin yang dapat me-reject status GOAL.');
+        abort_if($rfq->status !== Rfq::STATUS_GOAL || !$rfq->canTransitionTo(Rfq::STATUS_QUOTATION_SENT), 403, 'Hanya RFQ yang berstatus GOAL yang dapat direject untuk revisi data.');
+
+        $request->validate([
+            'rejection_reason' => 'required|string|min:3|max:1000',
+            'remove_po_file'   => 'nullable|boolean',
+        ], [
+            'rejection_reason.required' => 'Alasan penolakan status GOAL wajib diisi.',
+            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
+            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
+        ]);
+
+        $rejectionReason = trim($request->rejection_reason);
+        $removePoFile = $request->boolean('remove_po_file');
+
+        DB::transaction(function () use ($rfq, $rejectionReason, $removePoFile) {
+            if ($removePoFile) {
+                $rfq->deleteStoredPoFile();
+            }
+
+            $rfqUpdate = [
+                'status'            => Rfq::STATUS_QUOTATION_SENT,
+                'po_rejection_note' => $rejectionReason,
+                'po_rejected_at'    => now(),
+                'po_rejected_by'    => Auth::id(),
+            ];
+            if ($removePoFile) {
+                $rfqUpdate['po_file_path'] = null;
+            }
+
+            $rfq->update($rfqUpdate);
+            $rfq->touch();
+
+            \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)
+                ->where('status', \App\Models\PurchaseOrder::STATUS_GOAL)
+                ->update([
+                    'status'           => \App\Models\PurchaseOrder::STATUS_TIDAK_GOAL,
+                    'rejection_reason' => 'GOAL direject untuk revisi RFQ: ' . $rejectionReason,
+                ]);
+        });
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        $actorRole = $this->authUser()->isLeader()
+            ? 'Leader'
+            : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
+
+        if ($rfq->sales_id && (int) $rfq->sales_id !== (int) Auth::id()) {
+            \App\Models\Notification::send(
+                userId:  $rfq->sales_id,
+                type:    'warning',
+                title:   'Status GOAL Direject oleh ' . $actorRole,
+                message: $actorRole . ' ' . $this->authUser()->name . ' me-reject status GOAL untuk RFQ ' . $rfq->rfq_number . ' karena perlu perbaikan data. Catatan: "' . $rejectionReason . '".',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        $reviewerUsers = User::whereIn('role', ['Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
+            ->where('id', '!=', Auth::id())
+            ->get();
+        foreach ($reviewerUsers as $reviewer) {
+            \App\Models\Notification::send(
+                userId:  $reviewer->id,
+                type:    'warning',
+                title:   'Status GOAL RFQ ' . $rfq->rfq_number . ' Direject (Perlu Revisi Data)',
+                message: $actorRole . ' ' . $this->authUser()->name . ' mengembalikan RFQ ' . $rfq->rfq_number . ' dari status GOAL ke tahap revisi. Alasan: "' . $rejectionReason . '".',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('warning', 'Status GOAL RFQ ' . $rfq->rfq_number . ' berhasil direject dan dikembalikan ke Quotation Sent. Silakan lakukan revisi data lewat Edit HPP / Revisi Penawaran.');
+    }
+
     public function approveGoal(Request $request, Rfq $rfq)
     {
         abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
@@ -2092,29 +2197,45 @@ class RfqController extends Controller
 
         abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_LEADER, 403, 'Hanya PO yang sudah diverifikasi Admin (Pending Leader) yang bisa diproses menjadi GOAL.');
 
-        try {
-            DB::beginTransaction();
-
-            if (!$rfq->canTransitionTo(Rfq::STATUS_GOAL)) {
+        if (!$rfq->canTransitionTo(Rfq::STATUS_GOAL)) {
             return redirect()->route('rfq.show', $rfq)
                 ->with('error', 'RFQ ini tidak bisa diproses menjadi GOAL dari status saat ini.');
         }
 
-        $rfq->update(['status' => Rfq::STATUS_GOAL]);
+        try {
+            DB::beginTransaction();
+
+            $rfq->update(['status' => Rfq::STATUS_GOAL]);
 
             $rfq->load('items');
             $grandTotal = $rfq->items->sum(fn($i) => $i->qty * $i->price_after_margin);
 
-            $po = \App\Models\PurchaseOrder::create([
-                'po_number'   => \App\Models\PurchaseOrder::generatePoNumber(),
-                'rfq_id'      => $rfq->id,
-                'customer_id' => $rfq->customer_id,
-                'sales_id'    => $rfq->sales_id,
-                'po_date'     => now(),
-                'status'      => \App\Models\PurchaseOrder::STATUS_GOAL,
-                'file_path'   => $rfq->po_file_path,
-                'grand_total' => $grandTotal,
-            ]);
+            // Reuse existing PO if this RFQ was previously GOAL and revised after Reject GOAL
+            $po = \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)->latest('id')->first();
+            if ($po) {
+                $po->update([
+                    'customer_id'           => $rfq->customer_id,
+                    'sales_id'              => $rfq->sales_id,
+                    'po_date'               => now(),
+                    'status'                => \App\Models\PurchaseOrder::STATUS_GOAL,
+                    'file_path'             => $rfq->po_file_path,
+                    'grand_total'           => $grandTotal,
+                    'rejection_reason'      => null,
+                    'change_request_reason' => null,
+                ]);
+                $po->items()->delete();
+            } else {
+                $po = \App\Models\PurchaseOrder::create([
+                    'po_number'   => \App\Models\PurchaseOrder::generatePoNumber(),
+                    'rfq_id'      => $rfq->id,
+                    'customer_id' => $rfq->customer_id,
+                    'sales_id'    => $rfq->sales_id,
+                    'po_date'     => now(),
+                    'status'      => \App\Models\PurchaseOrder::STATUS_GOAL,
+                    'file_path'   => $rfq->po_file_path,
+                    'grand_total' => $grandTotal,
+                ]);
+            }
 
             foreach ($rfq->items as $item) {
                 $po->items()->create([
@@ -2127,9 +2248,7 @@ class RfqController extends Controller
 
             DB::commit();
 
-            if ($rfq->sales_id) {
-                $this->clearDashboardCacheForSales($rfq->sales_id);
-            }
+            $this->clearDashboardCacheForSales($rfq->sales_id);
 
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -2160,9 +2279,8 @@ class RfqController extends Controller
             );
         }
 
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-        }
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
         return redirect()->route('rfq.show', $rfq)
             ->with('success', 'Yeay! Quotation ' . $rfq->rfq_number . ' resmi menjadi GOAL dan diteruskan ke Admin Purchase.');
     }
@@ -2171,13 +2289,9 @@ class RfqController extends Controller
     {
         abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen PO ini.');
 
-        $path = $rfq->po_file_path;
+        $path = $rfq->getNormalizedPoFilePath();
         if (!$path) {
             abort(404, 'File lampiran bukti PO tidak ditemukan.');
-        }
-
-        if (str_starts_with($path, 'public/')) {
-            $path = substr($path, 7);
         }
 
         if (!Storage::disk('public')->exists($path)) {

@@ -6,6 +6,7 @@ use App\Helpers\RfqNoteHelper;
 use App\Models\Customer;
 use App\Models\Rfq;
 use App\Models\RfqItem;
+use App\Models\User;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -673,5 +674,63 @@ class RfqModelAndFormatChallengeTest extends TestCase
         $rfq->jasa_custom_total = null;
         $unlockedItems = $rfq->customer_quotation_items;
         $this->assertEquals(21000000.0, $unlockedItems->firstWhere('category', RfqItem::CATEGORY_JASA)->row_total);
+    }
+
+    /**
+     * Test quotation preview visibility matches backend controller permissions across roles and statuses.
+     */
+    public function test_can_preview_quotation_authorization_by_role_and_status(): void
+    {
+        $admin = (new User())->forceFill(['id' => 1, 'role' => 'Admin']);
+        $leader = (new User())->forceFill(['id' => 2, 'role' => 'Leader']);
+        $salesOwner = (new User())->forceFill(['id' => 10, 'role' => 'Sales']);
+        $otherSales = (new User())->forceFill(['id' => 11, 'role' => 'Sales']);
+
+        $pendingAdminRfq = new Rfq(['status' => Rfq::STATUS_PENDING_ADMIN, 'sales_id' => 10]);
+        $this->assertFalse($pendingAdminRfq->canPreviewQuotation($admin));
+        $this->assertFalse($pendingAdminRfq->canPreviewQuotation($leader));
+        $this->assertFalse($pendingAdminRfq->canPreviewQuotation($salesOwner));
+
+        $pendingLeaderRfq = new Rfq(['status' => Rfq::STATUS_PENDING_LEADER, 'sales_id' => 10]);
+        $this->assertTrue($pendingLeaderRfq->canPreviewQuotation($admin));
+        $this->assertTrue($pendingLeaderRfq->canPreviewQuotation($leader));
+        $this->assertFalse($pendingLeaderRfq->canPreviewQuotation($salesOwner));
+
+        $approvedRfq = new Rfq(['status' => Rfq::STATUS_APPROVED, 'sales_id' => 10]);
+        $this->assertTrue($approvedRfq->canPreviewQuotation($admin));
+        $this->assertTrue($approvedRfq->canPreviewQuotation($leader));
+        $this->assertTrue($approvedRfq->canPreviewQuotation($salesOwner));
+        $this->assertFalse($approvedRfq->canPreviewQuotation($otherSales));
+
+        $cancelledRfq = new Rfq(['status' => Rfq::STATUS_CANCELLED, 'sales_id' => 10]);
+        $this->assertFalse($cancelledRfq->canPreviewQuotation($admin));
+        $this->assertFalse($cancelledRfq->canPreviewQuotation($salesOwner));
+        $this->assertFalse($approvedRfq->canPreviewQuotation(null));
+    }
+
+    /**
+     * Test GOAL rejection role/status permissions and GOAL -> Quotation Sent transition.
+     */
+    public function test_can_reject_goal_and_goal_to_quotation_sent_transition(): void
+    {
+        $admin = (new User())->forceFill(['id' => 1, 'role' => 'Admin']);
+        $adminPurchase = (new User())->forceFill(['id' => 2, 'role' => 'Admin Purchase']);
+        $leader = (new User())->forceFill(['id' => 3, 'role' => 'Leader']);
+        $superAdmin = (new User())->forceFill(['id' => 4, 'role' => 'Super Admin']);
+        $sales = (new User())->forceFill(['id' => 10, 'role' => 'Sales Marketing']);
+
+        $goalRfq = new Rfq(['status' => Rfq::STATUS_GOAL, 'sales_id' => 10]);
+        $this->assertTrue($goalRfq->canRejectGoal($admin));
+        $this->assertTrue($goalRfq->canRejectGoal($adminPurchase));
+        $this->assertTrue($goalRfq->canRejectGoal($leader));
+        $this->assertTrue($goalRfq->canRejectGoal($superAdmin));
+        $this->assertFalse($goalRfq->canRejectGoal($sales));
+        $this->assertFalse($goalRfq->canRejectGoal(null));
+        $this->assertTrue($goalRfq->canTransitionTo(Rfq::STATUS_QUOTATION_SENT));
+        $this->assertFalse($goalRfq->canTransitionTo(Rfq::STATUS_CANCELLED));
+
+        $approvedRfq = new Rfq(['status' => Rfq::STATUS_APPROVED, 'sales_id' => 10]);
+        $this->assertFalse($approvedRfq->canRejectGoal($admin));
+        $this->assertFalse($approvedRfq->canRejectGoal($leader));
     }
 }
