@@ -187,6 +187,10 @@
         $quotationItems = $quotationItems ?? $rfq->customer_quotation_items;
         $customNotes    = \App\Helpers\RfqNoteHelper::extractCustomNotes($rfq->notes);
         $itemCount      = count($quotationItems);
+        $validBaseDate  = (!empty($revisionCount) && $revisionCount > 0 && !empty($revisionDate))
+            ? $revisionDate
+            : $rfq->rfq_date;
+        $formattedValidUntil = $rfq->getFormattedValidUntil($validBaseDate);
         $noteMinHeight = match(true) {
             $itemCount <= 1 => '210px',
             $itemCount <= 2 => '160px',
@@ -253,7 +257,7 @@
                 <div class="w-[35%] self-end">
                     <div class="bg-[#f2f2f2] py-1 px-1 w-full flex items-center text-[12px]">
                         <span class="w-1/2 text-center italic text-black" style="font-family: Arial, sans-serif;">Berlaku s/d tgl :</span>
-                        <span class="w-1/2 text-right pr-1 font-normal text-black" style="font-family: Calibri, sans-serif;">{{ $rfq->formatted_valid_until }}</span>
+                        <span class="w-1/2 text-right pr-1 font-normal text-black" style="font-family: Calibri, sans-serif;">{{ $formattedValidUntil }}</span>
                     </div>
                 </div>
             </div>

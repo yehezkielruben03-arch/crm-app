@@ -377,6 +377,11 @@ class Rfq extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    public function priceHistories(): HasMany
+    {
+        return $this->hasMany(RfqPriceHistory::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class)->withTrashed();
@@ -563,16 +568,31 @@ class Rfq extends Model
         return $clean;
     }
 
-    public function getValidUntilDateAttribute(): \Carbon\Carbon
+    public function calculateValidUntilDate($baseDate = null): \Carbon\Carbon
     {
-        $raw = $this->rfq_date ?: ($this->created_at ?: now());
-        $baseDate = \Carbon\Carbon::parse($raw);
+        if ($baseDate) {
+            $base = \Carbon\Carbon::parse($baseDate);
+        } else {
+            $raw = $this->rfq_date ?: ($this->created_at ?: now());
+            $base = \Carbon\Carbon::parse($raw);
+        }
+
         $days = (int) ($this->items->max('validity_days') ?: 3);
         if ($days <= 0 || $days === 7) {
             $days = 3;
         }
 
-        return $baseDate->copy()->addWeekdays($days);
+        return $base->copy()->addWeekdays($days);
+    }
+
+    public function getFormattedValidUntil($baseDate = null): string
+    {
+        return $this->calculateValidUntilDate($baseDate)->format('d M Y');
+    }
+
+    public function getValidUntilDateAttribute(): \Carbon\Carbon
+    {
+        return $this->calculateValidUntilDate();
     }
 
     public function getFormattedValidUntilAttribute(): string

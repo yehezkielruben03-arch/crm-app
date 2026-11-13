@@ -133,4 +133,60 @@ class QuotationValidityTest extends TestCase
         $pdfResponse->assertStatus(200);
         $pdfResponse->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_quotation_revision_updates_valid_until_date_based_on_revision_date(): void
+    {
+        // Kasus Mas Rian: Dibuat Senin 09 Nov 2026 -> Valid sampai Kamis 12 Nov 2026
+        $rfq = Rfq::create([
+            'rfq_number'          => '261109-0078',
+            'customer_id'         => $this->customer->id,
+            'customer_name'       => $this->customer->company_name,
+            'customer_contact_id' => $this->contact->id,
+            'sales_id'            => $this->sales->id,
+            'sales_name'          => $this->sales->name,
+            'status'              => Rfq::STATUS_APPROVED,
+            'type'                => 'Non Projek',
+            'rfq_date'            => '2026-11-09',
+        ]);
+
+        $rfq->items()->create([
+            'product_name'       => 'Switch 24-Port',
+            'qty'                => 1,
+            'unit'               => 'Unit',
+            'hpp'                => 1000000,
+            'margin'             => 15,
+            'price_after_margin' => 1150000,
+        ]);
+
+        // Tanggal awal: 09 Nov 2026 + 3 hari kerja = 12 Nov 2026
+        $this->assertEquals('12 Nov 2026', $rfq->formatted_valid_until);
+
+        // Ketika direvisi pada Jumat 13 Nov 2026:
+        // 13 Nov 2026 (Jumat) + 3 hari kerja (Senin 16, Selasa 17, Rabu 18) = 18 Nov 2026
+        $this->assertEquals('18 Nov 2026', $rfq->getFormattedValidUntil('2026-11-13'));
+
+        // Simulasikan 2 Price History: Versi 1 (approved 09 Nov) dan Versi 2 (approved 13 Nov)
+        $rfq->priceHistories()->create([
+            'version'      => 1,
+            'history_data' => $rfq->items->toArray(),
+            'created_by'   => $this->admin->id,
+            'approved_at'  => Carbon::parse('2026-11-09 10:00:00'),
+        ]);
+
+        $rfq->priceHistories()->create([
+            'version'      => 2,
+            'history_data' => $rfq->items->toArray(),
+            'created_by'   => $this->admin->id,
+            'approved_at'  => Carbon::parse('2026-11-13 10:00:00'),
+        ]);
+
+        // Uji Web Preview Revisi: Harus menampilkan REVISI I/II dan Masa Berlaku terupdate ke 18 Nov 2026
+        $response = $this->actingAs($this->sales)->get(route('rfq.preview_quotation', $rfq));
+        $response->assertStatus(200);
+        $response->assertSee('REVISI');
+        $response->assertSee('13 Nov 2026');
+        $response->assertSee('Berlaku s/d tgl :');
+        $response->assertSee('18 Nov 2026');
+        $response->assertDontSee('12 Nov 2026');
+    }
 }

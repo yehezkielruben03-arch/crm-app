@@ -62,6 +62,10 @@
         $romanMap = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X'];
         $revRoman = $romanMap[$revisionCount ?? 0] ?? ($revisionCount ?? 1);
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
+        $validBaseDate  = (!empty($revisionCount) && $revisionCount > 0 && !empty($revisionDate))
+            ? $revisionDate
+            : $rfq->rfq_date;
+        $formattedValidUntil = $rfq->getFormattedValidUntil($validBaseDate);
 
         $quotationItems    = $quotationItems ?? $rfq->customer_quotation_items;
         $itemCount         = count($quotationItems);
@@ -328,7 +332,7 @@
                 <table style="width: 100%; border-collapse: collapse; background-color: #f2f2f2;">
                     <tr>
                         <td class="arial" style="width: 50%; padding: 2pt 4pt; font-size: 8.9pt; font-style: italic; color: #000; text-align: center; border: none;">Berlaku s/d tgl :</td>
-                        <td style="width: 50%; padding: 2pt 2pt; font-size: 8.9pt; color: #000; text-align: right; border: none;">{{ $rfq->formatted_valid_until }}</td>
+                        <td style="width: 50%; padding: 2pt 2pt; font-size: 8.9pt; color: #000; text-align: right; border: none;">{{ $formattedValidUntil }}</td>
                     </tr>
                 </table>
             </td>
