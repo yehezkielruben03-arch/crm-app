@@ -185,7 +185,8 @@
         $formattedRevDate = isset($revisionDate) ? \Carbon\Carbon::parse($revisionDate)->format('d M Y') : date('d M Y');
 
         $quotationItems = $quotationItems ?? $rfq->customer_quotation_items;
-        $itemCount = count($quotationItems);
+        $customNotes    = \App\Helpers\RfqNoteHelper::extractCustomNotes($rfq->notes);
+        $itemCount      = count($quotationItems);
         $noteMinHeight = match(true) {
             $itemCount <= 1 => '210px',
             $itemCount <= 2 => '160px',
@@ -306,9 +307,6 @@
                                         </div>
                                         <div class="mt-4 mb-1">
                                             <div class="font-bold text-[14px] text-black mb-0.5">Note :</div>
-                                            @php
-                                                $customNotes = \App\Helpers\RfqNoteHelper::extractCustomNotes($rfq->notes);
-                                            @endphp
                                             @foreach($customNotes as $cNote)
                                                 @php
                                                     $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
@@ -339,6 +337,12 @@
                             <td>
                                 <div style="min-height: 180px;" class="flex flex-col justify-end">
                                     <div class="font-bold text-[14px] text-black mb-0.5">Note :</div>
+                                    @foreach($customNotes as $cNote)
+                                        @php
+                                            $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
+                                        @endphp
+                                        <div class="italic text-[#ff0000] font-bold text-[12px] leading-snug" style="color: #ff0000; font-style: italic; font-weight: bold;">{!! \App\Helpers\RfqNoteHelper::renderHtml($formattedNote) !!}</div>
+                                    @endforeach
                                     <div class="italic text-black text-[12px] leading-snug">- Harga dapat berubah tanpa pemberitahuan</div>
                                     <div class="italic text-black text-[12px] leading-snug">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                                 </div>

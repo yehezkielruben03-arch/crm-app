@@ -1002,4 +1002,33 @@ class RfqRichTextE2ETest extends TestCase
         $this->assertSame(12, $jsHeaderCols);
         $this->assertSame(12, $jsRowCols);
     }
+
+    /**
+     * Scenario 7: Quotation Preview and PDF MUST render custom red notes even when quotation items is empty (e.g. RFQ Projek with zero items)
+     */
+    public function test_empty_quotation_items_renders_custom_red_notes_in_preview_and_pdf(): void
+    {
+        $this->requireHelper();
+
+        // 1. Verify exact Pak Yudi notes string extraction
+        $pakYudiNotes = "- Working time, estimate 1 day\n- Work at Height perform by certfied (TKBT2) personel";
+        $extracted = $this->callHelper('extractCustomNotes', $pakYudiNotes);
+        $this->assertCount(2, $extracted);
+        $this->assertEquals('- Working time, estimate 1 day', $extracted[0]);
+        $this->assertEquals('- Work at Height perform by certfied (TKBT2) personel', $extracted[1]);
+
+        // 2. Verify preview_quotation.blade.php handles custom notes in @empty block
+        $previewContent = file_get_contents($this->getResourcePath('views/rfqs/preview_quotation.blade.php'));
+        preg_match('/@empty(.*?)@endforelse/s', $previewContent, $previewEmptyMatch);
+        $this->assertNotEmpty($previewEmptyMatch[1] ?? '', 'preview_quotation.blade.php must contain @empty block');
+        $this->assertStringContainsString('$customNotes', $previewEmptyMatch[1], 'preview_quotation @empty block must iterate over $customNotes');
+        $this->assertStringContainsString('#ff0000', $previewEmptyMatch[1], 'preview_quotation @empty block must render red text color');
+
+        // 3. Verify pdf.blade.php handles custom notes in @empty block
+        $pdfContent = file_get_contents($this->getResourcePath('views/rfqs/pdf.blade.php'));
+        preg_match('/@empty(.*?)@endforelse/s', $pdfContent, $pdfEmptyMatch);
+        $this->assertNotEmpty($pdfEmptyMatch[1] ?? '', 'pdf.blade.php must contain @empty block');
+        $this->assertStringContainsString('$customNotes', $pdfEmptyMatch[1], 'pdf @empty block must iterate over $customNotes');
+        $this->assertStringContainsString('#ff0000', $pdfEmptyMatch[1], 'pdf @empty block must render red text color');
+    }
 }

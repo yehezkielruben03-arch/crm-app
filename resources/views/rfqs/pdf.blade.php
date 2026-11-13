@@ -410,6 +410,14 @@
                     <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 4pt; vertical-align: bottom;"></td>
                     <td style="border-left: 1px solid #808080; border-right: 1px solid #808080; border-bottom: 1px solid #808080; padding: 50pt 4pt 4pt 4pt; font-size: 8.9pt; line-height: 1.1; vertical-align: bottom;">
                         <div style="font-weight: bold; font-size: 10.5pt; color: #000; margin-bottom: 2pt;">Note :</div>
+                        @foreach($customNotes as $cNote)
+                            @php
+                                $formattedNote = str_starts_with($cNote, '-') ? $cNote : '- ' . $cNote;
+                            @endphp
+                            <div style="font-style: italic; color: #ff0000; line-height: 1.1; font-weight: bold;" class="note-content">
+                                {!! \App\Helpers\RfqNoteHelper::renderPdfHtml($formattedNote) /* cNote via RfqNoteHelper */ !!}
+                            </div>
+                        @endforeach
                         <div style="font-style: italic; color: #000; line-height: 1.1;">- Harga dapat berubah tanpa pemberitahuan</div>
                         <div style="font-style: italic; color: #000; line-height: 1.1;">- Mohon tanyakan stok terlebih dahulu sebelum mengirim PO</div>
                     </td>
