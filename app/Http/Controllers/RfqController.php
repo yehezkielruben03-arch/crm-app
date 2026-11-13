@@ -2207,42 +2207,63 @@ class RfqController extends Controller
 
             $rfq->update(['status' => Rfq::STATUS_GOAL]);
 
-            $rfq->load('items');
-            $grandTotal = $rfq->items->sum(fn($i) => $i->qty * $i->price_after_margin);
+            $rfq->load(['customer', 'items.components']);
+
+            // Gunakan item penawaran resmi pelanggan (bebas dari duplikasi komponen anak dan mendukung rollup bundling & projek)
+            $quotationItems = $rfq->customer_quotation_items;
+            if ($quotationItems->isEmpty()) {
+                $nonComponents = $rfq->items->filter(fn($i) => empty($i->parent_id));
+                $quotationItems = $nonComponents->map(function ($i) {
+                    return (object) [
+                        'product_name' => $i->product_name,
+                        'qty'          => (float) $i->qty,
+                        'unit'         => $i->unit ?: 'Unit',
+                        'unit_price'   => (float) $i->price_after_margin,
+                        'row_total'    => (float) ($i->qty * $i->price_after_margin),
+                    ];
+                });
+            }
+
+            $subtotal = (float) $quotationItems->sum('row_total');
+            $isIncludeTax = $rfq->isIncludeTax();
+            $taxAmount = $isIncludeTax ? 0.0 : round($subtotal * 0.11);
+            $grandTotal = $subtotal + $taxAmount;
+
+            $estimatedCost = (float) $rfq->items
+                ->filter(fn($i) => empty($i->parent_id))
+                ->sum(fn($i) => ((float) $i->hpp + (float) $i->ongkir_pedia + (float) $i->biaya_kirim) * (float) $i->qty);
+
+            $poPayload = [
+                'customer_id'           => $rfq->customer_id,
+                'sales_id'              => $rfq->sales_id,
+                'po_date'               => now(),
+                'status'                => \App\Models\PurchaseOrder::STATUS_GOAL,
+                'file_path'             => $rfq->po_file_path,
+                'subtotal'              => $subtotal,
+                'tax_amount'            => $taxAmount,
+                'grand_total'           => $grandTotal,
+                'estimated_cost'        => $estimatedCost,
+                'rejection_reason'      => null,
+                'change_request_reason' => null,
+            ];
 
             // Reuse existing PO if this RFQ was previously GOAL and revised after Reject GOAL
             $po = \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)->latest('id')->first();
             if ($po) {
-                $po->update([
-                    'customer_id'           => $rfq->customer_id,
-                    'sales_id'              => $rfq->sales_id,
-                    'po_date'               => now(),
-                    'status'                => \App\Models\PurchaseOrder::STATUS_GOAL,
-                    'file_path'             => $rfq->po_file_path,
-                    'grand_total'           => $grandTotal,
-                    'rejection_reason'      => null,
-                    'change_request_reason' => null,
-                ]);
+                $po->update($poPayload);
                 $po->items()->delete();
             } else {
-                $po = \App\Models\PurchaseOrder::create([
-                    'po_number'   => \App\Models\PurchaseOrder::generatePoNumber(),
-                    'rfq_id'      => $rfq->id,
-                    'customer_id' => $rfq->customer_id,
-                    'sales_id'    => $rfq->sales_id,
-                    'po_date'     => now(),
-                    'status'      => \App\Models\PurchaseOrder::STATUS_GOAL,
-                    'file_path'   => $rfq->po_file_path,
-                    'grand_total' => $grandTotal,
-                ]);
+                $poPayload['po_number'] = \App\Models\PurchaseOrder::generatePoNumber();
+                $poPayload['rfq_id']    = $rfq->id;
+                $po = \App\Models\PurchaseOrder::create($poPayload);
             }
 
-            foreach ($rfq->items as $item) {
+            foreach ($quotationItems as $qItem) {
                 $po->items()->create([
-                    'item_name'  => $item->product_name,
-                    'quantity'   => $item->qty,
-                    'unit_price' => $item->price_after_margin,
-                    'subtotal'   => $item->qty * $item->price_after_margin,
+                    'item_name'  => $qItem->product_name,
+                    'quantity'   => (int) max(1, round($qItem->qty)),
+                    'unit_price' => $qItem->unit_price,
+                    'subtotal'   => $qItem->row_total,
                 ]);
             }
 

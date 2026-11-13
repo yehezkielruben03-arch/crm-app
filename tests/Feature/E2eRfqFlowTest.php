@@ -314,7 +314,11 @@ class E2eRfqFlowTest extends TestCase
         $this->assertStringStartsWith('PO-', $po->po_number);
         $this->assertCount(1, $po->items);
 
-        $expectedGrandTotal = 15 * $item->price_after_margin;
+        $expectedSubtotal = 15 * $item->price_after_margin;
+        $expectedTax = round($expectedSubtotal * 0.11);
+        $expectedGrandTotal = $expectedSubtotal + $expectedTax;
+        $this->assertEquals($expectedSubtotal, (float) $po->subtotal);
+        $this->assertEquals($expectedTax, (float) $po->tax_amount);
         $this->assertEquals($expectedGrandTotal, (float) $po->grand_total);
 
         // ─── Step 12: Admin can see the PO ────────────────────────────────
