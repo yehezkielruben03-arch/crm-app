@@ -192,8 +192,8 @@ class DashboardController extends Controller
         $rfqPipeline = Cache::remember("dash:pipeline:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
             return Rfq::where('sales_id', $userId)
                 ->selectRaw("
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_ADMIN . "' THEN 1 ELSE 0 END) as pending_admin,
-                    SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_LEADER . "' THEN 1 ELSE 0 END) as pending_leader,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "') THEN 1 ELSE 0 END) as pending_admin,
+                    SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_LEADER . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as pending_leader,
                     SUM(CASE WHEN status = '" . Rfq::STATUS_APPROVED . "' THEN 1 ELSE 0 END) as approved,
                     SUM(CASE WHEN status IN ('" . Rfq::STATUS_QUOTATION_CREATED . "', '" . Rfq::STATUS_QUOTATION_SENT . "') THEN 1 ELSE 0 END) as quotation_created,
                     SUM(CASE WHEN status IN ('" . Rfq::STATUS_PO_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as po_review,
@@ -429,14 +429,25 @@ class DashboardController extends Controller
         $filterKey  = $startDate->format('Ymd') . '_' . $endDate->format('Ymd');
         $now = now();
 
-        // Quotation global stats
+        // Quotation global stats (v2.0: dihitung dari RFQ penawaran aktif)
         $quoGlobal = Cache::remember('dash:admin:quo_global', 60, function () use ($now) {
-            $total = Quotation::count();
-            $sent = Quotation::where('status', Quotation::STATUS_SENT)->count();
-            $sentThisMonth = Quotation::where('status', Quotation::STATUS_SENT)
-                ->whereMonth('created_at', $now->month)
-                ->whereYear('created_at', $now->year)
+            $quotationStatuses = [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL,
+            ];
+            $total = Rfq::whereIn('status', $quotationStatuses)->count();
+
+            $sent = Rfq::whereIn('status', [Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL])->count();
+
+            $sentThisMonth = Rfq::whereIn('status', [Rfq::STATUS_QUOTATION_SENT, Rfq::STATUS_GOAL])
+                ->whereMonth('updated_at', $now->month)
+                ->whereYear('updated_at', $now->year)
                 ->count();
+
             return compact('total', 'sent', 'sentThisMonth');
         });
 
@@ -449,8 +460,8 @@ class DashboardController extends Controller
 
             $rfq = Rfq::selectRaw("
                 COUNT(*) as total,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_ADMIN . "' THEN 1 ELSE 0 END) as pending_admin,
-                SUM(CASE WHEN status = '" . Rfq::STATUS_PENDING_LEADER . "' THEN 1 ELSE 0 END) as pending_leader
+                SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_ADMIN . "', '" . Rfq::STATUS_PO_PENDING_ADMIN . "') THEN 1 ELSE 0 END) as pending_admin,
+                SUM(CASE WHEN status IN ('" . Rfq::STATUS_PENDING_LEADER . "', '" . Rfq::STATUS_PO_PENDING_LEADER . "') THEN 1 ELSE 0 END) as pending_leader
             ")->first();
 
             $po = PurchaseOrder::selectRaw("
@@ -609,10 +620,19 @@ class DashboardController extends Controller
                 ->values();
         });
 
-        // Recent quotations
+        // Recent quotations (v2.0: RFQ penawaran aktif)
         $recentQuotations = Cache::remember('dash:admin:recent_quo', 120, function () {
-            return Quotation::with(['customer:id,company_name', 'sales:id,name'])
-                ->orderByDesc('created_at')
+            $quotationStatuses = [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL,
+            ];
+            return Rfq::whereIn('status', $quotationStatuses)
+                ->with(['customer:id,company_name', 'sales:id,name'])
+                ->orderByDesc('updated_at')
                 ->take(5)
                 ->get();
         });

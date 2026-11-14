@@ -29,9 +29,9 @@ class ApprovalController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Get all RFQs that need Leader approval (Pending Leader)
+        // Get all RFQs that need Leader approval (Pending Leader & Pending PO Leader)
         $pendingRfqs = Rfq::with(['customer', 'sales', 'items'])
-            ->where('status', Rfq::STATUS_PENDING_LEADER)
+            ->whereIn('status', [Rfq::STATUS_PENDING_LEADER, Rfq::STATUS_PO_PENDING_LEADER])
             ->orderBy('updated_at', 'desc')
             ->get();
 

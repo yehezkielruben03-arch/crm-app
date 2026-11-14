@@ -17,29 +17,8 @@ class QuotationController extends Controller
 {
     public function index(Request $request)
     {
-        $user = $this->authUser();
-
-        $query = Quotation::with(['customer', 'sales', 'rfq']);
-
-        if (!$user->isAdminOrAbove()) {
-            $query->where('sales_id', $user->id);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('quo_number', 'like', '%' . $search . '%')
-                  ->orWhereHas('customer', fn($c) => $c->where('company_name', 'like', '%' . $search . '%'));
-            });
-        }
-
-        $quotations = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
-
-        return view('quotations.index', compact('quotations'));
+        // v2.0: Alihkan menu Quotation langsung ke daftar RFQ yang berstatus Quotation resmi
+        return redirect()->route('rfq.index', array_merge(['status' => 'quotation'], $request->all()));
     }
 
     public function create(Request $request)

@@ -108,7 +108,11 @@
                             @endif
                         </td>
                         <td class="py-3" style="color: var(--text-secondary);">
-                            <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 font-medium text-slate-700">{{ $rfq->type ?? 'Non Projek' }}</span>
+                            @if($rfq->status === \App\Models\Rfq::STATUS_PO_PENDING_LEADER)
+                                <span class="inline-block px-2 py-0.5 text-xs rounded bg-purple-100 font-semibold text-purple-800 border border-purple-200">PO Klien (Siap GOAL)</span>
+                            @else
+                                <span class="inline-block px-2 py-0.5 text-xs rounded bg-slate-100 font-medium text-slate-700">{{ $rfq->type ?? 'Non Projek' }}</span>
+                            @endif
                             @if($rfq->priority === 'Urgent' || $rfq->priority === 'High Priority')
                                 <span class="px-1.5 py-0.5 text-[10px] font-bold rounded text-rose-600 bg-rose-50 border border-rose-200">{{ $rfq->priority }}</span>
                             @endif
@@ -121,35 +125,64 @@
                         </td>
                         <td class="py-3 text-right">
                             <div class="flex justify-end gap-2 items-center">
-                                <a href="{{ route('rfq.price_form', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(2,132,199,0.3); color: #0284c7;" title="Edit / Sesuaikan HPP">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                                    Edit HPP
-                                </a>
-                                <a href="{{ route('rfq.show', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(37,99,235,0.3); color: var(--accent-blue);" title="Review Detail">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    Review
-                                </a>
-                                @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
-                                <form action="{{ route('rfq.approve', $rfq) }}" method="POST" class="inline-block" onsubmit="if(!confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
-                                    @csrf
-                                    <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
+                                @if($rfq->status === \App\Models\Rfq::STATUS_PO_PENDING_LEADER)
+                                    <a href="{{ route('rfq.show', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(37,99,235,0.3); color: var(--accent-blue);" title="Review PO Klien">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        Review PO
+                                    </a>
+                                    @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
+                                    <form action="{{ route('rfq.approve_goal', $rfq) }}" method="POST" class="inline-block" onsubmit="if(!confirm('Setujui RFQ {{ $rfq->rfq_number }} sebagai GOAL? PO resmi akan diterbitkan ke Admin Purchase.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
+                                        @csrf
+                                        <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Approve GOAL
+                                        </button>
+                                    </form>
+                                    <button type="button" onclick="openRejectModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}')" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(225,29,72,0.3); color: var(--accent-rose);">
                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                                         </svg>
-                                        Approve
+                                        Reject
                                     </button>
-                                </form>
-                                <button type="button" onclick="openRejectModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}')" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(225,29,72,0.3); color: var(--accent-rose);">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                    </svg>
-                                    Reject
-                                </button>
+                                    @else
+                                    <span class="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" title="Hanya Leader yang berhak menyetujui GOAL">
+                                        <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Menunggu Approval Leader
+                                    </span>
+                                    @endif
                                 @else
-                                <span class="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" title="Hanya Leader yang berhak menyetujui HPP">
-                                    <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    Menunggu Approval Leader
-                                </span>
+                                    <a href="{{ route('rfq.price_form', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(2,132,199,0.3); color: #0284c7;" title="Edit / Sesuaikan HPP">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                        Edit HPP
+                                    </a>
+                                    <a href="{{ route('rfq.show', $rfq) }}" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(37,99,235,0.3); color: var(--accent-blue);" title="Review Detail">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        Review
+                                    </a>
+                                    @if(auth()->user()->isLeader() || auth()->user()->isSuperAdmin())
+                                    <form action="{{ route('rfq.approve', $rfq) }}" method="POST" class="inline-block" onsubmit="if(!confirm('Approve HPP untuk RFQ {{ $rfq->rfq_number }}? Status akan menjadi Approved.')) return false; const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.style.opacity = '0.7'; return true;">
+                                        @csrf
+                                        <button type="submit" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(5,150,105,0.3); color: var(--accent-emerald);">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                            Approve
+                                        </button>
+                                    </form>
+                                    <button type="button" onclick="openRejectModal('{{ $rfq->id }}', '{{ $rfq->rfq_number }}')" class="action-btn text-xs px-2.5 py-1.5 inline-flex items-center gap-1" style="border-color: rgba(225,29,72,0.3); color: var(--accent-rose);">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                        Reject
+                                    </button>
+                                    @else
+                                    <span class="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg inline-flex items-center gap-1.5" title="Hanya Leader yang berhak menyetujui HPP">
+                                        <svg class="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        Menunggu Approval Leader
+                                    </span>
+                                    @endif
                                 @endif
                             </div>
                         </td>

@@ -28,7 +28,18 @@ class RfqController extends Controller
         }
 
         if ($request->filled('status')) {
-            $query->where('status', $request->status);
+            if (in_array(strtolower($request->status), ['quotation', 'penawaran'])) {
+                $query->whereIn('status', [
+                    Rfq::STATUS_APPROVED,
+                    Rfq::STATUS_QUOTATION_CREATED,
+                    Rfq::STATUS_QUOTATION_SENT,
+                    Rfq::STATUS_PO_PENDING_ADMIN,
+                    Rfq::STATUS_PO_PENDING_LEADER,
+                    Rfq::STATUS_GOAL,
+                ]);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         if ($request->filled('search')) {

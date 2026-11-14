@@ -1006,7 +1006,7 @@
                 </svg>
                 Recent Quotations
             </h2>
-            <a href="{{ route('quo.index') }}" class="text-xs font-medium" style="color: var(--accent-blue);">View All</a>
+            <a href="{{ route('rfq.index', ['status' => 'quotation']) }}" class="text-xs font-medium" style="color: var(--accent-blue);">View All</a>
         </div>
         <div class="overflow-x-auto -mx-5 px-5">
             <table class="data-table text-sm">
@@ -1023,14 +1023,27 @@
                     @forelse($recentQuotations as $quo)
                     <tr>
                         <td class="py-2 font-medium" style="color: var(--text-primary);">
-                            <a href="{{ route('quo.show', $quo) }}" style="color: var(--accent-blue);">{{ $quo->quo_number }}</a>
+                            @if($quo instanceof \App\Models\Rfq)
+                                <a href="{{ route('rfq.preview_quotation', $quo) }}" target="_blank" style="color: var(--accent-blue);">{{ $quo->quotation_number ?: $quo->rfq_number }}</a>
+                            @else
+                                <a href="{{ route('quo.show', $quo) }}" style="color: var(--accent-blue);">{{ $quo->quo_number }}</a>
+                            @endif
                         </td>
-                        <td class="py-2" style="color: var(--text-secondary);">{{ $quo->customer?->company_name ?? '-' }}</td>
-                        <td class="py-2" style="color: var(--text-secondary);">{{ $quo->sales?->name ?? '-' }}</td>
-                        <td class="py-2" style="color: var(--text-secondary);">{{ $quo->revision_number > 0 ? 'Rev #' . $quo->revision_number : '-' }}</td>
+                        <td class="py-2" style="color: var(--text-secondary);">{{ $quo->customer?->company_name ?? ($quo->customer_name ?? '-') }}</td>
+                        <td class="py-2" style="color: var(--text-secondary);">{{ $quo->sales?->name ?? ($quo->sales_name ?? '-') }}</td>
+                        <td class="py-2" style="color: var(--text-secondary);">
+                            @if($quo instanceof \App\Models\Rfq)
+                                {{ $quo->priceHistories()->count() > 1 ? 'Rev #' . ($quo->priceHistories()->count() - 1) : '-' }}
+                            @else
+                                {{ $quo->revision_number > 0 ? 'Rev #' . $quo->revision_number : '-' }}
+                            @endif
+                        </td>
                         <td class="py-2">
                             @php
-                                $badgeClass = $quo->isSent() ? 'approved' : 'pending';
+                                $isSent = ($quo instanceof \App\Models\Rfq)
+                                    ? in_array($quo->status, [\App\Models\Rfq::STATUS_QUOTATION_SENT, \App\Models\Rfq::STATUS_GOAL])
+                                    : (method_exists($quo, 'isSent') ? $quo->isSent() : false);
+                                $badgeClass = $isSent ? 'approved' : 'pending';
                             @endphp
                             <span class="status-badge {{ $badgeClass }} text-[10px]">
                                 <span class="w-1.5 h-1.5 rounded-full inline-block" style="background: currentColor;"></span>

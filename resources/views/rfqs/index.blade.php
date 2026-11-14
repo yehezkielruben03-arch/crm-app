@@ -92,6 +92,7 @@
             </div>
             <x-custom-select name="status" :value="request('status')" placeholder="Semua Status" :options="[
                 '' => 'Semua Status',
+                'quotation' => 'Semua Quotation Aktif',
                 'Pending Admin' => 'Pending Admin',
                 'Pending Leader' => 'Pending Leader',
                 'Approved' => 'Approved',
@@ -139,6 +140,11 @@
                                         style="background: var(--bg-secondary); color: var(--text-secondary);">
                                         {{ $rfq->rfq_number }}
                                     </code>
+                                    @if(!empty($rfq->quotation_number))
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-blue-50 text-blue-700 border border-blue-200 shadow-2xs" title="No. Quotation">
+                                        {{ $rfq->quotation_number }}
+                                    </span>
+                                    @endif
                                     @if(!empty($rfq->admin_note))
                                     <span class="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs cursor-help"
                                           title="Catatan Admin: {{ \Illuminate\Support\Str::limit(\App\Helpers\RfqNoteHelper::toPlainText($rfq->admin_note), 150) }}">
