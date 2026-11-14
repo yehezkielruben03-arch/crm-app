@@ -141,6 +141,16 @@
                 </svg>
                 User Management
             </a>
+
+            @if(auth()->user()->isSuperAdmin())
+            <a href="{{ route('settings.backups.index') }}" 
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('settings.backups.*') ? 'bg-indigo-600 text-white font-medium shadow-md' : 'hover:bg-indigo-800/50 text-indigo-200 hover:text-white' }}">
+                <svg class="w-5 h-5 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                </svg>
+                Backup & Restore
+            </a>
+            @endif
         @endif
     </nav>
 

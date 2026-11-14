@@ -14,6 +14,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\ManualBookController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\BackupController;
 
 // ============================================================
 // ⚠️  KEAMANAN PRODUCTION:
@@ -197,6 +198,15 @@ Route::middleware('auth')->group(function () {
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->withTrashed();
         Route::post('/users/{user}/restore', [UserController::class, 'restore'])->name('users.restore')->withTrashed();
         Route::post('/users/{user}/migrate-customers', [UserController::class, 'migrateCustomers'])->name('users.migrate-customers')->withTrashed();
+    });
+
+    // ─── Super Admin Only: System Backup & Restore ───
+    Route::middleware('role:Super Admin')->group(function () {
+        Route::get('/settings/backups', [BackupController::class, 'index'])->name('settings.backups.index');
+        Route::post('/settings/backups', [BackupController::class, 'store'])->name('settings.backups.store');
+        Route::get('/settings/backups/{filename}/download', [BackupController::class, 'download'])->name('settings.backups.download');
+        Route::post('/settings/backups/restore', [BackupController::class, 'restore'])->name('settings.backups.restore');
+        Route::delete('/settings/backups/{filename}', [BackupController::class, 'destroy'])->name('settings.backups.destroy');
     });
 
     // Fallback streaming untuk file storage publik (misal bukti PO) jika diakses langsung lewat URL /storage/...

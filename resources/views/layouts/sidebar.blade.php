@@ -125,6 +125,15 @@
         </a>
         @endif
 
+        @if(auth()->user()->isSuperAdmin())
+        <a href="{{ route('settings.backups.index') }}" class="sidebar-nav-link {{ request()->routeIs('settings.backups.*') ? 'active' : '' }}" title="Backup & Restore">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+            </svg>
+            <span class="sidebar-label">Backup & Restore</span>
+        </a>
+        @endif
+
         <!-- Buku Panduan CRM -->
         <a href="{{ route('manual-book.index') }}" class="sidebar-nav-link {{ request()->routeIs('manual-book.*') ? 'active' : '' }}" title="Buku Panduan">
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

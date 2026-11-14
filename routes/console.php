@@ -19,3 +19,6 @@ Schedule::command('customer:update-status')->dailyAt('01:00')->withoutOverlappin
 // Hanya Senin-Jumat agar Sales tidak terganggu di akhir pekan
 Schedule::command('customer:send-followup-reminders')->weekdays()->dailyAt('08:00')->withoutOverlapping();
 
+// Otomasi Backup Harian Database & Storage Uploads (Pukul 02:00 WIB, retensi 14 hari)
+Schedule::command('crm:backup --retention=14')->dailyAt('02:00')->withoutOverlapping();
+

@@ -43,6 +43,8 @@ Thumbs.db
 *.csv
 *.bak
 price_form_backup.blade.php
+/storage/app/backups/*
+!/storage/app/backups/.gitignore
 
 # Scratch & Temporary Testing Scripts
 scratch/
