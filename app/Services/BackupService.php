@@ -16,8 +16,9 @@ class BackupService
     {
         $this->backupDir = storage_path('app/backups');
         if (!is_dir($this->backupDir)) {
-            @mkdir($this->backupDir, 0755, true);
+            @mkdir($this->backupDir, 0777, true);
         }
+        @chmod($this->backupDir, 0777);
     }
 
     /**
@@ -47,7 +48,8 @@ class BackupService
         $zipPath = $this->backupDir . DIRECTORY_SEPARATOR . $zipFilename;
 
         $tempDir = storage_path('app/backups/temp_' . uniqid());
-        @mkdir($tempDir, 0755, true);
+        @mkdir($tempDir, 0777, true);
+        @chmod($tempDir, 0777);
 
         $tablesCount = 0;
         $filesCount = 0;
@@ -94,6 +96,9 @@ class BackupService
             $zip->addFromString('manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
             $zip->close();
+            if (file_exists($zipPath)) {
+                @chmod($zipPath, 0666);
+            }
 
             // 5. Bersihkan temp files
             if (file_exists($sqlGzPath)) {
@@ -171,7 +176,8 @@ class BackupService
 
         // 2. Ekstrak arsip ke temporary directory
         $tempExtractDir = storage_path('app/backups/restore_' . uniqid());
-        @mkdir($tempExtractDir, 0755, true);
+        @mkdir($tempExtractDir, 0777, true);
+        @chmod($tempExtractDir, 0777);
 
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
@@ -567,7 +573,8 @@ class BackupService
     protected function copyDirectory(string $source, string $destination): int
     {
         if (!is_dir($destination)) {
-            @mkdir($destination, 0755, true);
+            @mkdir($destination, 0777, true);
+            @chmod($destination, 0777);
         }
 
         $filesCount = 0;
@@ -580,10 +587,12 @@ class BackupService
             $destPath = $destination . DIRECTORY_SEPARATOR . $items->getSubPathname();
             if ($item->isDir()) {
                 if (!is_dir($destPath)) {
-                    @mkdir($destPath, 0755, true);
+                    @mkdir($destPath, 0777, true);
+                    @chmod($destPath, 0777);
                 }
             } else {
                 @copy($item->getRealPath(), $destPath);
+                @chmod($destPath, 0666);
                 $filesCount++;
             }
         }
@@ -622,6 +631,9 @@ class BackupService
         if ($zip->open($zipPath) === true) {
             $manifestJson = $zip->getFromName('manifest.json');
             $zip->close();
+            if (file_exists($zipPath)) {
+                @chmod($zipPath, 0666);
+            }
             if ($manifestJson) {
                 return json_decode($manifestJson, true) ?: [];
             }

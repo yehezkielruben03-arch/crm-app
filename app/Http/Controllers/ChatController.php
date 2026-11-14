@@ -241,6 +241,11 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
+        // Guard kepemilikan: Sales hanya boleh membagikan RFQ milik sendiri
+        if ($user->isSales() && $rfq->sales_id !== $user->id) {
+            abort(403, 'Anda hanya dapat membagikan RFQ milik Anda sendiri.');
+        }
+
         // Resolve sales user
         $salesUser = $rfq->sales ?: User::find($rfq->sales_id);
         if (!$salesUser && $rfq->sales_name) {

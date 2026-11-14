@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class RfqController extends Controller
 {
@@ -81,7 +82,10 @@ class RfqController extends Controller
 
         $validated = $request->validate([
             'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => 'required|exists:customer_contacts,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
             'need_date'               => 'nullable|date',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
             'notes'                   => 'nullable|string',
@@ -199,7 +203,10 @@ class RfqController extends Controller
 
         $validated = $request->validate([
             'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => 'required|exists:customer_contacts,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
             'need_date'               => 'nullable|date',
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
@@ -499,7 +506,10 @@ class RfqController extends Controller
 
         $validated = $request->validate([
             'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => 'required|exists:customer_contacts,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
             'need_date'               => 'nullable|date',
             'type'                    => 'required|string|in:Projek,Non Projek',
             'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',

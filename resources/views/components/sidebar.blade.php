@@ -132,7 +132,7 @@
             </a>
         @endif
 
-        @if(auth()->user()->isAdminOrAbove())
+        @if(auth()->user()->isAdmin() || auth()->user()->isSuperAdmin())
             <p class="px-3 pt-4 pb-2 text-xs font-semibold tracking-wider text-indigo-400 uppercase">Settings</p>
             <a href="{{ route('users.index') }}" 
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors {{ request()->routeIs('users.*') ? 'bg-indigo-600 text-white font-medium shadow-md' : 'hover:bg-indigo-800/50 text-indigo-200 hover:text-white' }}">

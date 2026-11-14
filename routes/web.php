@@ -181,7 +181,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
     });
 
-    // ─── Admin Purchase & Super Admin Only ───
+    // ─── Vendor & Mainpower (Admin, Admin Purchase, Super Admin, Leader) ───
     Route::middleware('role:Admin,Admin Purchase,Super Admin,Leader')->group(function () {
         // Vendor: CRUD via modal/AJAX — hanya index, store, update, destroy yang ada di controller
         Route::resource('vendors', \App\Http\Controllers\VendorController::class)
@@ -189,7 +189,10 @@ Route::middleware('auth')->group(function () {
         // Mainpower: hanya index & store yang ada di controller
         Route::resource('mainpowers', \App\Http\Controllers\MainpowerController::class)
             ->only(['index', 'store']);
+    });
 
+    // ─── User Management (Admin & Super Admin Only - Leader dilarang) ───
+    Route::middleware('role:Admin,Admin Purchase,Super Admin')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
