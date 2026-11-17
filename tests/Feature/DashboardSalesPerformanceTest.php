@@ -140,6 +140,26 @@ class DashboardSalesPerformanceTest extends TestCase
         // Pastikan revenueThisMonth juga menghitung 38.140.000
         $response->assertViewHas('revenueThisMonth', 38140000.0);
 
+        // Sales mengakses dashboard pribadinya
+        $salesResponse = $this->actingAs($sales)->get(route('dashboard'));
+        $salesResponse->assertOk();
+        $salesResponse->assertViewHas('revenueThisMonth', 38140000.0);
+        $salesResponse->assertViewHas('monthlyChart', function ($chart) {
+            $nov = collect($chart)->firstWhere('month', 11);
+            // Nov GOAL harus 38.140.000 (Wooin 20.7jt + NSK 17.44jt)
+            return $nov !== null && (float) $nov->total_goal === 38140000.0;
+        });
+
+        // 3. Tes filter berubah ke bulan depan (Desember 2026) -> Harus reset ke 0
+        $decResponse = $this->actingAs($admin)->get(route('dashboard', [
+            'start_date' => '2026-12-01',
+            'end_date'   => '2026-12-31',
+        ]));
+        $decResponse->assertOk();
+        $decResponse->assertViewHas('revenueThisMonth', 0.0);
+        $decResponse->assertViewHas('goalCountThisMonth', 0);
+        $decResponse->assertViewHas('todayNewRFQ', 0);
+
         Carbon::setTestNow();
     }
 }

@@ -453,6 +453,14 @@ class Rfq extends Model
 
     public function getGrandTotalAttribute(): float
     {
+        $po = $this->relationLoaded('purchaseOrders')
+            ? ($this->purchaseOrders->firstWhere('status', PurchaseOrder::STATUS_GOAL) ?? $this->purchaseOrders->first())
+            : $this->purchaseOrders()->latest('id')->first();
+
+        if ($po && (in_array($po->status, [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved']) || $this->status === self::STATUS_GOAL)) {
+            return ((float) $po->subtotal > 0) ? (float) $po->subtotal : (float) $po->grand_total;
+        }
+
         if ($this->type === 'Projek') {
             return (float) $this->customer_quotation_items->sum('row_total');
         }
