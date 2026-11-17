@@ -1,2537 +1,2538 @@
-<?php
-
-namespace App\Http\Controllers;
-
-use App\Models\Customer;
-use App\Models\Notification;
-use App\Models\Rfq;
-use App\Models\RfqItem;
-use App\Models\User;
-use Illuminate\Http\Request;
-use App\Traits\HandlesDateRangeFilter;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-
-class RfqController extends Controller
-{
-    use HandlesDateRangeFilter;
-    public function index(Request $request)
-    {
-        $dateFilter = $this->resolveDateRange($request);
-        $user = $this->authUser();
-        $query = Rfq::with(['customer', 'sales', 'items']);
-
-        if (!$user->isAdminOrAbove()) {
-            $query->where('sales_id', $user->id);
-        }
-
-        if ($request->filled('status')) {
-            if (in_array(strtolower($request->status), ['quotation', 'penawaran'])) {
-                $query->whereIn('status', [
-                    Rfq::STATUS_APPROVED,
-                    Rfq::STATUS_QUOTATION_CREATED,
-                    Rfq::STATUS_QUOTATION_SENT,
-                    Rfq::STATUS_PO_PENDING_ADMIN,
-                    Rfq::STATUS_PO_PENDING_LEADER,
-                    Rfq::STATUS_GOAL,
-                ]);
-            } else {
-                $query->where('status', $request->status);
-            }
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('rfq_number', 'like', '%' . $search . '%')
-                  ->orWhere('customer_name', 'like', '%' . $search . '%')
-                  ->orWhere('sales_name', 'like', '%' . $search . '%')
-                  ->orWhere('customer_code', 'like', '%' . $search . '%')
-                  ->orWhere('type', 'like', '%' . $search . '%');
-            });
-        }
-
-        if ($dateFilter['isFiltered']) {
-            if ($request->status === Rfq::STATUS_GOAL) {
-                $query->whereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
-            } else {
-                $query->where(function ($q) use ($dateFilter) {
-                    $q->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']])
-                      ->orWhereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
-                });
-            }
-        }
-
-        $rfqs = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(10)->withQueryString();
-
-        return view('rfqs.index', compact('rfqs', 'dateFilter'));
-    }
-
-    public function createProject()
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
-        return redirect()->route('rfq.create', ['type' => 'Projek']);
-    }
-
-    public function storeProject(Request $request)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
-
-        $validated = $request->validate([
-            'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => [
-                'required',
-                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
-            ],
-            'need_date'               => 'nullable|date',
-            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
-            'notes'                   => 'nullable|string',
-            'items'                   => 'required|array|min:1',
-            'items.*.category'        => 'nullable|string',
-            'items.*.product_name'    => 'required|string',
-            'items.*.qty'             => 'required|numeric|min:0.01',
-            'items.*.unit'            => 'nullable|string|max:30',
-            'items.*.detail_item'     => 'nullable|string',
-            'items.*.description'     => 'nullable|string',
-            'items.*.hpp'             => 'required|numeric|min:0',
-            'items.*.ongkir_pedia'    => 'required|numeric|min:0',
-            'items.*.ongkir_pelanggan'=> 'required|numeric|min:0',
-            'items.*.margin'          => 'required|numeric|min:0',
-            'items.*.ceiling'         => 'required|numeric|min:1',
-            'items.*.validity_days'   => 'required|numeric|min:1',
-        ]);
-
-        $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
-        $salesId   = $customer->sales_id ?? Auth::id();
-        $salesUser = $customer->sales ?: User::find($salesId);
-        $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
-
-        try {
-            DB::beginTransaction();
-
-            $rfq = Rfq::create([
-                'rfq_number'          => Rfq::generateRfqNumber(),
-                'customer_id'         => $customer->id,
-                'customer_name'       => $customer->company_name,
-                'customer_code'       => $customer->company_code,
-                'customer_contact_id' => $validated['customer_contact_id'],
-                'need_date'           => $validated['need_date'] ?? null,
-                'type'                => 'Projek',
-                'sales_id'            => $salesId,
-                'sales_name'          => $salesName,
-                'rfq_date'            => now()->format('Y-m-d'),
-                'notes'               => $validated['notes'] ?? null,
-                'status'              => Rfq::STATUS_PENDING_LEADER,
-            ]);
-
-            foreach ($validated['items'] as $itemData) {
-                $hpp              = $itemData['hpp'] ?? 0;
-                $ongkir_pedia     = $itemData['ongkir_pedia'] ?? 0;
-                $ongkir_pelanggan = $itemData['ongkir_pelanggan'] ?? 0;
-                $marginPct        = (float) ($itemData['margin'] ?? 0);
-                $ceiling          = (float) ($itemData['ceiling'] ?? 1);
-
-                $item = $rfq->items()->create([
-                    'category'           => $itemData['category'] ?? null,
-                    'product_name'       => $itemData['product_name'],
-                    'qty'                => $itemData['qty'],
-                    'unit'               => $itemData['unit'] ?? null,
-                    'detail_item'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
-                    'description'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
-                    'hpp'                => $hpp,
-                    'ongkir_pedia'       => $ongkir_pedia,
-                    'ongkir_pelanggan'   => $ongkir_pelanggan,
-                    'margin_type'        => 'percentage', // Default untuk projek
-                    'margin_value'       => $marginPct,
-                    'ceiling'            => $ceiling,
-                    'custom_ceiling'     => $ceiling,
-                    'validity_days'      => $itemData['validity_days'] ?? 3,
-                    'price_after_margin' => 0, // Akan dihitung ulang di bawah
-                ]);
-
-                // Gunakan fungsi sentral agar hitungan persis sama dengan Fase 4
-                $item->price_after_margin = $item->calculatePriceAfterMargin();
-                $item->save();
-            }
-
-            DB::commit();
-
-            $this->clearDashboardCacheForSales($salesId);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return redirect()->route('rfq.index')
-                ->with('error', 'Gagal membuat RFQ Projek: ' . $e->getMessage());
-        }
-
-        // RFQ Projek dibuat Admin/Leader → minta approval Leader (sinkron, tanpa queue)
-        $creator = $this->authUser();
-        $creatorRole = $creator->role ?: 'Admin';
-        $leaders = \App\Models\User::where('role', 'Leader')->get();
-        foreach ($leaders as $leader) {
-            \App\Models\Notification::send(
-                userId:  $leader->id,
-                type:    'warning',
-                title:   'Approval Harga RFQ Projek',
-                message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
-                link:    route('rfq.show', $rfq)
-            );
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'RFQ Projek ' . $rfq->rfq_number . ' berhasil dibuat dan diteruskan ke Leader untuk approval!');
-    }
-
-    public function create()
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isSales(), 403);
-
-        $user = $this->authUser();
-        $customers = $user->isAdminOrAbove()
-            ? Customer::where('status', 'Active')->orderBy('company_name')->get()
-            : Customer::where('sales_id', $user->id)->where('status', 'Active')->orderBy('company_name')->get();
-
-        return view('rfqs.create', compact('customers'));
-    }
-
-    public function store(Request $request)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isSales(), 403);
-
-        $validated = $request->validate([
-            'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => [
-                'required',
-                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
-            ],
-            'need_date'               => 'nullable|date',
-            'type'                    => 'required|string|in:Projek,Non Projek',
-            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
-            'notes'                   => 'nullable|string',
-            'items'                   => 'nullable|array',
-            'items.*.category'        => 'nullable|string',
-            'items.*.product_name'    => 'nullable|string',
-            'items.*.qty'             => 'nullable|numeric|min:0.01',
-            'items.*.unit'            => 'nullable|string|max:30',
-            'items.*.detail_item'     => 'nullable|string',
-            'items.*.description'     => 'nullable|string',
-            'items.*.hpp'             => 'nullable|numeric|min:0',
-            'items.*.ongkir_pedia'    => 'nullable|numeric|min:0',
-            'items.*.ongkir_pelanggan'=> 'nullable|numeric|min:0',
-            'items.*.margin'          => 'nullable|numeric|min:0',
-            'items.*.ceiling'         => 'nullable|numeric|min:1',
-            'items.*.validity_days'   => 'nullable|numeric|min:1',
-        ]);
-
-        $rawItems = $validated['items'] ?? [];
-        $validItems = [];
-        foreach ($rawItems as $item) {
-            $productName = trim($item['product_name'] ?? '');
-            if ($productName !== '') {
-                $qty = (float)($item['qty'] ?? 0);
-                if ($qty <= 0) {
-                    if ($request->ajax() || $request->wantsJson()) {
-                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
-                    }
-                    return back()
-                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
-                        ->withInput();
-                }
-                $validItems[] = $item;
-            }
-        }
-
-        $hasNotes = !empty(trim($validated['notes'] ?? ''));
-        if (count($validItems) === 0 && !$hasNotes) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
-            }
-            return back()
-                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
-                ->withInput();
-        }
-
-        if ($validated['type'] === 'Projek') {
-            foreach ($validItems as $idx => $item) {
-                if (empty($item['category'])) {
-                    return back()
-                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
-                        ->withInput();
-                }
-            }
-        } else {
-            foreach ($validItems as &$item) {
-                $item['category'] = null;
-            }
-            unset($item);
-        }
-
-        $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
-
-        if (!$this->authUser()->isAdminOrAbove()) {
-            abort_if($customer->sales_id !== Auth::id(), 403, 'Customer ini dipegang oleh Pedia dan hanya dapat dikelola oleh tim Leader/Admin.');
-        }
-
-        if (!$this->authUser()->isAdminOrAbove()) {
-            $salesId   = Auth::id();
-            $salesName = $this->authUser()->name;
-        } else {
-            $salesId   = $customer->sales_id ?? Auth::id();
-            $salesUser = $customer->sales ?: User::find($salesId);
-            $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $status = Rfq::STATUS_PENDING_ADMIN;
-
-            $rfq = Rfq::create([
-                'rfq_number'          => Rfq::generateRfqNumber(),
-                'customer_id'         => $customer->id,
-                'customer_name'       => $customer->company_name,
-                'customer_code'       => $customer->company_code,
-                'customer_contact_id' => $validated['customer_contact_id'],
-                'need_date'           => $validated['need_date'] ?? null,
-                'type'                => $validated['type'],
-                'priority'            => $validated['priority'] ?? 'Normal',
-                'sales_id'            => $salesId,
-                'sales_name'          => $salesName,
-                'rfq_date'            => now()->format('Y-m-d'),
-                'notes'               => $validated['notes'] ?? null,
-                'status'              => $status,
-            ]);
-
-            foreach ($validItems as $item) {
-                $hpp              = (float)($item['hpp'] ?? 0);
-                $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
-                $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
-                $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
-                $feeEu            = (float)($item['fee_eu'] ?? 0);
-                $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
-                $marginType       = $item['margin_type'] ?? 'percentage';
-                $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
-                $cat              = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
-
-                $rfqItem = new RfqItem([
-                    'category'           => $cat,
-                    'product_name'       => $item['product_name'],
-                    'qty'                => $item['qty'],
-                    'unit'               => $item['unit'] ?? null,
-                    'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
-                    'description'        => $item['description'] ?? $item['detail_item'] ?? null,
-                    'hpp'                => $hpp,
-                    'ongkir_pedia'       => $ongkirPedia,
-                    'ongkir_pelanggan'   => $ongkirPelanggan,
-                    'biaya_kirim'        => $biayaKirim,
-                    'fee_eu'             => $feeEu,
-                    'margin_type'        => $marginType,
-                    'margin_value'       => $marginVal,
-                    'margin'             => $marginVal,
-                    'ceiling'            => $ceiling,
-                    'custom_ceiling'     => $ceiling,
-                    'validity_days'      => (int)($item['validity_days'] ?? 3),
-                ]);
-                $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
-                $rfq->items()->save($rfqItem);
-            }
-
-            DB::commit();
-
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal membuat RFQ: ' . $e->getMessage(),
-                ], 500);
-            }
-
-            return redirect()->route('rfq.index')
-                ->with('error', 'Gagal membuat RFQ: ' . $e->getMessage());
-        }
-
-        // ============================================================
-        // EVENT 1 — Notifikasi RFQ Baru
-        // → Leader jika RFQ Projek oleh Admin, atau Admin jika dibuat oleh Sales
-        // ============================================================
-        try {
-            $creator = $this->authUser();
-            $creatorRole = $creator->role ?: 'Admin';
-
-            if ($status === Rfq::STATUS_PENDING_LEADER) {
-                $leaders = User::where('role', 'Leader')->get();
-                foreach ($leaders as $leader) {
-                    Notification::send(
-                        userId:  $leader->id,
-                        type:    'warning',
-                        title:   'Approval Harga RFQ Projek',
-                        message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
-            } else {
-                $recipients = User::whereIn('role', [
-                    'Admin Purchase',
-                    'Admin',
-                    'Super Admin',
-                ])
-                ->where('id', '!=', $creator->id)
-                ->get();
-
-                if ($creator->isSales()) {
-                    $msg = 'RFQ Baru diterima dari Sales ' . $creator->name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.';
-                } else {
-                    $msg = $creatorRole . ' ' . $creator->name . ' telah membuat RFQ ' . $rfq->rfq_number . ' untuk ' . $rfq->customer_name . ($rfq->sales_name ? ' (Sales: ' . $rfq->sales_name . ')' : '') . '. Mohon segera diisi HPP.';
-                }
-
-                foreach ($recipients as $recipient) {
-                    Notification::send(
-                        userId:  $recipient->id,
-                        type:    'warning',
-                        title:   'RFQ Baru Diterima',
-                        message: $msg,
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
-
-                // Jika yang membuat adalah Admin/Leader dan customer memiliki Sales, beri notifikasi info ke Sales terkait
-                if (!$creator->isSales() && $rfq->sales_id && $rfq->sales_id !== $creator->id) {
-                    Notification::send(
-                        userId:  $rfq->sales_id,
-                        type:    'info',
-                        title:   'RFQ Baru Dibuatkan oleh ' . $creatorRole,
-                        message: $creatorRole . ' ' . $creator->name . ' telah membuatkan RFQ (' . $rfq->rfq_number . ') untuk customer Anda ' . $rfq->customer_name . '.',
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
-            }
-        } catch (\Throwable $e) {
-            \Log::warning('Gagal mengirim notifikasi RFQ baru: ' . $e->getMessage());
-        }
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success'  => true,
-                'redirect' => route('rfq.show', $rfq),
-                'message'  => 'RFQ ' . $rfq->rfq_number . ' berhasil dibuat!',
-            ], 201);
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil dibuat!');
-    }
-
-    public function show(Rfq $rfq)
-    {
-        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $rfq->load(['customer', 'sales', 'items.vendor', 'adminNoteAuthor', 'revisionAuthor']);
-
-        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->with('creator:id,name')
-            ->orderByDesc('version')
-            ->get();
-
-        $isApproved = in_array($rfq->status, [
-            Rfq::STATUS_APPROVED,
-            Rfq::STATUS_QUOTATION_CREATED,
-            Rfq::STATUS_QUOTATION_SENT,
-            Rfq::STATUS_PO_PENDING_ADMIN,
-            Rfq::STATUS_PO_PENDING_LEADER,
-            Rfq::STATUS_GOAL
-        ]);
-
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
-
-        $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
-            ->sortBy('version')
-            ->values();
-
-        $totalApproved = $approvedHistories->count();
-
-        $approvedVersions = $approvedHistories->map(function ($h, $index) use ($totalApproved) {
-            $revNum = $index;
-            return [
-                'id'        => $h->id,
-                'version'   => $h->version,
-                'rev_num'   => $revNum,
-                'label'     => $revNum === 0 ? 'Penawaran Awal (Original / Rev 0)' : ('Penawaran Revisi ' . $revNum),
-                'date'      => $h->approved_at ? $h->approved_at->format('d M Y, H:i') . ' WIB' : $h->created_at->format('d M Y, H:i') . ' WIB',
-                'is_latest' => ($index === $totalApproved - 1),
-            ];
-        });
-
-        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'revisionDate', 'latestHistory', 'isApproved', 'approvedVersions'));
-    }
-
-    public function edit(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
-        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
-            abort(403);
-        }
-
-        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit penuh saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
-
-        $user = $this->authUser();
-        $customers = $user->isAdminOrAbove()
-            ? Customer::where('status', 'Active')->orderBy('company_name')->get()
-            : Customer::where('sales_id', $user->id)->where('status', 'Active')->orderBy('company_name')->get();
-
-        $rfq->load('items');
-        if (!$user->isAdminOrAbove()) {
-            $rfq->items->makeHidden(['hpp', 'vendor_id', 'margin', 'margin_value', 'ongkir_pedia', 'biaya_kirim', 'fee_eu']);
-        }
-
-        return view('rfqs.edit', compact('rfq', 'customers'));
-    }
-
-    public function update(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
-        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
-            abort(403);
-        }
-
-        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
-
-        $validated = $request->validate([
-            'customer_id'             => 'required|exists:customers,id',
-            'customer_contact_id'     => [
-                'required',
-                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
-            ],
-            'need_date'               => 'nullable|date',
-            'type'                    => 'required|string|in:Projek,Non Projek',
-            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
-            'notes'                   => 'nullable|string',
-            'items'                   => 'nullable|array',
-            'items.*.id'              => 'nullable',
-            'items.*.category'        => 'nullable|string',
-            'items.*.product_name'    => 'nullable|string',
-            'items.*.qty'             => 'nullable|numeric|min:0.01',
-            'items.*.unit'            => 'nullable|string|max:30',
-            'items.*.detail_item'     => 'nullable|string',
-            'items.*.description'     => 'nullable|string',
-            'items.*.hpp'             => 'nullable|numeric|min:0',
-            'items.*.ongkir_pedia'    => 'nullable|numeric|min:0',
-            'items.*.ongkir_pelanggan'=> 'nullable|numeric|min:0',
-            'items.*.margin'          => 'nullable|numeric|min:0',
-            'items.*.ceiling'         => 'nullable|numeric|min:1',
-            'items.*.validity_days'   => 'nullable|numeric|min:1',
-        ]);
-
-        $rawItems = $validated['items'] ?? [];
-        $validItems = [];
-        foreach ($rawItems as $item) {
-            $productName = trim($item['product_name'] ?? '');
-            if ($productName !== '') {
-                $qty = (float)($item['qty'] ?? 0);
-                if ($qty <= 0) {
-                    if ($request->ajax() || $request->wantsJson()) {
-                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
-                    }
-                    return back()
-                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
-                        ->withInput();
-                }
-                $validItems[] = $item;
-            }
-        }
-
-        $hasNotes = !empty(trim($validated['notes'] ?? ''));
-        if (count($validItems) === 0 && !$hasNotes) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
-            }
-            return back()
-                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
-                ->withInput();
-        }
-
-        if (!$this->authUser()->isAdminOrAbove()) {
-            $customer = Customer::findOrFail($validated['customer_id']);
-            abort_if($customer->sales_id !== Auth::id(), 403);
-        }
-
-        if ($validated['customer_id'] !== $rfq->customer_id) {
-            $newCustomer = Customer::with('sales')->findOrFail($validated['customer_id']);
-            $rfq->customer_name = $newCustomer->company_name;
-            $rfq->customer_code = $newCustomer->company_code;
-            $salesId            = $newCustomer->sales_id ?? Auth::id();
-            $salesUser          = $newCustomer->sales ?: User::find($salesId);
-            $rfq->sales_id      = $salesId;
-            $rfq->sales_name    = $salesUser ? $salesUser->name : $this->authUser()->name;
-
-            if (!$this->authUser()->isAdminOrAbove()) {
-                $rfq->sales_id   = Auth::id();
-                $rfq->sales_name = $this->authUser()->name;
-            }
-        }
-
-        $wasApproved = in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED]);
-
-        // Validasi integritas data: cegah bug KATEGORI TIDAK DISEBUTKAN
-        if ($validated['type'] === 'Projek') {
-            foreach ($validItems as $idx => $item) {
-                if (empty($item['category'])) {
-                    return back()
-                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
-                        ->withInput();
-                }
-            }
-        } else {
-            foreach ($validItems as &$item) {
-                $item['category'] = null;
-            }
-            unset($item);
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $status = Rfq::STATUS_PENDING_ADMIN;
-
-            $rfq->update([
-                'customer_id'         => $validated['customer_id'],
-                'customer_contact_id' => $validated['customer_contact_id'],
-                'need_date'           => $validated['need_date'] ?? null,
-                'type'                => $validated['type'],
-                'priority'            => $validated['priority'] ?? 'Normal',
-                'notes'               => $validated['notes'] ?? null,
-                'status'              => $status,
-            ]);
-
-            $existingItems = $rfq->items()->get()->keyBy('id');
-            $keptItemIds = [];
-
-            foreach ($validItems as $item) {
-                $cat = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
-                $itemId = !empty($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
-                $existing = $itemId ? $existingItems->get($itemId) : null;
-
-                if ($existing) {
-                    $existing->category     = $cat;
-                    $existing->product_name = $item['product_name'];
-                    $existing->qty          = $item['qty'];
-                    if (!empty($item['unit'])) {
-                        $existing->unit = $item['unit'];
-                    }
-                    $desc = $item['description'] ?? $item['detail_item'] ?? $existing->description;
-                    $existing->detail_item  = $desc;
-                    $existing->description  = $desc;
-
-                    // Pertahankan HPP, Ongkir, dan Margin yang sudah dihitung Admin sebelumnya kecuali form mengirim nilai baru
-                    if (isset($item['hpp']) && (float)$item['hpp'] > 0) {
-                        $existing->hpp = (float)$item['hpp'];
-                    }
-                    if (isset($item['ongkir_pedia']) && (float)$item['ongkir_pedia'] > 0) {
-                        $existing->ongkir_pedia = (float)$item['ongkir_pedia'];
-                    }
-                    if (isset($item['biaya_kirim']) && (float)$item['biaya_kirim'] > 0) {
-                        $existing->biaya_kirim = (float)$item['biaya_kirim'];
-                    }
-                    if (isset($item['margin_value']) || isset($item['margin'])) {
-                        $val = (float)($item['margin_value'] ?? $item['margin']);
-                        if ($val > 0) {
-                            $existing->margin_value = $val;
-                            $existing->margin = $val;
-                        }
-                    }
-
-                    $existing->price_after_margin = $existing->calculatePriceAfterMargin();
-                    $existing->save();
-                    $keptItemIds[] = $existing->id;
-                } else {
-                    $hpp              = (float)($item['hpp'] ?? 0);
-                    $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
-                    $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
-                    $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
-                    $feeEu            = (float)($item['fee_eu'] ?? 0);
-                    $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
-                    $marginType       = $item['margin_type'] ?? 'percentage';
-                    $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
-
-                    $rfqItem = new RfqItem([
-                        'category'           => $cat,
-                        'product_name'       => $item['product_name'],
-                        'qty'                => $item['qty'],
-                        'unit'               => $item['unit'] ?? null,
-                        'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
-                        'description'        => $item['description'] ?? $item['detail_item'] ?? null,
-                        'hpp'                => $hpp,
-                        'ongkir_pedia'       => $ongkirPedia,
-                        'ongkir_pelanggan'   => $ongkirPelanggan,
-                        'biaya_kirim'        => $biayaKirim,
-                        'fee_eu'             => $feeEu,
-                        'margin_type'        => $marginType,
-                        'margin_value'       => $marginVal,
-                        'margin'             => $marginVal,
-                        'ceiling'            => $ceiling,
-                        'custom_ceiling'     => $ceiling,
-                        'validity_days'      => (int)($item['validity_days'] ?? 3),
-                    ]);
-                    $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
-                    $rfq->items()->save($rfqItem);
-                    $keptItemIds[] = $rfqItem->id;
-                }
-            }
-
-            if (!empty($keptItemIds)) {
-                $rfq->items()->whereNotIn('id', $keptItemIds)->delete();
-            } else {
-                $rfq->items()->delete();
-            }
-
-            if ($wasApproved) {
-                $admins = \App\Models\User::whereIn('role', ['Admin Purchase', 'Super Admin'])->get();
-                foreach ($admins as $admin) {
-                    \App\Models\Notification::send(
-                        userId:  $admin->id,
-                        type:    'info',
-                        title:   'Quotation Direvisi oleh Sales',
-                        message: 'Sales ' . $rfq->sales_name . ' telah merevisi item pada RFQ ' . $rfq->rfq_number . '. Mohon periksa kembali HPP/Ongkir.',
-                        link:    route('rfq.show', $rfq)
-                    );
-                }
-            }
-
-            DB::commit();
-
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success'  => true,
-                    'redirect' => route('rfq.show', $rfq),
-                    'message'  => 'Quotation ' . $rfq->rfq_number . ' berhasil direvisi dan dikembalikan ke Admin Purchase untuk pengecekan harga baru!',
-                ]);
-            }
-
-            return redirect()->route('rfq.show', $rfq)
-                ->with('success', 'Quotation ' . $rfq->rfq_number . ' berhasil direvisi dan dikembalikan ke Admin Purchase untuk pengecekan harga baru!');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal memperbarui RFQ: ' . $e->getMessage(),
-                ], 500);
-            }
-
-            return redirect()->route('rfq.show', $rfq)
-                ->with('error', 'Gagal memperbarui RFQ: ' . $e->getMessage());
-        }
-    }
-
-    public function destroy(Rfq $rfq)
-    {
-        $user = $this->authUser();
-        $isAdminOrLeader = $user->isAdminOrAbove() || $user->isLeader() || $user->hasPermission('CRUD');
-
-        if ($isAdminOrLeader) {
-            abort_if(in_array($rfq->status, [
-                Rfq::STATUS_PO_PENDING_ADMIN,
-                Rfq::STATUS_PO_PENDING_LEADER,
-                Rfq::STATUS_GOAL,
-            ]), 403, 'RFQ tidak bisa dihapus karena sudah masuk tahap PO atau GOAL.');
-        } else {
-            abort_if(!$user->isSales(), 403);
-            if ($rfq->sales_id !== Auth::id()) {
-                abort(403);
-            }
-            abort_if(!$rfq->isPendingAdmin(), 403, 'RFQ hanya bisa dihapus saat status Pending Admin.');
-        }
-
-        $rfqNumber = $rfq->rfq_number;
-        $salesId = $rfq->sales_id;
-
-        // Hapus draf quotation terkait jika belum menjadi PO
-        $draftQuotations = \App\Models\Quotation::where('rfq_id', $rfq->id)->get();
-        foreach ($draftQuotations as $quo) {
-            $quo->delete();
-        }
-
-        $rfq->delete();
-
-        if ($salesId) {
-            $this->clearDashboardCacheForSales($salesId);
-        }
-
-        $prevUrl = url()->previous();
-        $isDetailView = str_contains($prevUrl, '/rfqs/' . $rfq->id);
-        $redirectTarget = $isDetailView ? route('rfq.index') : ($prevUrl ?: route('rfq.index'));
-
-        return redirect()->to($redirectTarget)
-            ->with('success', 'RFQ ' . $rfqNumber . ' berhasil dihapus.');
-    }
-
-    public function getCustomer(Customer $customer)
-    {
-        if (!$this->authUser()->isAdminOrAbove() && $customer->sales_id !== Auth::id()) {
-            abort(403);
-        }
-
-        $primary = $customer->primaryContact();
-
-        return response()->json([
-            'company_name' => $customer->company_name,
-            'company_code' => $customer->company_code,
-            'address'      => $customer->address,
-            'city'         => $customer->city,
-            'province'     => $customer->province,
-            'phone'        => $customer->phone,
-            'email'        => $customer->email,
-            'cp_name'      => $primary?->name ?? $customer->cp_name,
-            'cp_position'  => $primary?->position ?? $customer->cp_position,
-            'cp_email'     => $primary?->email ?? $customer->cp_email,
-            'cp_phone'     => $primary?->phone ?? $customer->cp_phone,
-            'contacts'     => $customer->contacts,
-        ]);
-    }
-
-    private function clearDashboardCacheForSales(?int $salesId): void
-    {
-        $ym = now()->format('Y-m');
-        $currFilterKey = now()->startOfMonth()->format('Ymd') . '_' . now()->endOfMonth()->format('Ymd');
-
-        if ($salesId) {
-            Cache::forget('dash:cust_stats:' . $salesId);
-            Cache::forget('dash:rfq_stats:' . $salesId);
-            Cache::forget('dash:quo_stats:' . $salesId);
-            Cache::forget('dash:cust_health:' . $salesId);
-            Cache::forget('dash:po_stats:' . $salesId);
-            Cache::forget('dash:rev:' . $salesId . ':' . $ym);
-            Cache::forget('dash:goal_cnt:' . $salesId . ':' . $ym);
-            Cache::forget('dash:stats:' . $salesId . ':' . $ym);
-            Cache::forget("dash:rev:{$salesId}:{$currFilterKey}");
-            Cache::forget("dash:goal_cnt:{$salesId}:{$currFilterKey}");
-            Cache::forget("dash:stats:{$salesId}:{$currFilterKey}");
-            Cache::forget("dash:pipeline:{$salesId}:{$currFilterKey}");
-            Cache::forget('dash:pipeline:' . $salesId);
-            Cache::forget('dash:chart:' . $salesId);
-            Cache::forget('dash:recent:' . $salesId);
-            Cache::forget("dash:recent_goal:{$salesId}");
-            Cache::forget('dash:recent_quo:' . $salesId);
-        }
-
-        Cache::forget('dash:admin:quo_global');
-        Cache::forget('dash:admin:global');
-        Cache::forget('dash:admin:total_rfq');
-        Cache::forget('dash:admin:total_rfq_items');
-        Cache::forget('dash:admin:action_queue');
-        Cache::forget('dash:admin:rev:' . $ym);
-        Cache::forget("dash:admin:rev:{$currFilterKey}");
-        Cache::forget("dash:admin:pipeline:{$currFilterKey}");
-        Cache::forget('dash:admin:pipeline');
-        Cache::forget("dash:admin:goal_cnt:{$currFilterKey}");
-        Cache::forget('dash:admin:chart');
-        Cache::forget('dash:admin:perf:' . $ym);
-        Cache::forget('dash:admin:recent_quo');
-        Cache::forget('dash:admin:recent');
-        Cache::forget('analytics:pending_review_count');
-        Cache::forget('analytics:revenue_this_month');
-        Cache::forget('analytics:monthly_revenue');
-    }
-
-    public function priceForm(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove(), 403);
-        abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
-        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa diubah dari status saat ini.');
-
-        $rfq->load(['items.components.vendor', 'items.vendor', 'customer', 'revisionAuthor']);
-        
-        $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
-        // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
-        $mp = \App\Models\Mainpower::first();
-        $mpPediaRate = $mp ? ($mp->total > 0 ? (float)$mp->total : ($mp->mp + $mp->thr + $mp->bpjskes + $mp->bpjstk)) : 336179; // fallback
-
-        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->with('creator:id,name')
-            ->orderByDesc('version')
-            ->get();
-
-        return view('rfqs.price_form', compact('rfq', 'vendors', 'mpPediaRate', 'priceHistories'));
-    }
-
-    public function submitPrice(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove(), 403);
-        abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
-        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa dikirim dari status saat ini.');
-
-        if ($request->has('items') && is_array($request->items)) {
-            $cleanedItems = $request->items;
-            foreach ($cleanedItems as $key => $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-                foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $field) {
-                    if (isset($item[$field]) && is_string($item[$field])) {
-                        $cleanedVal = preg_replace('/[^\d]/', '', $item[$field]);
-                        $cleanedItems[$key][$field] = $cleanedVal !== '' ? $cleanedVal : 0;
-                    }
-                }
-                if (!isset($cleanedItems[$key]['hpp']) || $cleanedItems[$key]['hpp'] === '' || $cleanedItems[$key]['hpp'] === null) {
-                    $cleanedItems[$key]['hpp'] = 0;
-                }
-                if (isset($item['link_referensi']) && is_string($item['link_referensi'])) {
-                    $link = trim($item['link_referensi']);
-                    if ($link !== '' && !preg_match('~^https?://~i', $link)) {
-                        $cleanedItems[$key]['link_referensi'] = 'https://' . $link;
-                    } elseif ($link === '') {
-                        $cleanedItems[$key]['link_referensi'] = null;
-                    }
-                }
-                if (isset($item['margin_value']) && is_string($item['margin_value'])) {
-                    $mType = $item['margin_type'] ?? 'percentage';
-                    if ($mType === 'nominal') {
-                        $cleanedVal = preg_replace('/[^\d]/', '', $item['margin_value']);
-                        $cleanedItems[$key]['margin_value'] = $cleanedVal !== '' ? $cleanedVal : 0;
-                    } else {
-                        $cleanedItems[$key]['margin_value'] = str_replace(',', '.', trim($item['margin_value']));
-                    }
-                }
-
-                if (isset($item['components']) && is_array($item['components'])) {
-                    foreach ($item['components'] as $cKey => $comp) {
-                        if (!is_array($comp)) {
-                            continue;
-                        }
-                        foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $cField) {
-                            if (isset($comp[$cField]) && is_string($comp[$cField])) {
-                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp[$cField]);
-                                $cleanedItems[$key]['components'][$cKey][$cField] = $cCleanedVal !== '' ? $cCleanedVal : 0;
-                            }
-                        }
-                        if (isset($comp['margin_value']) && is_string($comp['margin_value'])) {
-                            $cMType = $comp['margin_type'] ?? 'percentage';
-                            if ($cMType === 'nominal') {
-                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp['margin_value']);
-                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = $cCleanedVal !== '' ? $cCleanedVal : 0;
-                            } else {
-                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = str_replace(',', '.', trim($comp['margin_value']));
-                            }
-                        }
-                    }
-                }
-            }
-            $request->merge(['items' => $cleanedItems]);
-        }
-
-        $validated = $request->validate([
-            'notes'                              => 'nullable|string|max:3000',
-            'admin_note'                         => 'nullable|string|max:5000',
-            'tax_type'                           => 'nullable|string|in:auto,include,exclude',
-            'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
-            'payment_term_days'                  => 'nullable|integer|min:1|max:365',
-            'payment_term_dp_percent'            => 'nullable|integer|min:1|max:99',
-            'material_package_unit'              => 'nullable|string|max:30',
-            'jasa_package_unit'                  => 'nullable|string|max:30',
-            'enable_material_ceiling'            => 'nullable',
-            'material_ceiling_step'              => 'nullable',
-            'material_custom_total'              => 'nullable',
-            'is_manual_material_custom_total'    => 'nullable',
-            'enable_jasa_ceiling'                => 'nullable',
-            'jasa_ceiling_step'                  => 'nullable',
-            'jasa_custom_total'                  => 'nullable',
-            'is_manual_jasa_custom_total'        => 'nullable',
-            'items'                              => 'required|array',
-            'items.*.is_bundle'                  => 'nullable',
-            'items.*.category'                   => 'nullable|string',
-            'items.*.vendor_id'                  => 'nullable|exists:vendors,id',
-            'items.*.vendor_name'                => 'nullable|string|max:255',
-            'items.*.product_name'               => 'required|string',
-            'items.*.qty'                        => 'required|numeric|min:0.01',
-            'items.*.unit'                       => 'nullable|string',
-            'items.*.description'                => 'nullable|string',
-            'items.*.detail_item'                => 'nullable|string|max:5000',
-            'items.*.hpp'                        => 'required|numeric|min:0',
-            'items.*.ongkir_pedia'               => 'nullable|numeric|min:0',
-            'items.*.biaya_kirim'                => 'nullable|numeric|min:0',
-            'items.*.fee_eu'                     => 'nullable|numeric|min:0',
-            'items.*.margin_type'                => 'nullable|in:percentage,nominal',
-            'items.*.margin_value'               => 'nullable|numeric|min:0',
-            'items.*.custom_ceiling'             => 'nullable|numeric|min:0',
-            'items.*.validity_days'              => 'nullable|integer|min:1',
-            'items.*.components'                 => 'nullable|array',
-            'items.*.components.*.id'            => 'nullable',
-            'items.*.components.*.product_name'  => 'nullable|string',
-            'items.*.components.*.vendor_name'   => 'nullable|string|max:255',
-            'items.*.components.*.qty'           => 'nullable|numeric|min:0.01',
-            'items.*.components.*.unit'          => 'nullable|string|max:30',
-            'items.*.components.*.hpp'           => 'nullable|numeric|min:0',
-            'items.*.components.*.biaya_kirim'   => 'nullable|numeric|min:0',
-            'items.*.components.*.ongkir_pedia'  => 'nullable|numeric|min:0',
-            'items.*.components.*.margin_type'   => 'nullable|in:percentage,nominal',
-            'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
-            'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
-            'items.*.components.*.description'   => 'nullable|string',
-            'items.*.components.*.link_referensi'=> 'nullable|string|max:2048',
-            'items.*.link_referensi'             => 'nullable|string|max:2048',
-        ]);
-
-        $oldStatus = $rfq->status;
-        $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
-        $targetStatus = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
-            ? Rfq::STATUS_APPROVED
-            : Rfq::STATUS_PENDING_LEADER;
-
-        try {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request, $targetStatus) {
-            $cleanPrice = function ($val, $default = 0.0) {
-                if ($val === null || $val === '') return $default;
-                if (is_int($val) || is_float($val)) return (float) $val;
-                $cleaned = preg_replace('/[^\d]/', '', (string) $val);
-                return $cleaned !== '' ? (float) $cleaned : $default;
-            };
-
-            $rfqUpdate = [];
-            if ($request->has('notes')) {
-                $rfqUpdate['notes'] = $request->notes;
-            }
-            if ($request->has('admin_note')) {
-                $rfqUpdate['admin_note'] = $request->filled('admin_note') ? trim($request->admin_note) : null;
-                $rfqUpdate['admin_note_updated_at'] = now();
-                $rfqUpdate['admin_note_by'] = Auth::id();
-            }
-            if ($request->has('tax_type')) {
-                $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
-            }
-            if ($request->has('material_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'material_package_unit')) {
-                $rfqUpdate['material_package_unit'] = trim($request->material_package_unit) ?: 'Lot';
-            }
-            if ($request->has('jasa_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'jasa_package_unit')) {
-                $rfqUpdate['jasa_package_unit'] = trim($request->jasa_package_unit) ?: 'Lot';
-            }
-            if ($request->has('enable_material_ceiling')) {
-                $rfqUpdate['enable_material_ceiling'] = $request->boolean('enable_material_ceiling');
-            }
-            if ($request->has('material_ceiling_step')) {
-                $rfqUpdate['material_ceiling_step'] = $cleanPrice($request->material_ceiling_step, 500000.0);
-            }
-            if ($request->has('material_custom_total')) {
-                $hasManualFlag = $request->has('is_manual_material_custom_total');
-                $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
-                $customMat = $cleanPrice($request->material_custom_total, 0.0);
-                $rfqUpdate['material_custom_total'] = ($isManualMat && $customMat > 0) ? $customMat : null;
-            }
-            if ($request->has('enable_jasa_ceiling')) {
-                $rfqUpdate['enable_jasa_ceiling'] = $request->boolean('enable_jasa_ceiling');
-            }
-            if ($request->has('jasa_ceiling_step')) {
-                $rfqUpdate['jasa_ceiling_step'] = $cleanPrice($request->jasa_ceiling_step, 500000.0);
-            }
-            if ($request->has('jasa_custom_total')) {
-                $hasManualFlag = $request->has('is_manual_jasa_custom_total');
-                $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
-                $customJasa = $cleanPrice($request->jasa_custom_total, 0.0);
-                $rfqUpdate['jasa_custom_total'] = ($isManualJasa && $customJasa > 0) ? $customJasa : null;
-            }
-            if ($request->has('payment_term_type')) {
-                $termType = $request->payment_term_type ?: 'tempo';
-                $rfqUpdate['payment_term_type'] = $termType;
-                if ($termType === 'tempo') {
-                    $rfqUpdate['payment_term_days'] = $request->filled('payment_term_days') ? (int) $request->payment_term_days : 14;
-                    $rfqUpdate['payment_term_dp_percent'] = $request->filled('payment_term_dp_percent') ? (int) $request->payment_term_dp_percent : null;
-                } else {
-                    $rfqUpdate['payment_term_days'] = null;
-                    $rfqUpdate['payment_term_dp_percent'] = null;
-                }
-            }
-            if (!empty($rfqUpdate)) {
-                $rfq->update($rfqUpdate);
-                $rfq->touch();
-            }
-
-            $submittedItemIds = [];
-            foreach ($validated['items'] as $itemId => $data) {
-                $item = is_numeric($itemId) ? $rfq->items()->find($itemId) : null;
-                if (!$item) {
-                    $item = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
-                }
-
-                $isBundle = !empty($data['is_bundle']);
-                $item->is_bundle = $isBundle;
-
-                $item->category         = $data['category'] ?? $item->category;
-                // Support typed vendor name (nama vendor ketik saja)
-                $typedVendor = trim($data['vendor_name'] ?? '');
-                if ($typedVendor !== '') {
-                    $vendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($typedVendor)])->first();
-                    if (!$vendor) {
-                        $vendor = \App\Models\Vendor::create([
-                            'nama_vendor' => $typedVendor,
-                            'kategori'    => 'General Trading & Office',
-                            'status'      => \App\Models\Vendor::STATUS_ACTIVE,
-                        ]);
-                    }
-                    $item->vendor_id = $vendor->id;
-                } elseif (array_key_exists('vendor_name', $data) && $typedVendor === '') {
-                    $item->vendor_id = null;
-                } else {
-                    $item->vendor_id = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
-                }
-                $item->product_name     = $data['product_name'];
-                $item->qty              = $data['qty'];
-                $item->unit             = $data['unit'] ?? null;
-                $rawDesc                = $data['description'] ?? $data['detail_item'] ?? null;
-                $desc                   = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
-                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
-                    : null;
-                $item->description      = $desc;
-                $item->detail_item      = $desc;
-                $item->hpp              = $data['hpp'];
-                $item->ongkir_pedia     = (float) ($data['ongkir_pedia'] ?? ($item->ongkir_pedia ?? 0));
-                $item->biaya_kirim      = (float) ($data['biaya_kirim'] ?? 0);
-                $item->fee_eu           = (float) ($data['fee_eu'] ?? 0);
-                $item->margin_type      = $data['margin_type'] ?? 'percentage';
-                $item->margin_value     = (float) ($data['margin_value'] ?? 0);
-                $item->margin           = (float) ($data['margin_value'] ?? 0);
-                $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
-                $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
-                $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
-
-                $item->link_referensi  = !empty($data['link_referensi']) ? $data['link_referensi'] : null;
-
-                $item->price_after_margin = $item->calculatePriceAfterMargin();
-                $item->save();
-                $submittedItemIds[] = $item->id;
-
-                if ($isBundle && !empty($data['components']) && is_array($data['components'])) {
-                    $bundleCostTotal = 0;
-                    $bundleSellingTotal = 0;
-                    $activeCompIds = [];
-
-                    foreach ($data['components'] as $cData) {
-                        $cName = trim($cData['product_name'] ?? '');
-                        if ($cName === '') {
-                            continue;
-                        }
-
-                        $compId = !empty($cData['id']) && is_numeric($cData['id']) ? (int) $cData['id'] : null;
-                        $comp = $compId ? $rfq->items()->find($compId) : null;
-                        if (!$comp) {
-                            $comp = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
-                        }
-
-                        $comp->parent_id = $item->id;
-                        $comp->is_bundle = false;
-                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
-                        $comp->category = $item->category;
-                        $comp->product_name = $cName;
-                        $comp->qty = (float) ($cData['qty'] ?? 1);
-                        $comp->unit = $cData['unit'] ?? 'Unit';
-                        $rawCDesc = $cData['description'] ?? null;
-                        $comp->description = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawCDesc)
-                            ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawCDesc))
-                            : null;
-                        $comp->detail_item = $comp->description;
-                        $comp->hpp = (float) ($cData['hpp'] ?? 0);
-                        $comp->ongkir_pedia = (float) ($cData['ongkir_pedia'] ?? 0);
-                        $comp->biaya_kirim = (float) ($cData['biaya_kirim'] ?? 0);
-                        $comp->fee_eu = 0;
-                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
-                        $comp->margin_value = (float) ($cData['margin_value'] ?? 12.5);
-                        $comp->margin = $comp->margin_value;
-                        $comp->custom_ceiling = (float) ($cData['custom_ceiling'] ?? 50000);
-                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
-                        $comp->validity_days = $item->validity_days;
-                        $comp->link_referensi = $cData['link_referensi'] ?? null;
-
-                        $cTypedVendor = trim($cData['vendor_name'] ?? '');
-                        if ($cTypedVendor !== '') {
-                            $cVendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($cTypedVendor)])->first();
-                            if (!$cVendor) {
-                                $cVendor = \App\Models\Vendor::create([
-                                    'nama_vendor' => $cTypedVendor,
-                                    'kategori'    => 'Hardware & Komponen PC',
-                                    'status'      => \App\Models\Vendor::STATUS_ACTIVE,
-                                ]);
-                            }
-                            $comp->vendor_id = $cVendor->id;
-                        } else {
-                            $comp->vendor_id = null;
-                        }
-
-                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
-                        $comp->save();
-
-                        $submittedItemIds[] = $comp->id;
-                        $activeCompIds[] = $comp->id;
-
-                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
-                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
-                    }
-
-                    $rfq->items()->where('parent_id', $item->id)->whereNotIn('id', $activeCompIds)->delete();
-
-                    if (!empty($activeCompIds)) {
-                        $item->hpp = $bundleCostTotal;
-                        $item->price_after_margin = $bundleSellingTotal;
-                        $item->save();
-                    }
-                } else {
-                    $rfq->items()->where('parent_id', $item->id)->delete();
-                }
-            }
-
-            if (!empty($submittedItemIds)) {
-                $rfq->items()->whereNotIn('id', $submittedItemIds)->delete();
-            }
-
-            // Snapshot History (Versioning)
-            $updatedData = $rfq->items()->get()->toArray();
-
-            if (count($updatedData) > 0) {
-                $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
-                
-                $historyPayload = [
-                    'rfq_id'       => $rfq->id,
-                    'version'      => $lastVersion + 1,
-                    'history_data' => $updatedData,
-                    'created_by'   => $this->authUser()->id,
-                ];
-
-                if (\Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
-                    $historyPayload['approved_at'] = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
-                        ? now()
-                        : null;
-                }
-
-                \App\Models\RfqPriceHistory::create($historyPayload);
-            }
-
-            // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved
-            // Jika Admin yang merevisi, alihkan ke Pending Leader agar disetujui ulang oleh Leader
-            if ($rfq->canTransitionTo($targetStatus)) {
-                $rfq->update(['status' => $targetStatus]);
-            }
-        });
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Gagal submit harga RFQ: ' . $e->getMessage(), [
-                'rfq_id' => $rfq->id,
-                'user_id' => \Illuminate\Support\Facades\Auth::id(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat menyimpan harga: ' . $e->getMessage());
-        }
-
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-        }
-
-        // Jika yang submit adalah Admin, kirim notifikasi HANYA ke Leader untuk Approval (Sales TIDAK diberi notif prematur)
-        if (!$isLeaderUser) {
-            $leaders = \App\Models\User::where('role', 'Leader')->get();
-            foreach ($leaders as $leader) {
-                \App\Models\Notification::send(
-                    userId:  $leader->id,
-                    type:    'warning',
-                    title:   'RFQ Membutuhkan Approval',
-                    message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
-                    link:    route('rfq.show', $rfq)
-                );
-            }
-        } else {
-            // Jika Leader yang langsung menyesuaikan harga pada RFQ yang statusnya sudah Approved
-            if ($targetStatus === Rfq::STATUS_APPROVED && $rfq->sales_id) {
-                \App\Models\Notification::send(
-                    userId:  $rfq->sales_id,
-                    type:    'info',
-                    title:   'Harga Penawaran Disesuaikan Leader',
-                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan harga untuk RFQ ' . $rfq->rfq_number . '.',
-                    link:    route('rfq.show', $rfq)
-                );
-            }
-
-            // Info ke Admin Purchase
-            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
-            foreach ($admins as $admin) {
-                \App\Models\Notification::send(
-                    userId:  $admin->id,
-                    type:    'info',
-                    title:   'HPP Disesuaikan oleh Leader',
-                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan HPP untuk RFQ ' . $rfq->rfq_number . '.',
-                    link:    route('rfq.show', $rfq)
-                );
-            }
-        }
-
-        $successMsg = $isLeaderUser
-            ? 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disesuaikan oleh Leader.'
-            : 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disimpan dan diteruskan ke Leader untuk di-approve.';
-
-        return redirect()->route('rfq.show', $rfq)->with('success', $successMsg);
-    }
-
-    public function updateAdminNote(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader() && !$this->authUser()->hasPermission('CRUD'), 403);
-
-        $validated = $request->validate([
-            'admin_note' => 'nullable|string|max:5000',
-        ]);
-
-        $note = $request->filled('admin_note') ? trim($validated['admin_note']) : null;
-
-        $rfq->update([
-            'admin_note'            => $note,
-            'admin_note_updated_at' => now(),
-            'admin_note_by'         => Auth::id(),
-        ]);
-
-        if ($rfq->sales_id) {
-            try {
-                $updaterName = Auth::user()?->name ?? 'Admin';
-                Notification::send(
-                    userId:  $rfq->sales_id,
-                    type:    'info',
-                    title:   'Catatan Admin pada RFQ ' . $rfq->rfq_number,
-                    message: $updaterName . ' memperbarui catatan internal untuk RFQ ' . $rfq->rfq_number . ' (' . $rfq->customer_name . ').',
-                    link:    route('rfq.show', $rfq)
-                );
-            } catch (\Throwable $e) {
-                \Log::warning('Gagal kirim notifikasi admin note: ' . $e->getMessage());
-            }
-        }
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success'               => true,
-                'message'               => 'Catatan internal untuk Sales berhasil disimpan.',
-                'admin_note'            => $rfq->admin_note,
-                'admin_note_updated_at' => $rfq->admin_note_updated_at?->format('d/m/Y H:i'),
-                'admin_note_author'     => $rfq->adminNoteAuthor?->name,
-                'whatsapp_text'         => $rfq->getWhatsAppFormattedNote(),
-            ]);
-        }
-
-        return redirect()->back()->with('success', 'Catatan internal untuk Sales berhasil disimpan.');
-    }
-
-    public function approve(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-
-        // Idempoten: jika sudah disetujui (misal double-click atau re-submit), kembalikan pesan info tanpa error 403
-        if ($rfq->status === Rfq::STATUS_APPROVED) {
-            return redirect()->back(fallback: route('rfq.show', $rfq))
-                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui sebelumnya.');
-        }
-
-        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_APPROVED)) {
-            return redirect()->back(fallback: route('rfq.show', $rfq))
-                ->with('error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa disetujui dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
-        }
-
-        $rfq->update(['status' => Rfq::STATUS_APPROVED]);
-        $rfq->touch();
-
-        $latestPriceHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->orderByDesc('version')
-            ->first();
-        if ($latestPriceHistory && \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
-            if ($latestPriceHistory->approved_at === null) {
-                $latestPriceHistory->update(['approved_at' => now()]);
-            }
-        }
-
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-            // EVENT 3 — Leader Approve: notifikasi ke SALES terkait
-            \App\Models\Notification::send(
-                $rfq->sales_id,
-                'success',
-                'RFQ Di-Approve',
-                'Quotation ' . $rfq->rfq_number . ' telah di-Approve dan siap di-download!',
-                route('rfq.show', $rfq)
-            );
-        }
-
-        // Notifikasi ke Admin Purchase bahwasanya sudah disetujui oleh Leader
-        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
-        foreach ($admins as $admin) {
-            \App\Models\Notification::send(
-                $admin->id,
-                'success',
-                'RFQ Disetujui Leader',
-                'RFQ ' . $rfq->rfq_number . ' telah disetujui oleh Leader. Siap dilanjutkan ke proses berikutnya.',
-                route('rfq.show', $rfq)
-            );
-        }
-
-        // Otomatis kirim kartu pengumuman ke saluran chat Sales terkait
-        $this->broadcastRfqApprovalToChat($rfq, $this->authUser());
-
-        return redirect()->back(fallback: route('rfq.show', $rfq))
-            ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil disetujui. Dokumen Quotation sudah bisa di-generate.');
-    }
-
-    public function reject(Request $request, Rfq $rfq)
-    {
-        $validated = $request->validate([
-            'action_type'    => 'nullable|in:revision,cancel',
-            'notes'          => 'nullable|string|max:2000',
-            'revision_notes' => 'nullable|string|max:2000',
-        ]);
-
-        $actionType = $validated['action_type'] ?? 'revision';
-        $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
-
-        if ($actionType === 'cancel') {
-            // Membatalkan RFQ diizinkan untuk Leader, Admin, atau Super Admin
-            abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdminOrAbove(), 403);
-
-            // Idempoten jika sudah Cancelled
-            if ($rfq->status === Rfq::STATUS_CANCELLED) {
-                return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dibatalkan sebelumnya.');
-            }
-
-            if (!$rfq->canTransitionTo(Rfq::STATUS_CANCELLED)) {
-                return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dibatalkan dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
-            }
-
-            $rfqUpdate = [
-                'status'         => Rfq::STATUS_CANCELLED,
-                'revision_notes' => $notes,
-            ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
-                $rfqUpdate['revision_by'] = Auth::id();
-                $rfqUpdate['revision_at'] = now();
-            }
-            $rfq->update($rfqUpdate);
-            $rfq->touch();
-
-            if ($rfq->sales_id) {
-                $this->clearDashboardCacheForSales($rfq->sales_id);
-                \App\Models\Notification::send(
-                    $rfq->sales_id,
-                    'error',
-                    'RFQ Ditolak / Dibatalkan ❌',
-                    'RFQ ' . $rfq->rfq_number . ' resmi ditolak/dibatalkan oleh ' . $this->authUser()->name . '. Alasan: ' . ($notes ?: '-'),
-                    route('rfq.show', $rfq)
-                );
-            }
-
-            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
-            foreach ($admins as $admin) {
-                \App\Models\Notification::send(
-                    $admin->id,
-                    'warning',
-                    'RFQ Dibatalkan: ' . $rfq->rfq_number,
-                    $this->authUser()->name . ' membatalkan RFQ ' . $rfq->rfq_number . '. Alasan: ' . ($notes ?: '-'),
-                    route('rfq.show', $rfq)
-                );
-            }
-
-            $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: true);
-
-            return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' resmi DITOLAK dan DIBATALKAN (Cancelled).');
-        }
-
-        // Action revisi HPP hanya boleh dilakukan Leader atau Super Admin saat tahap Pending Leader
-        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-
-        // Default: Kembalikan ke Admin Purchase untuk revisi HPP
-        // Idempoten: jika sudah dikembalikan ke admin sebelumnya
-        if ($rfq->status === Rfq::STATUS_PENDING_ADMIN) {
-            return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dikembalikan untuk revisi sebelumnya.');
-        }
-
-        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
-            return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dikembalikan ke Admin dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
-        }
-
-        $rfqUpdate = [
-            'status'         => Rfq::STATUS_PENDING_ADMIN,
-            'revision_notes' => $notes,
-        ];
-        if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
-            $rfqUpdate['revision_by'] = Auth::id();
-            $rfqUpdate['revision_at'] = now();
-        }
-        $rfq->update($rfqUpdate);
-        $rfq->touch();
-
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-            // EVENT 3 — Leader Reject → notif + tanda merah di lonceng SALES terkait
-            \App\Models\Notification::send(
-                $rfq->sales_id,
-                'error',
-                'RFQ Perlu Revisi Harga',
-                'RFQ ' . $rfq->rfq_number . ' dikembalikan oleh Leader untuk revisi harga. Alasan: ' . ($notes ?: '-'),
-                route('rfq.show', $rfq)
-            );
-        }
-
-        // Notif ke Admin Purchase
-        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
-        foreach ($admins as $admin) {
-            \App\Models\Notification::send(
-                $admin->id,
-                'warning',
-                'Revisi HPP Diperlukan: ' . $rfq->rfq_number,
-                'Leader meminta revisi harga RFQ ' . $rfq->rfq_number . '. Catatan: ' . ($notes ?: '-'),
-                route('rfq.price_form', $rfq)
-            );
-        }
-
-        $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: false);
-
-        return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
-    }
-
-    public function downloadQuotation(Request $request, Rfq $rfq)
-    {
-        ini_set('memory_limit', '512M');
-        set_time_limit(120);
-
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-
-        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
-        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
-
-        if (!$historyId && !$canPreviewDraft) {
-            abort_if(!in_array($rfq->status, [
-                Rfq::STATUS_APPROVED,
-                Rfq::STATUS_QUOTATION_CREATED,
-                Rfq::STATUS_QUOTATION_SENT,
-                Rfq::STATUS_PO_PENDING_ADMIN,
-                Rfq::STATUS_PO_PENDING_LEADER,
-                Rfq::STATUS_GOAL
-            ]), 403, 'Quotation belum tersedia.');
-        }
-
-        if (!$historyId && $rfq->status === Rfq::STATUS_APPROVED) {
-            if ($rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
-                $rfq->update(['status' => Rfq::STATUS_QUOTATION_CREATED]);
-                if ($rfq->sales_id) {
-                    $this->clearDashboardCacheForSales($rfq->sales_id);
-                }
-            }
-        }
-
-        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
-        
-        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->orderByDesc('version')
-            ->get();
-
-        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
-        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
-            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
-
-        if ($historyId !== null && $resolvedHistory !== null) {
-            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
-                $item = new \App\Models\RfqItem();
-                $item->forceFill((array) $itemArr);
-                $item->setRelation('vendor', null);
-                return $item;
-            });
-            $rfq->setRelation('items', $rawItems);
-        }
-
-        $fontCacheDir = storage_path('fonts');
-        if (!is_dir($fontCacheDir)) {
-            @mkdir($fontCacheDir, 0777, true);
-        }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate', 'quotationItems'), [], 'UTF-8');
-        $pdf->setPaper('a4', 'portrait');
-        $pdf->setOptions([
-            'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
-            'isFontSubsettingEnabled' => true,
-            'fontDir' => $fontCacheDir,
-            'fontCache' => $fontCacheDir,
-            'chroot' => [public_path(), storage_path(), base_path()],
-        ]);
-
-        // Format Penamaan File Resmi Pedia:
-        // {RFQ_NUMBER}_Penawaran {NAMA_ITEM}[_rev{N}].pdf
-        // Contoh: 240327-0288_Penawaran Monitor Acer_rev1.pdf
-        $rfqNum = $rfq->rfq_number;
-        if (!$rfqNum) {
-            $datePart = $rfq->rfq_date ? \Carbon\Carbon::parse($rfq->rfq_date)->format('ymd') : date('ymd');
-            $rfqNum = $datePart . '-' . str_pad($rfq->id, 4, '0', STR_PAD_LEFT);
-        }
-
-        $firstItem = $quotationItems->first() ?: ($rfq->customer_quotation_items->first() ?: $rfq->items->first());
-        $rawTitle = $firstItem?->product_name ?: ($rfq->customer?->company_name ?: ($rfq->type ?: 'Hardware'));
-        $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
-        $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');
-
-        $revSuffix = ($revisionCount > 0) ? '_rev' . $revisionCount : '';
-
-        $filename = "{$rfqNum}_Penawaran {$cleanTitle}{$revSuffix}.pdf";
-
-        return response()->streamDownload(function () use ($pdf) {
-            echo $pdf->output();
-        }, $filename, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-            'X-Content-Type-Options' => 'nosniff',
-            'Access-Control-Expose-Headers' => 'Content-Disposition',
-            'Cache-Control' => 'no-cache, no-store, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
-    }
-
-    public function previewQuotation(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
-
-        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
-        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
-
-        if (!$historyId && !$canPreviewDraft) {
-            abort_if(!in_array($rfq->status, [
-                Rfq::STATUS_APPROVED,
-                Rfq::STATUS_QUOTATION_CREATED,
-                Rfq::STATUS_QUOTATION_SENT,
-                Rfq::STATUS_PO_PENDING_ADMIN,
-                Rfq::STATUS_PO_PENDING_LEADER,
-                Rfq::STATUS_GOAL
-            ]), 403, 'Quotation belum tersedia.');
-        }
-
-        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
-        
-        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->orderByDesc('version')
-            ->get();
-
-        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
-        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
-            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
-
-        if ($historyId !== null && $resolvedHistory !== null) {
-            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
-                $item = new \App\Models\RfqItem();
-                $item->forceFill((array) $itemArr);
-                $item->setRelation('vendor', null);
-                return $item;
-            });
-            $rfq->setRelation('items', $rawItems);
-        }
-
-        return view('rfqs.preview_quotation', [
-            'rfq'            => $rfq,
-            'revisionCount'  => $revisionCount,
-            'revisionDate'   => $revisionDate,
-            'quotationItems' => $quotationItems,
-            'historyId'      => $resolvedHistoryId,
-        ]);
-    }
-
-    public function previewDraft(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke pratinjau penawaran ini.');
-
-        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'sales']);
-
-        $cleanNum = function ($val, $default = 0.0) {
-            if ($val === null || $val === '') return $default;
-            if (is_int($val) || is_float($val)) return (float) $val;
-            $cleaned = preg_replace('/[^\d]/', '', (string) $val);
-            return $cleaned !== '' ? (float) $cleaned : $default;
-        };
-
-        if ($request->has('notes')) {
-            $rfq->notes = $request->input('notes');
-        }
-        if ($request->has('tax_type')) {
-            $rfq->tax_type = $request->input('tax_type') ?: 'auto';
-        }
-        if ($request->has('material_package_unit')) {
-            $rfq->material_package_unit = trim($request->input('material_package_unit')) ?: 'Lot';
-        }
-        if ($request->has('jasa_package_unit')) {
-            $rfq->jasa_package_unit = trim($request->input('jasa_package_unit')) ?: 'Lot';
-        }
-        if ($request->has('enable_material_ceiling')) {
-            $rfq->enable_material_ceiling = $request->boolean('enable_material_ceiling');
-        }
-        if ($request->has('material_ceiling_step')) {
-            $rfq->material_ceiling_step = $cleanNum($request->input('material_ceiling_step'), 500000.0);
-        }
-        if ($request->has('material_custom_total')) {
-            $hasManualFlag = $request->has('is_manual_material_custom_total');
-            $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
-            $cMat = $cleanNum($request->input('material_custom_total'), 0.0);
-            $rfq->material_custom_total = ($isManualMat && $cMat > 0) ? $cMat : null;
-        }
-        if ($request->has('enable_jasa_ceiling')) {
-            $rfq->enable_jasa_ceiling = $request->boolean('enable_jasa_ceiling');
-        }
-        if ($request->has('jasa_ceiling_step')) {
-            $rfq->jasa_ceiling_step = $cleanNum($request->input('jasa_ceiling_step'), 500000.0);
-        }
-        if ($request->has('jasa_custom_total')) {
-            $hasManualFlag = $request->has('is_manual_jasa_custom_total');
-            $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
-            $cJasa = $cleanNum($request->input('jasa_custom_total'), 0.0);
-            $rfq->jasa_custom_total = ($isManualJasa && $cJasa > 0) ? $cJasa : null;
-        }
-        if ($request->has('payment_term_type')) {
-            $termType = $request->input('payment_term_type') ?: 'tempo';
-            $rfq->payment_term_type = $termType;
-            if ($termType === 'tempo') {
-                $rfq->payment_term_days = $request->filled('payment_term_days') ? (int) $request->input('payment_term_days') : 14;
-                $rfq->payment_term_dp_percent = $request->filled('payment_term_dp_percent') ? (int) $request->input('payment_term_dp_percent') : null;
-            } else {
-                $rfq->payment_term_days = null;
-                $rfq->payment_term_dp_percent = null;
-            }
-        }
-
-        $tempItems = collect();
-        $rawItems = $request->input('items', []);
-        if (is_array($rawItems)) {
-
-            foreach ($rawItems as $itemId => $data) {
-                if (!is_array($data)) {
-                    continue;
-                }
-                $pName = trim($data['product_name'] ?? '');
-                if ($pName === '') {
-                    continue;
-                }
-
-                $item = new \App\Models\RfqItem();
-                $item->id = is_numeric($itemId) ? (int) $itemId : rand(900000, 999999);
-                $item->rfq_id = $rfq->id;
-                $item->is_bundle = !empty($data['is_bundle']);
-                $item->category = $data['category'] ?? null;
-                $item->product_name = $pName;
-                $item->qty = (float) ($data['qty'] ?? 1);
-                $item->unit = $data['unit'] ?? 'Unit';
-                $rawDesc = $data['description'] ?? $data['detail_item'] ?? null;
-                $desc = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
-                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
-                    : null;
-                $item->description = $desc;
-                $item->detail_item = $desc;
-
-                $item->hpp = $cleanNum($data['hpp'] ?? 0);
-                $item->ongkir_pedia = $cleanNum($data['ongkir_pedia'] ?? 0);
-                $item->biaya_kirim = $cleanNum($data['biaya_kirim'] ?? 0);
-                $item->fee_eu = $cleanNum($data['fee_eu'] ?? 0);
-
-                $item->margin_type = $data['margin_type'] ?? 'percentage';
-                if ($item->margin_type === 'nominal') {
-                    $item->margin_value = $cleanNum($data['margin_value'] ?? 0);
-                } else {
-                    $item->margin_value = (float) str_replace(',', '.', (string) ($data['margin_value'] ?? 0));
-                }
-                $item->margin = $item->margin_value;
-
-                $item->custom_ceiling = $cleanNum($data['custom_ceiling'] ?? 0);
-                $item->ceiling = (int) ($item->custom_ceiling > 0 ? $item->custom_ceiling : 10000);
-                $item->validity_days = (int) ($data['validity_days'] ?? 7);
-
-                $item->price_after_margin = $item->calculatePriceAfterMargin();
-
-                if ($item->is_bundle && !empty($data['components']) && is_array($data['components'])) {
-                    $comps = collect();
-                    $bundleCostTotal = 0;
-                    $bundleSellingTotal = 0;
-
-                    foreach ($data['components'] as $cData) {
-                        if (!is_array($cData)) continue;
-                        $comp = new \App\Models\RfqItem();
-                        $comp->id = rand(800000, 899999);
-                        $comp->rfq_id = $rfq->id;
-                        $comp->parent_id = $item->id;
-                        $comp->is_bundle = false;
-                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
-                        $comp->product_name = $cData['product_name'] ?? 'Komponen';
-                        $comp->qty = (float) ($cData['qty'] ?? 1);
-                        $comp->unit = $cData['unit'] ?? 'Unit';
-                        $comp->hpp = $cleanNum($cData['hpp'] ?? 0);
-                        $comp->ongkir_pedia = $cleanNum($cData['ongkir_pedia'] ?? 0);
-                        $comp->biaya_kirim = $cleanNum($cData['biaya_kirim'] ?? 0);
-                        $comp->fee_eu = 0;
-                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
-                        if ($comp->margin_type === 'nominal') {
-                            $comp->margin_value = $cleanNum($cData['margin_value'] ?? 0);
-                        } else {
-                            $comp->margin_value = (float) str_replace(',', '.', (string) ($cData['margin_value'] ?? 0));
-                        }
-                        $comp->margin = $comp->margin_value;
-                        $comp->custom_ceiling = $cleanNum($cData['custom_ceiling'] ?? 50000);
-                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
-                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
-                        $comps->push($comp);
-
-                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
-                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
-                    }
-
-                    $item->setRelation('components', $comps);
-                    if ($comps->isNotEmpty()) {
-                        $item->hpp = $bundleCostTotal;
-                        $item->price_after_margin = $bundleSellingTotal;
-                    }
-                }
-
-                $tempItems->push($item);
-            }
-        }
-
-        $rfq->setRelation('items', $tempItems);
-
-        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
-            ->orderByDesc('version')
-            ->get();
-
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, false);
-
-        $isDraftPreview = true;
-
-        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate', 'isDraftPreview'));
-    }
-
-    public function markQuotationSent(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403, 'Anda tidak memiliki izin menandai penawaran terkirim.');
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke RFQ ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Hanya RFQ yang sudah disetujui / terbit quotation yang dapat ditandai terkirim ke klien.');
-
-        if ($rfq->status !== Rfq::STATUS_QUOTATION_SENT) {
-            $rfq->update(['status' => Rfq::STATUS_QUOTATION_SENT]);
-            if ($rfq->sales_id) {
-                $this->clearDashboardCacheForSales($rfq->sales_id);
-            }
-        }
-
-        return redirect()->back()->with('success', 'Quotation ' . $rfq->quotation_number . ' berhasil ditandai sebagai Terkirim ke Klien (Quotation Sent)!');
-    }
-
-    public function editQty(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
-        abort_if(
-            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
-            403,
-            $rfq->status === Rfq::STATUS_GOAL
-                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
-                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
-        );
-
-        $rfq->load('items');
-        return view('rfqs.edit_qty', compact('rfq'));
-    }
-
-    public function updateQty(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
-        abort_if(
-            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
-            403,
-            $rfq->status === Rfq::STATUS_GOAL
-                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
-                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
-        );
-
-        $request->validate([
-            'items'                 => 'nullable|array',
-            'items.*.id'            => 'required|exists:rfq_items,id',
-            'items.*.product_name'  => 'required|string',
-            'items.*.description'   => 'nullable|string',
-            'items.*.qty'           => 'required|numeric|min:0.01',
-            'items.*.unit'          => 'required|string',
-            'new_items'             => 'nullable|array',
-            'new_items.*.product_name' => 'required|string',
-            'new_items.*.description'  => 'nullable|string',
-            'new_items.*.qty'          => 'required|numeric|min:0.01',
-            'new_items.*.unit'         => 'required|string',
-            'deleted_items'         => 'nullable|array',
-            'deleted_items.*'       => 'exists:rfq_items,id',
-            'revision_notes'        => 'required|string',
-        ]);
-
-        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $rfq) {
-            if ($request->has('deleted_items')) {
-                $rfq->items()->whereIn('id', $request->deleted_items)->delete();
-            }
-
-            if ($request->has('items')) {
-                foreach ($request->items as $itemData) {
-                    $item = $rfq->items()->find($itemData['id']);
-                    if ($item) {
-                        $item->update([
-                            'product_name' => $itemData['product_name'],
-                            'description'  => $itemData['description'],
-                            'qty'          => $itemData['qty'],
-                            'unit'         => $itemData['unit'],
-                        ]);
-                    }
-                }
-            }
-
-            if ($request->has('new_items')) {
-                foreach ($request->new_items as $newItem) {
-                    $rfq->items()->create([
-                        'category'     => $newItem['category'] ?? 'Hardware',
-                        'product_name' => $newItem['product_name'],
-                        'description'  => $newItem['description'] ?? null,
-                        'qty'          => $newItem['qty'],
-                        'unit'         => $newItem['unit'] ?? 'Unit',
-                        'hpp'          => 0, // Wajib diisi Admin
-                        'margin_type'  => 'percentage',
-                        'price_after_margin' => 0,
-                    ]);
-                }
-            }
-
-            $rfqUpdate = [
-                'status'         => Rfq::STATUS_PENDING_ADMIN,
-                'revision_notes' => $request->revision_notes,
-            ];
-            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
-                $rfqUpdate['revision_by'] = Auth::id();
-                $rfqUpdate['revision_at'] = now();
-            }
-            $rfq->update($rfqUpdate);
-            $rfq->touch();
-
-            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin', 'Leader'])->get();
-            foreach ($admins as $admin) {
-                \App\Jobs\CreateNotification::dispatch([
-                    'user_id' => $admin->id,
-                    'title'   => 'Revisi RFQ ' . $rfq->rfq_number,
-                    'message' => 'Sales ' . $this->authUser()->name . ' telah merevisi penawaran. Mohon cek ulang HPP.',
-                    'type'    => 'warning',
-                    'link'    => route('rfq.show', $rfq),
-                ]);
-            }
-        });
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'Penawaran berhasil direvisi dan dikembalikan ke Admin Purchase.');
-    }
-
-    public function history(Request $request)
-    {
-        abort_if(!$this->authUser()->isSales(), 403, 'Hanya Sales yang dapat mengakses riwayat penjualan.');
-
-        $query = Rfq::with(['customer', 'items'])
-            ->where('sales_id', Auth::id())
-            ->where('status', Rfq::STATUS_GOAL);
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('rfq_number', 'like', '%' . $search . '%')
-                  ->orWhereHas('customer', fn($c) => $c->where('company_name', 'like', '%' . $search . '%'));
-            });
-        }
-
-        $rfqs = $query->orderByDesc('updated_at')->paginate(10)->withQueryString();
-
-        return view('rfqs.history', compact('rfqs'));
-    }
-
-    public function verifyPo(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
-
-        // Idempoten jika sudah diverifikasi
-        if ($rfq->status === Rfq::STATUS_PO_PENDING_LEADER) {
-            return redirect()->route('rfq.show', $rfq)
-                ->with('info', 'PO untuk RFQ ' . $rfq->rfq_number . ' sudah diverifikasi sebelumnya.');
-        }
-
-        if ($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN || !$rfq->canTransitionTo(Rfq::STATUS_PO_PENDING_LEADER)) {
-            return redirect()->route('rfq.show', $rfq)
-                ->with('error', 'PO ini tidak bisa diverifikasi dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
-        }
-
-        $rfq->update(['status' => Rfq::STATUS_PO_PENDING_LEADER]);
-
-        if ($rfq->sales_id) {
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-        }
-
-        // Kirim notifikasi ke Leader agar segera approve GOAL
-        $leaders = \App\Models\User::where('role', 'Leader')->get();
-        foreach ($leaders as $leader) {
-            \App\Models\Notification::send(
-                userId:  $leader->id,
-                type:    'warning',
-                title:   'PO Membutuhkan Approval GOAL',
-                message: 'Admin telah memverifikasi bukti PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu persetujuan GOAL dari Anda.',
-                link:    route('rfq.show', $rfq)
-            );
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'PO untuk RFQ ' . $rfq->rfq_number . ' berhasil diverifikasi. Menunggu approval Leader.');
-    }
-
-    public function uploadPo(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak upload PO untuk RFQ ini.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Upload PO hanya bisa dilakukan saat status Approved, Quotation Created, atau Quotation Sent.');
-
-        $useExistingPo = $request->boolean('use_existing_po') && !$request->hasFile('po_file');
-
-        if ($useExistingPo) {
-            if (!$rfq->hasStoredPoFile()) {
-                return redirect()->route('rfq.show', $rfq)
-                    ->with('error', 'File bukti PO sebelumnya tidak ditemukan di server. Silakan upload ulang file PO.');
-            }
-            $poPath = $rfq->po_file_path;
-        } else {
-            $request->validate([
-                'po_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            ], [
-                'po_file.required' => 'Bukti PO wajib diupload.',
-                'po_file.max'      => 'Ukuran file terlalu besar (maksimal 5 MB).',
-                'po_file.mimes'    => 'Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.',
-            ]);
-
-            // Hapus file lama jika ada sebelum replace file baru
-            $rfq->deleteStoredPoFile();
-            $poPath = $request->file('po_file')->store('purchase_orders', 'public');
-        }
-
-        $rfq->update([
-            'po_file_path'      => $poPath,
-            'status'            => Rfq::STATUS_PO_PENDING_ADMIN,
-            'po_rejection_note' => null,
-            'po_rejected_at'    => null,
-            'po_rejected_by'    => null,
-        ]);
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        // Notif ke Admin Purchase
-        $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->where('id', '!=', Auth::id())->get();
-        $poActionText = $useExistingPo
-            ? ($this->authUser()->name . ' mengajukan verifikasi ulang PO (menggunakan file PO tersimpan) untuk RFQ ' . $rfq->rfq_number . '.')
-            : ($this->authUser()->name . ' mengupload PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu verifikasi Anda.');
-
-        foreach ($admins as $admin) {
-            \App\Models\Notification::send(
-                $admin->id,
-                'info',
-                'PO Diterima',
-                $poActionText,
-                route('rfq.show', $rfq)
-            );
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', $useExistingPo
-                ? 'Bukti PO tersimpan berhasil diajukan ulang. Menunggu verifikasi Admin Purchase.'
-                : 'Bukti PO berhasil diupload. Menunggu verifikasi Admin Purchase.');
-    }
-
-    public function cancelPo(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk membatalkan PO RFQ ini.');
-        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat dibatalkan.');
-
-        // Hapus file PO fisik dari storage
-        $rfq->deleteStoredPoFile();
-
-        $rfq->update([
-            'po_file_path'      => null,
-            'status'            => Rfq::STATUS_QUOTATION_SENT,
-            'po_rejection_note' => null,
-            'po_rejected_at'    => null,
-            'po_rejected_by'    => null,
-        ]);
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'Bukti PO berhasil dibatalkan. Silakan unggah kembali file PO yang sesuai.');
-    }
-
-    public function rejectPo(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin atau Leader yang dapat menolak bukti PO.');
-        abort_if(!in_array($rfq->status, [Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Hanya PO yang berstatus Pending Admin atau Pending Leader yang dapat ditolak.');
-
-        $request->validate([
-            'rejection_reason' => 'required|string|min:3|max:1000',
-        ], [
-            'rejection_reason.required' => 'Alasan penolakan PO wajib diisi.',
-            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
-            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
-        ]);
-
-        // Hapus file PO fisik yang salah dari storage
-        $rfq->deleteStoredPoFile();
-
-        $rejectionReason = trim($request->rejection_reason);
-        $userRole = $this->authUser()->isLeader() ? 'Leader' : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
-
-        $rfq->update([
-            'po_file_path'      => null,
-            'status'            => Rfq::STATUS_QUOTATION_SENT,
-            'po_rejection_note' => $rejectionReason,
-            'po_rejected_at'    => now(),
-            'po_rejected_by'    => Auth::id(),
-        ]);
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        if ($rfq->sales_id) {
-            // Kirim notifikasi peringatan ke Sales pemilik RFQ
-            \App\Models\Notification::send(
-                userId:  $rfq->sales_id,
-                type:    'warning',
-                title:   'Bukti PO Ditolak oleh ' . $userRole,
-                message: $userRole . ' ' . $this->authUser()->name . ' menolak bukti PO untuk RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Silakan lakukan revisi harga/QTY atau koordinasikan dengan Admin.',
-                link:    route('rfq.show', $rfq)
-            );
-        }
-
-        // Jika ditolak oleh Leader, beri tahu juga Admin Purchase agar segera sesuaikan HPP/harga penawaran
-        if ($this->authUser()->isLeader() || $this->authUser()->isSuperAdmin()) {
-            $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
-            foreach ($admins as $admin) {
-                \App\Models\Notification::send(
-                    userId:  $admin->id,
-                    type:    'warning',
-                    title:   'PO Ditolak oleh Leader (Perlu Revisi HPP/Harga)',
-                    message: 'Leader ' . $this->authUser()->name . ' menolak bukti PO RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Harap periksa dan sesuaikan HPP/harga penawaran jika diperlukan.',
-                    link:    route('rfq.show', $rfq)
-                );
-            }
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales dan Admin telah diberitahu untuk melakukan penyesuaian.');
-    }
-
-    public function rejectGoal(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin Purchase, Leader, atau Super Admin yang dapat me-reject status GOAL.');
-        abort_if($rfq->status !== Rfq::STATUS_GOAL || !$rfq->canTransitionTo(Rfq::STATUS_QUOTATION_SENT), 403, 'Hanya RFQ yang berstatus GOAL yang dapat direject untuk revisi data.');
-
-        $request->validate([
-            'rejection_reason' => 'required|string|min:3|max:1000',
-            'remove_po_file'   => 'nullable|boolean',
-        ], [
-            'rejection_reason.required' => 'Alasan penolakan status GOAL wajib diisi.',
-            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
-            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
-        ]);
-
-        $rejectionReason = trim($request->rejection_reason);
-        $removePoFile = $request->boolean('remove_po_file');
-
-        DB::transaction(function () use ($rfq, $rejectionReason, $removePoFile) {
-            if ($removePoFile) {
-                $rfq->deleteStoredPoFile();
-            }
-
-            $rfqUpdate = [
-                'status'            => Rfq::STATUS_QUOTATION_SENT,
-                'po_rejection_note' => $rejectionReason,
-                'po_rejected_at'    => now(),
-                'po_rejected_by'    => Auth::id(),
-            ];
-            if ($removePoFile) {
-                $rfqUpdate['po_file_path'] = null;
-            }
-
-            $rfq->update($rfqUpdate);
-            $rfq->touch();
-
-            \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)
-                ->where('status', \App\Models\PurchaseOrder::STATUS_GOAL)
-                ->update([
-                    'status'           => \App\Models\PurchaseOrder::STATUS_TIDAK_GOAL,
-                    'rejection_reason' => 'GOAL direject untuk revisi RFQ: ' . $rejectionReason,
-                ]);
-        });
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        $actorRole = $this->authUser()->isLeader()
-            ? 'Leader'
-            : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
-
-        if ($rfq->sales_id && (int) $rfq->sales_id !== (int) Auth::id()) {
-            \App\Models\Notification::send(
-                userId:  $rfq->sales_id,
-                type:    'warning',
-                title:   'Status GOAL Direject oleh ' . $actorRole,
-                message: $actorRole . ' ' . $this->authUser()->name . ' me-reject status GOAL untuk RFQ ' . $rfq->rfq_number . ' karena perlu perbaikan data. Catatan: "' . $rejectionReason . '".',
-                link:    route('rfq.show', $rfq)
-            );
-        }
-
-        $reviewerUsers = User::whereIn('role', ['Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
-            ->where('id', '!=', Auth::id())
-            ->get();
-        foreach ($reviewerUsers as $reviewer) {
-            \App\Models\Notification::send(
-                userId:  $reviewer->id,
-                type:    'warning',
-                title:   'Status GOAL RFQ ' . $rfq->rfq_number . ' Direject (Perlu Revisi Data)',
-                message: $actorRole . ' ' . $this->authUser()->name . ' mengembalikan RFQ ' . $rfq->rfq_number . ' dari status GOAL ke tahap revisi. Alasan: "' . $rejectionReason . '".',
-                link:    route('rfq.show', $rfq)
-            );
-        }
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('warning', 'Status GOAL RFQ ' . $rfq->rfq_number . ' berhasil direject dan dikembalikan ke Quotation Sent. Silakan lakukan revisi data lewat Edit HPP / Revisi Penawaran.');
-    }
-
-    public function approveGoal(Request $request, Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
-
-        // Idempoten jika sudah GOAL
-        if ($rfq->status === Rfq::STATUS_GOAL) {
-            return redirect()->route('rfq.show', $rfq)
-                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui menjadi GOAL sebelumnya.');
-        }
-
-        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_LEADER, 403, 'Hanya PO yang sudah diverifikasi Admin (Pending Leader) yang bisa diproses menjadi GOAL.');
-
-        if (!$rfq->canTransitionTo(Rfq::STATUS_GOAL)) {
-            return redirect()->route('rfq.show', $rfq)
-                ->with('error', 'RFQ ini tidak bisa diproses menjadi GOAL dari status saat ini.');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            $rfq->update(['status' => Rfq::STATUS_GOAL]);
-
-            $rfq->load(['customer', 'items.components']);
-
-            // Gunakan item penawaran resmi pelanggan (bebas dari duplikasi komponen anak dan mendukung rollup bundling & projek)
-            $quotationItems = $rfq->customer_quotation_items;
-            if ($quotationItems->isEmpty()) {
-                $nonComponents = $rfq->items->filter(fn($i) => empty($i->parent_id));
-                $quotationItems = $nonComponents->map(function ($i) {
-                    return (object) [
-                        'product_name' => $i->product_name,
-                        'qty'          => (float) $i->qty,
-                        'unit'         => $i->unit ?: 'Unit',
-                        'unit_price'   => (float) $i->price_after_margin,
-                        'row_total'    => (float) ($i->qty * $i->price_after_margin),
-                    ];
-                });
-            }
-
-            $subtotal = (float) $quotationItems->sum('row_total');
-            $isIncludeTax = $rfq->isIncludeTax();
-            $taxAmount = $isIncludeTax ? 0.0 : round($subtotal * 0.11);
-            $grandTotal = $subtotal + $taxAmount;
-
-            $estimatedCost = (float) $rfq->items
-                ->filter(fn($i) => empty($i->parent_id))
-                ->sum(fn($i) => ((float) $i->hpp + (float) $i->ongkir_pedia + (float) $i->biaya_kirim) * (float) $i->qty);
-
-            $poPayload = [
-                'customer_id'           => $rfq->customer_id,
-                'sales_id'              => $rfq->sales_id,
-                'po_date'               => now(),
-                'status'                => \App\Models\PurchaseOrder::STATUS_GOAL,
-                'file_path'             => $rfq->po_file_path,
-                'subtotal'              => $subtotal,
-                'tax_amount'            => $taxAmount,
-                'grand_total'           => $grandTotal,
-                'estimated_cost'        => $estimatedCost,
-                'rejection_reason'      => null,
-                'change_request_reason' => null,
-            ];
-
-            // Reuse existing PO if this RFQ was previously GOAL and revised after Reject GOAL
-            $po = \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)->latest('id')->first();
-            if ($po) {
-                $po->update($poPayload);
-                $po->items()->delete();
-            } else {
-                $poPayload['po_number'] = \App\Models\PurchaseOrder::generatePoNumber();
-                $poPayload['rfq_id']    = $rfq->id;
-                $po = \App\Models\PurchaseOrder::create($poPayload);
-            }
-
-            foreach ($quotationItems as $qItem) {
-                $po->items()->create([
-                    'item_name'  => $qItem->product_name,
-                    'quantity'   => (int) max(1, round($qItem->qty)),
-                    'unit_price' => $qItem->unit_price,
-                    'subtotal'   => $qItem->row_total,
-                ]);
-            }
-
-            DB::commit();
-
-            $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-
-            return redirect()->route('rfq.show', $rfq)
-                ->with('error', 'Gagal memproses GOAL: ' . $e->getMessage());
-        }
-
-        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
-        foreach ($admins as $admin) {
-            \App\Models\Notification::send(
-                $admin->id,
-                'success',
-                'PO Baru (Dari GOAL Sales)',
-                'Sales ' . ($rfq->sales?->name ?? $rfq->sales_name) . ' telah GOAL untuk penawaran ' . $rfq->rfq_number . '. PO siap diproses.',
-                route('po.show', $po)
-            );
-        }
-
-        // Kirim notifikasi ucapan selamat ke Sales pemilik penawaran
-        if ($rfq->sales_id) {
-            \App\Models\Notification::send(
-                $rfq->sales_id,
-                'success',
-                'Selamat! Penawaran GOAL 🎉',
-                'Penawaran ' . $rfq->rfq_number . ' untuk ' . ($rfq->customer?->company_name ?? $rfq->customer_name) . ' telah disetujui Leader sebagai GOAL!',
-                route('rfq.show', $rfq)
-            );
-        }
-
-        $this->clearDashboardCacheForSales($rfq->sales_id);
-
-        return redirect()->route('rfq.show', $rfq)
-            ->with('success', 'Yeay! Quotation ' . $rfq->rfq_number . ' resmi menjadi GOAL dan diteruskan ke Admin Purchase.');
-    }
-
-    public function viewPoFile(Rfq $rfq)
-    {
-        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen PO ini.');
-
-        $path = $rfq->getNormalizedPoFilePath();
-        if (!$path) {
-            abort(404, 'File lampiran bukti PO tidak ditemukan.');
-        }
-
-        if (!Storage::disk('public')->exists($path)) {
-            abort(404, 'File lampiran bukti PO tidak ditemukan di server.');
-        }
-
-        return Storage::disk('public')->response($path);
-    }
-
-    /**
-     * Menghitung nomor revisi resmi penawaran untuk tampilan web dan dokumen PDF.
-     * Aturan: Revisi PDF hanya dihitung jika dokumen telah di-approve Leader lebih dari 1 kali.
-     * Draf sebelum approval pertama tetap menjadi penawaran Original (Rev 0).
-     */
-    private function calculateQuotationRevision(Rfq $rfq, $priceHistories, bool $isApproved): array
-    {
-        $hasApprovedCol = \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at');
-        
-        $approvedHistories = $hasApprovedCol
-            ? $priceHistories->filter(fn($h) => !empty($h->approved_at))->values()
-            : collect();
-
-        $approvedCount = $approvedHistories->count();
-
-        // Dokumen penawaran resmi hanya bertambah nomor revisinya jika pernah disetujui lebih dari 1 kali
-        if ($isApproved) {
-            $revisionCount = ($approvedCount > 1) ? ($approvedCount - 1) : 0;
-        } elseif ($rfq->status === Rfq::STATUS_PENDING_LEADER && $approvedCount >= 1) {
-            $revisionCount = $approvedCount; // Draf revisi ke-N yang sedang menunggu approval Leader
-        } else {
-            $revisionCount = 0;
-        }
-
-        $latestApproved = $approvedHistories->sortByDesc('approved_at')->first();
-        $latestHistory = $priceHistories->sortByDesc('version')->first();
-
-        // Tanggal revisi diambil dari tanggal approval resmi revisi tersebut
-        $revisionDate = $latestApproved?->approved_at
-            ? $latestApproved->approved_at->format('d M Y')
-            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
-
-        return [$revisionCount, $revisionDate, $latestHistory];
-    }
-
-    /**
-     * Resolve quotation revision metadata and quotation items.
-     * Supports both latest version and specific historical version via history_id.
-     *
-     * @return array{0: int, 1: string, 2: \Illuminate\Support\Collection, 3: ?int, 4: ?\App\Models\RfqPriceHistory}
-     */
-    private function resolveQuotationVersion(Rfq $rfq, $priceHistories, ?int $historyId = null): array
-    {
-        if ($historyId) {
-            $targetHistory = $priceHistories->firstWhere('id', $historyId);
-            abort_if(!$targetHistory, 404, 'Dokumen arsip penawaran tidak ditemukan.');
-
-            $canViewUnapproved = $this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader();
-            abort_if(empty($targetHistory->approved_at) && !$canViewUnapproved, 403, 'Versi penawaran ini belum disetujui oleh Leader.');
-
-            $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
-                ->sortBy('version')
-                ->values();
-
-            $index = $approvedHistories->search(fn($h) => (int)$h->id === (int)$targetHistory->id);
-            if ($index !== false) {
-                $revisionCount = (int)$index;
-            } else {
-                $revisionCount = $approvedHistories->count();
-            }
-
-            $revisionDate = $targetHistory->approved_at 
-                ? $targetHistory->approved_at->format('d M Y')
-                : ($targetHistory->created_at ? $targetHistory->created_at->format('d M Y') : date('d M Y'));
-
-            $quotationItems = $rfq->getCustomerQuotationItemsFromSnapshot($targetHistory->history_data ?? []);
-
-            return [$revisionCount, $revisionDate, $quotationItems, $targetHistory->id, $targetHistory];
-        }
-
-        // Default / Latest version
-        $isApproved = in_array($rfq->status, [
-            Rfq::STATUS_APPROVED,
-            Rfq::STATUS_QUOTATION_CREATED,
-            Rfq::STATUS_QUOTATION_SENT,
-            Rfq::STATUS_PO_PENDING_ADMIN,
-            Rfq::STATUS_PO_PENDING_LEADER,
-            Rfq::STATUS_GOAL
-        ]);
-        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
-        $quotationItems = $rfq->customer_quotation_items;
-
-        return [$revisionCount, $revisionDate, $quotationItems, null, $latestHistory];
-    }
-
-    private function authUser(): User
-    {
-        $user = Auth::user();
-        if (!$user) {
-            abort(403);
-        }
-        return $user;
-    }
-
-    /**
-     * Otomatis kirim kartu pengumuman ke saluran chat Sales saat RFQ disetujui Leader.
-     */
-    private function broadcastRfqApprovalToChat(Rfq $rfq, User $approver): void
-    {
-        try {
-            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
-                return;
-            }
-
-            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
-            if (!$salesUser && $rfq->sales_name) {
-                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
-            }
-
-            if (!$salesUser) {
-                return;
-            }
-
-            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
-
-            $noteText = trim($rfq->admin_note ?: ($rfq->notes ?: ''));
-            $announcementText = "📢 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah disetujui Leader dan siap dikirim ke klien.";
-            if (!empty($noteText)) {
-                $announcementText .= "\nCatatan: " . $noteText;
-            }
-
-            $room->messages()->create([
-                'user_id'      => $approver->id,
-                'message'      => $announcementText,
-                'message_type' => 'rfq_card',
-                'rfq_id'       => $rfq->id,
-            ]);
-
-            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Gagal broadcast approval RFQ ke chat: ' . $e->getMessage());
-        }
-    }
-
-    private function broadcastRfqRejectionToChat(Rfq $rfq, User $rejector, ?string $notes, bool $isCancellation = false): void
-    {
-        try {
-            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
-                return;
-            }
-
-            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
-            if (!$salesUser && $rfq->sales_name) {
-                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
-            }
-
-            if (!$salesUser) {
-                return;
-            }
-
-            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
-
-            if ($isCancellation) {
-                $announcementText = "🚫 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah DITOLAK / DIBATALKAN oleh Leader.";
-            } else {
-                $announcementText = "⚠️ Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) dikembalikan oleh Leader ke Admin Purchase untuk revisi harga.";
-            }
-
-            if (!empty($notes)) {
-                $announcementText .= "\nAlasan / Catatan: " . trim($notes);
-            }
-
-            $room->messages()->create([
-                'user_id'      => $rejector->id,
-                'message'      => $announcementText,
-                'message_type' => 'text',
-                'rfq_id'       => $rfq->id,
-            ]);
-
-            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('Gagal broadcast rejection RFQ ke chat: ' . $e->getMessage());
-        }
-    }
-
-    private function redirectAfterReject(Request $request, Rfq $rfq, string $flashType, string $flashMessage)
-    {
-        $referer = (string) $request->header('referer');
-
-        // Jika request datang dari halaman approvals, kembalikan ke approvals
-        if (str_contains($referer, '/approvals')) {
-            return redirect()->route('approvals.index')->with($flashType, $flashMessage);
-        }
-
-        // Jika request datang dari rfq.show atau rfq list, arahkan ke daftar RFQ agar tidak terjebak di halaman yang sama
-        if (str_contains($referer, '/rfqs/') || str_contains($referer, '/rfq')) {
-            return redirect()->route('rfq.index')->with($flashType, $flashMessage);
-        }
-
-        return redirect()->back(fallback: route('rfq.index'))->with($flashType, $flashMessage);
-    }
-}
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Customer;
+use App\Models\Notification;
+use App\Models\Rfq;
+use App\Models\RfqItem;
+use App\Models\User;
+use Illuminate\Http\Request;
+use App\Traits\HandlesDateRangeFilter;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+
+class RfqController extends Controller
+{
+    use HandlesDateRangeFilter;
+    public function index(Request $request)
+    {
+        $dateFilter = $this->resolveDateRange($request);
+        $user = $this->authUser();
+        $query = Rfq::with(['customer', 'sales', 'items']);
+
+        if (!$user->isAdminOrAbove()) {
+            $query->where('sales_id', $user->id);
+        }
+
+        if ($request->filled('status')) {
+            if (in_array(strtolower($request->status), ['quotation', 'penawaran'])) {
+                $query->whereIn('status', [
+                    Rfq::STATUS_APPROVED,
+                    Rfq::STATUS_QUOTATION_CREATED,
+                    Rfq::STATUS_QUOTATION_SENT,
+                    Rfq::STATUS_PO_PENDING_ADMIN,
+                    Rfq::STATUS_PO_PENDING_LEADER,
+                    Rfq::STATUS_GOAL,
+                ]);
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('rfq_number', 'like', '%' . $search . '%')
+                  ->orWhere('customer_name', 'like', '%' . $search . '%')
+                  ->orWhere('sales_name', 'like', '%' . $search . '%')
+                  ->orWhere('customer_code', 'like', '%' . $search . '%')
+                  ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($dateFilter['isFiltered']) {
+            if ($request->status === Rfq::STATUS_GOAL) {
+                $query->whereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+            } else {
+                $query->where(function ($q) use ($dateFilter) {
+                    $q->whereBetween('created_at', [$dateFilter['startDate'], $dateFilter['endDate']])
+                      ->orWhereBetween('updated_at', [$dateFilter['startDate'], $dateFilter['endDate']]);
+                });
+            }
+        }
+
+        $rfqs = $query->orderByDesc('updated_at')->orderByDesc('id')->paginate(10)->withQueryString();
+
+        return view('rfqs.index', compact('rfqs', 'dateFilter'));
+    }
+
+    public function createProject()
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+        return redirect()->route('rfq.create', ['type' => 'Projek']);
+    }
+
+    public function storeProject(Request $request)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+
+        $validated = $request->validate([
+            'customer_id'             => 'required|exists:customers,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
+            'need_date'               => 'nullable|date',
+            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
+            'notes'                   => 'nullable|string',
+            'items'                   => 'required|array|min:1',
+            'items.*.category'        => 'nullable|string',
+            'items.*.product_name'    => 'required|string',
+            'items.*.qty'             => 'required|numeric|min:0.01',
+            'items.*.unit'            => 'nullable|string|max:30',
+            'items.*.detail_item'     => 'nullable|string',
+            'items.*.description'     => 'nullable|string',
+            'items.*.hpp'             => 'required|numeric|min:0',
+            'items.*.ongkir_pedia'    => 'required|numeric|min:0',
+            'items.*.ongkir_pelanggan'=> 'required|numeric|min:0',
+            'items.*.margin'          => 'required|numeric|min:0',
+            'items.*.ceiling'         => 'required|numeric|min:1',
+            'items.*.validity_days'   => 'required|numeric|min:1',
+        ]);
+
+        $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
+        $salesId   = $customer->sales_id ?? Auth::id();
+        $salesUser = $customer->sales ?: User::find($salesId);
+        $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
+
+        try {
+            DB::beginTransaction();
+
+            $rfq = Rfq::create([
+                'rfq_number'          => Rfq::generateRfqNumber(),
+                'customer_id'         => $customer->id,
+                'customer_name'       => $customer->company_name,
+                'customer_code'       => $customer->company_code,
+                'customer_contact_id' => $validated['customer_contact_id'],
+                'need_date'           => $validated['need_date'] ?? null,
+                'type'                => 'Projek',
+                'sales_id'            => $salesId,
+                'sales_name'          => $salesName,
+                'rfq_date'            => now()->format('Y-m-d'),
+                'notes'               => $validated['notes'] ?? null,
+                'status'              => Rfq::STATUS_PENDING_LEADER,
+            ]);
+
+            foreach ($validated['items'] as $itemData) {
+                $hpp              = $itemData['hpp'] ?? 0;
+                $ongkir_pedia     = $itemData['ongkir_pedia'] ?? 0;
+                $ongkir_pelanggan = $itemData['ongkir_pelanggan'] ?? 0;
+                $marginPct        = (float) ($itemData['margin'] ?? 0);
+                $ceiling          = (float) ($itemData['ceiling'] ?? 1);
+
+                $item = $rfq->items()->create([
+                    'category'           => $itemData['category'] ?? null,
+                    'product_name'       => $itemData['product_name'],
+                    'qty'                => $itemData['qty'],
+                    'unit'               => $itemData['unit'] ?? null,
+                    'detail_item'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
+                    'description'        => $itemData['description'] ?? $itemData['detail_item'] ?? null,
+                    'hpp'                => $hpp,
+                    'ongkir_pedia'       => $ongkir_pedia,
+                    'ongkir_pelanggan'   => $ongkir_pelanggan,
+                    'margin_type'        => 'percentage', // Default untuk projek
+                    'margin_value'       => $marginPct,
+                    'ceiling'            => $ceiling,
+                    'custom_ceiling'     => $ceiling,
+                    'validity_days'      => $itemData['validity_days'] ?? 3,
+                    'price_after_margin' => 0, // Akan dihitung ulang di bawah
+                ]);
+
+                // Gunakan fungsi sentral agar hitungan persis sama dengan Fase 4
+                $item->price_after_margin = $item->calculatePriceAfterMargin();
+                $item->save();
+            }
+
+            DB::commit();
+
+            $this->clearDashboardCacheForSales($salesId);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->route('rfq.index')
+                ->with('error', 'Gagal membuat RFQ Projek: ' . $e->getMessage());
+        }
+
+        // RFQ Projek dibuat Admin/Leader → minta approval Leader (sinkron, tanpa queue)
+        $creator = $this->authUser();
+        $creatorRole = $creator->role ?: 'Admin';
+        $leaders = \App\Models\User::where('role', 'Leader')->get();
+        foreach ($leaders as $leader) {
+            \App\Models\Notification::send(
+                userId:  $leader->id,
+                type:    'warning',
+                title:   'Approval Harga RFQ Projek',
+                message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'RFQ Projek ' . $rfq->rfq_number . ' berhasil dibuat dan diteruskan ke Leader untuk approval!');
+    }
+
+    public function create()
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isSales(), 403);
+
+        $user = $this->authUser();
+        $customers = $user->isAdminOrAbove()
+            ? Customer::where('status', 'Active')->orderBy('company_name')->get()
+            : Customer::where('sales_id', $user->id)->where('status', 'Active')->orderBy('company_name')->get();
+
+        return view('rfqs.create', compact('customers'));
+    }
+
+    public function store(Request $request)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isSales(), 403);
+
+        $validated = $request->validate([
+            'customer_id'             => 'required|exists:customers,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
+            'need_date'               => 'nullable|date',
+            'type'                    => 'required|string|in:Projek,Non Projek',
+            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
+            'notes'                   => 'nullable|string',
+            'items'                   => 'nullable|array',
+            'items.*.category'        => 'nullable|string',
+            'items.*.product_name'    => 'nullable|string',
+            'items.*.qty'             => 'nullable|numeric|min:0.01',
+            'items.*.unit'            => 'nullable|string|max:30',
+            'items.*.detail_item'     => 'nullable|string',
+            'items.*.description'     => 'nullable|string',
+            'items.*.hpp'             => 'nullable|numeric|min:0',
+            'items.*.ongkir_pedia'    => 'nullable|numeric|min:0',
+            'items.*.ongkir_pelanggan'=> 'nullable|numeric|min:0',
+            'items.*.margin'          => 'nullable|numeric|min:0',
+            'items.*.ceiling'         => 'nullable|numeric|min:1',
+            'items.*.validity_days'   => 'nullable|numeric|min:1',
+        ]);
+
+        $rawItems = $validated['items'] ?? [];
+        $validItems = [];
+        foreach ($rawItems as $item) {
+            $productName = trim($item['product_name'] ?? '');
+            if ($productName !== '') {
+                $qty = (float)($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
+                    }
+                    return back()
+                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
+                        ->withInput();
+                }
+                $validItems[] = $item;
+            }
+        }
+
+        $hasNotes = !empty(trim($validated['notes'] ?? ''));
+        if (count($validItems) === 0 && !$hasNotes) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
+            }
+            return back()
+                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
+                ->withInput();
+        }
+
+        if ($validated['type'] === 'Projek') {
+            foreach ($validItems as $idx => $item) {
+                if (empty($item['category'])) {
+                    return back()
+                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
+                        ->withInput();
+                }
+            }
+        } else {
+            foreach ($validItems as &$item) {
+                $item['category'] = null;
+            }
+            unset($item);
+        }
+
+        $customer = Customer::with('sales')->findOrFail($validated['customer_id']);
+
+        if (!$this->authUser()->isAdminOrAbove()) {
+            abort_if($customer->sales_id !== Auth::id(), 403, 'Customer ini dipegang oleh Pedia dan hanya dapat dikelola oleh tim Leader/Admin.');
+        }
+
+        if (!$this->authUser()->isAdminOrAbove()) {
+            $salesId   = Auth::id();
+            $salesName = $this->authUser()->name;
+        } else {
+            $salesId   = $customer->sales_id ?? Auth::id();
+            $salesUser = $customer->sales ?: User::find($salesId);
+            $salesName = $salesUser ? $salesUser->name : $this->authUser()->name;
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $status = Rfq::STATUS_PENDING_ADMIN;
+
+            $rfq = Rfq::create([
+                'rfq_number'          => Rfq::generateRfqNumber(),
+                'customer_id'         => $customer->id,
+                'customer_name'       => $customer->company_name,
+                'customer_code'       => $customer->company_code,
+                'customer_contact_id' => $validated['customer_contact_id'],
+                'need_date'           => $validated['need_date'] ?? null,
+                'type'                => $validated['type'],
+                'priority'            => $validated['priority'] ?? 'Normal',
+                'sales_id'            => $salesId,
+                'sales_name'          => $salesName,
+                'rfq_date'            => now()->format('Y-m-d'),
+                'notes'               => $validated['notes'] ?? null,
+                'status'              => $status,
+            ]);
+
+            foreach ($validItems as $item) {
+                $hpp              = (float)($item['hpp'] ?? 0);
+                $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
+                $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
+                $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
+                $feeEu            = (float)($item['fee_eu'] ?? 0);
+                $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
+                $marginType       = $item['margin_type'] ?? 'percentage';
+                $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
+                $cat              = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
+
+                $rfqItem = new RfqItem([
+                    'category'           => $cat,
+                    'product_name'       => $item['product_name'],
+                    'qty'                => $item['qty'],
+                    'unit'               => $item['unit'] ?? null,
+                    'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
+                    'description'        => $item['description'] ?? $item['detail_item'] ?? null,
+                    'hpp'                => $hpp,
+                    'ongkir_pedia'       => $ongkirPedia,
+                    'ongkir_pelanggan'   => $ongkirPelanggan,
+                    'biaya_kirim'        => $biayaKirim,
+                    'fee_eu'             => $feeEu,
+                    'margin_type'        => $marginType,
+                    'margin_value'       => $marginVal,
+                    'margin'             => $marginVal,
+                    'ceiling'            => $ceiling,
+                    'custom_ceiling'     => $ceiling,
+                    'validity_days'      => (int)($item['validity_days'] ?? 3),
+                ]);
+                $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
+                $rfq->items()->save($rfqItem);
+            }
+
+            DB::commit();
+
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal membuat RFQ: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->route('rfq.index')
+                ->with('error', 'Gagal membuat RFQ: ' . $e->getMessage());
+        }
+
+        // ============================================================
+        // EVENT 1 — Notifikasi RFQ Baru
+        // → Leader jika RFQ Projek oleh Admin, atau Admin jika dibuat oleh Sales
+        // ============================================================
+        try {
+            $creator = $this->authUser();
+            $creatorRole = $creator->role ?: 'Admin';
+
+            if ($status === Rfq::STATUS_PENDING_LEADER) {
+                $leaders = User::where('role', 'Leader')->get();
+                foreach ($leaders as $leader) {
+                    Notification::send(
+                        userId:  $leader->id,
+                        type:    'warning',
+                        title:   'Approval Harga RFQ Projek',
+                        message: $creatorRole . ' ' . $creator->name . ' telah membuat RFQ Projek ' . $rfq->rfq_number . ' dan menunggu persetujuan Anda.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+            } else {
+                $recipients = User::whereIn('role', [
+                    'Admin Purchase',
+                    'Admin',
+                    'Super Admin',
+                ])
+                ->where('id', '!=', $creator->id)
+                ->get();
+
+                if ($creator->isSales()) {
+                    $msg = 'RFQ Baru diterima dari Sales ' . $creator->name . '! (' . $rfq->rfq_number . ') untuk ' . $rfq->customer_name . '. Mohon segera diisi HPP.';
+                } else {
+                    $msg = $creatorRole . ' ' . $creator->name . ' telah membuat RFQ ' . $rfq->rfq_number . ' untuk ' . $rfq->customer_name . ($rfq->sales_name ? ' (Sales: ' . $rfq->sales_name . ')' : '') . '. Mohon segera diisi HPP.';
+                }
+
+                foreach ($recipients as $recipient) {
+                    Notification::send(
+                        userId:  $recipient->id,
+                        type:    'warning',
+                        title:   'RFQ Baru Diterima',
+                        message: $msg,
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+
+                // Jika yang membuat adalah Admin/Leader dan customer memiliki Sales, beri notifikasi info ke Sales terkait
+                if (!$creator->isSales() && $rfq->sales_id && $rfq->sales_id !== $creator->id) {
+                    Notification::send(
+                        userId:  $rfq->sales_id,
+                        type:    'info',
+                        title:   'RFQ Baru Dibuatkan oleh ' . $creatorRole,
+                        message: $creatorRole . ' ' . $creator->name . ' telah membuatkan RFQ (' . $rfq->rfq_number . ') untuk customer Anda ' . $rfq->customer_name . '.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Gagal mengirim notifikasi RFQ baru: ' . $e->getMessage());
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'  => true,
+                'redirect' => route('rfq.show', $rfq),
+                'message'  => 'RFQ ' . $rfq->rfq_number . ' berhasil dibuat!',
+            ], 201);
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil dibuat!');
+    }
+
+    public function show(Rfq $rfq)
+    {
+        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $rfq->load(['customer', 'sales', 'items.vendor', 'adminNoteAuthor', 'revisionAuthor']);
+
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->with('creator:id,name')
+            ->orderByDesc('version')
+            ->get();
+
+        $isApproved = in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]);
+
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
+
+        $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
+            ->sortBy('version')
+            ->values();
+
+        $totalApproved = $approvedHistories->count();
+
+        $approvedVersions = $approvedHistories->map(function ($h, $index) use ($totalApproved) {
+            $revNum = $index;
+            return [
+                'id'        => $h->id,
+                'version'   => $h->version,
+                'rev_num'   => $revNum,
+                'label'     => $revNum === 0 ? 'Penawaran Awal (Original / Rev 0)' : ('Penawaran Revisi ' . $revNum),
+                'date'      => $h->approved_at ? $h->approved_at->format('d M Y, H:i') . ' WIB' : $h->created_at->format('d M Y, H:i') . ' WIB',
+                'is_latest' => ($index === $totalApproved - 1),
+            ];
+        });
+
+        return view('rfqs.show', compact('rfq', 'priceHistories', 'revisionCount', 'revisionDate', 'latestHistory', 'isApproved', 'approvedVersions'));
+    }
+
+    public function edit(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
+        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
+            abort(403);
+        }
+
+        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit penuh saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
+
+        $user = $this->authUser();
+        $customers = $user->isAdminOrAbove()
+            ? Customer::where('status', 'Active')->orderBy('company_name')->get()
+            : Customer::where('sales_id', $user->id)->where('status', 'Active')->orderBy('company_name')->get();
+
+        $rfq->load('items');
+        if (!$user->isAdminOrAbove()) {
+            $rfq->items->makeHidden(['hpp', 'vendor_id', 'margin', 'margin_value', 'ongkir_pedia', 'biaya_kirim', 'fee_eu']);
+        }
+
+        return view('rfqs.edit', compact('rfq', 'customers'));
+    }
+
+    public function update(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isSales(), 403);
+        if (!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id()) {
+            abort(403);
+        }
+
+        abort_if(!$rfq->canBeEdited(), 403, 'RFQ hanya bisa diedit saat status Pending Admin. Untuk merevisi penawaran yang sudah disetujui, gunakan menu Revisi QTY.');
+
+        $validated = $request->validate([
+            'customer_id'             => 'required|exists:customers,id',
+            'customer_contact_id'     => [
+                'required',
+                Rule::exists('customer_contacts', 'id')->where('customer_id', $request->customer_id),
+            ],
+            'need_date'               => 'nullable|date',
+            'type'                    => 'required|string|in:Projek,Non Projek',
+            'priority'                => 'nullable|string|in:Normal,Urgent,High Priority',
+            'notes'                   => 'nullable|string',
+            'items'                   => 'nullable|array',
+            'items.*.id'              => 'nullable',
+            'items.*.category'        => 'nullable|string',
+            'items.*.product_name'    => 'nullable|string',
+            'items.*.qty'             => 'nullable|numeric|min:0.01',
+            'items.*.unit'            => 'nullable|string|max:30',
+            'items.*.detail_item'     => 'nullable|string',
+            'items.*.description'     => 'nullable|string',
+            'items.*.hpp'             => 'nullable|numeric|min:0',
+            'items.*.ongkir_pedia'    => 'nullable|numeric|min:0',
+            'items.*.ongkir_pelanggan'=> 'nullable|numeric|min:0',
+            'items.*.margin'          => 'nullable|numeric|min:0',
+            'items.*.ceiling'         => 'nullable|numeric|min:1',
+            'items.*.validity_days'   => 'nullable|numeric|min:1',
+        ]);
+
+        $rawItems = $validated['items'] ?? [];
+        $validItems = [];
+        foreach ($rawItems as $item) {
+            $productName = trim($item['product_name'] ?? '');
+            if ($productName !== '') {
+                $qty = (float)($item['qty'] ?? 0);
+                if ($qty <= 0) {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json(['success' => false, 'message' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'], 422);
+                    }
+                    return back()
+                        ->withErrors(['items' => 'Qty untuk item ' . $productName . ' harus lebih besar dari 0.'])
+                        ->withInput();
+                }
+                $validItems[] = $item;
+            }
+        }
+
+        $hasNotes = !empty(trim($validated['notes'] ?? ''));
+        if (count($validItems) === 0 && !$hasNotes) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'], 422);
+            }
+            return back()
+                ->withErrors(['items' => 'Mohon masukkan minimal 1 item atau isi Catatan permintaan RFQ.'])
+                ->withInput();
+        }
+
+        if (!$this->authUser()->isAdminOrAbove()) {
+            $customer = Customer::findOrFail($validated['customer_id']);
+            abort_if($customer->sales_id !== Auth::id(), 403);
+        }
+
+        if ($validated['customer_id'] !== $rfq->customer_id) {
+            $newCustomer = Customer::with('sales')->findOrFail($validated['customer_id']);
+            $rfq->customer_name = $newCustomer->company_name;
+            $rfq->customer_code = $newCustomer->company_code;
+            $salesId            = $newCustomer->sales_id ?? Auth::id();
+            $salesUser          = $newCustomer->sales ?: User::find($salesId);
+            $rfq->sales_id      = $salesId;
+            $rfq->sales_name    = $salesUser ? $salesUser->name : $this->authUser()->name;
+
+            if (!$this->authUser()->isAdminOrAbove()) {
+                $rfq->sales_id   = Auth::id();
+                $rfq->sales_name = $this->authUser()->name;
+            }
+        }
+
+        $wasApproved = in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED]);
+
+        // Validasi integritas data: cegah bug KATEGORI TIDAK DISEBUTKAN
+        if ($validated['type'] === 'Projek') {
+            foreach ($validItems as $idx => $item) {
+                if (empty($item['category'])) {
+                    return back()
+                        ->withErrors(['items' => 'Setiap item pada RFQ Projek wajib memiliki kategori. Silakan lengkapi data item.'])
+                        ->withInput();
+                }
+            }
+        } else {
+            foreach ($validItems as &$item) {
+                $item['category'] = null;
+            }
+            unset($item);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $status = Rfq::STATUS_PENDING_ADMIN;
+
+            $rfq->update([
+                'customer_id'         => $validated['customer_id'],
+                'customer_contact_id' => $validated['customer_contact_id'],
+                'need_date'           => $validated['need_date'] ?? null,
+                'type'                => $validated['type'],
+                'priority'            => $validated['priority'] ?? 'Normal',
+                'notes'               => $validated['notes'] ?? null,
+                'status'              => $status,
+            ]);
+
+            $existingItems = $rfq->items()->get()->keyBy('id');
+            $keptItemIds = [];
+
+            foreach ($validItems as $item) {
+                $cat = !empty($item['category']) ? RfqItem::normalizeCategory($item['category']) : null;
+                $itemId = !empty($item['id']) && is_numeric($item['id']) ? (int) $item['id'] : null;
+                $existing = $itemId ? $existingItems->get($itemId) : null;
+
+                if ($existing) {
+                    $existing->category     = $cat;
+                    $existing->product_name = $item['product_name'];
+                    $existing->qty          = $item['qty'];
+                    if (!empty($item['unit'])) {
+                        $existing->unit = $item['unit'];
+                    }
+                    $desc = $item['description'] ?? $item['detail_item'] ?? $existing->description;
+                    $existing->detail_item  = $desc;
+                    $existing->description  = $desc;
+
+                    // Pertahankan HPP, Ongkir, dan Margin yang sudah dihitung Admin sebelumnya kecuali form mengirim nilai baru
+                    if (isset($item['hpp']) && (float)$item['hpp'] > 0) {
+                        $existing->hpp = (float)$item['hpp'];
+                    }
+                    if (isset($item['ongkir_pedia']) && (float)$item['ongkir_pedia'] > 0) {
+                        $existing->ongkir_pedia = (float)$item['ongkir_pedia'];
+                    }
+                    if (isset($item['biaya_kirim']) && (float)$item['biaya_kirim'] > 0) {
+                        $existing->biaya_kirim = (float)$item['biaya_kirim'];
+                    }
+                    if (isset($item['margin_value']) || isset($item['margin'])) {
+                        $val = (float)($item['margin_value'] ?? $item['margin']);
+                        if ($val > 0) {
+                            $existing->margin_value = $val;
+                            $existing->margin = $val;
+                        }
+                    }
+
+                    $existing->price_after_margin = $existing->calculatePriceAfterMargin();
+                    $existing->save();
+                    $keptItemIds[] = $existing->id;
+                } else {
+                    $hpp              = (float)($item['hpp'] ?? 0);
+                    $ongkirPedia      = (float)($item['ongkir_pedia'] ?? 0);
+                    $ongkirPelanggan  = (float)($item['ongkir_pelanggan'] ?? 0);
+                    $biayaKirim       = (float)($item['biaya_kirim'] ?? 0);
+                    $feeEu            = (float)($item['fee_eu'] ?? 0);
+                    $marginVal        = (float)($item['margin_value'] ?? $item['margin'] ?? 25);
+                    $marginType       = $item['margin_type'] ?? 'percentage';
+                    $ceiling          = (int)($item['custom_ceiling'] ?? $item['ceiling'] ?? 10000);
+
+                    $rfqItem = new RfqItem([
+                        'category'           => $cat,
+                        'product_name'       => $item['product_name'],
+                        'qty'                => $item['qty'],
+                        'unit'               => $item['unit'] ?? null,
+                        'detail_item'        => $item['description'] ?? $item['detail_item'] ?? null,
+                        'description'        => $item['description'] ?? $item['detail_item'] ?? null,
+                        'hpp'                => $hpp,
+                        'ongkir_pedia'       => $ongkirPedia,
+                        'ongkir_pelanggan'   => $ongkirPelanggan,
+                        'biaya_kirim'        => $biayaKirim,
+                        'fee_eu'             => $feeEu,
+                        'margin_type'        => $marginType,
+                        'margin_value'       => $marginVal,
+                        'margin'             => $marginVal,
+                        'ceiling'            => $ceiling,
+                        'custom_ceiling'     => $ceiling,
+                        'validity_days'      => (int)($item['validity_days'] ?? 3),
+                    ]);
+                    $rfqItem->price_after_margin = $rfqItem->calculatePriceAfterMargin();
+                    $rfq->items()->save($rfqItem);
+                    $keptItemIds[] = $rfqItem->id;
+                }
+            }
+
+            if (!empty($keptItemIds)) {
+                $rfq->items()->whereNotIn('id', $keptItemIds)->delete();
+            } else {
+                $rfq->items()->delete();
+            }
+
+            if ($wasApproved) {
+                $admins = \App\Models\User::whereIn('role', ['Admin Purchase', 'Super Admin'])->get();
+                foreach ($admins as $admin) {
+                    \App\Models\Notification::send(
+                        userId:  $admin->id,
+                        type:    'info',
+                        title:   'Quotation Direvisi oleh Sales',
+                        message: 'Sales ' . $rfq->sales_name . ' telah merevisi item pada RFQ ' . $rfq->rfq_number . '. Mohon periksa kembali HPP/Ongkir.',
+                        link:    route('rfq.show', $rfq)
+                    );
+                }
+            }
+
+            DB::commit();
+
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success'  => true,
+                    'redirect' => route('rfq.show', $rfq),
+                    'message'  => 'Quotation ' . $rfq->rfq_number . ' berhasil direvisi dan dikembalikan ke Admin Purchase untuk pengecekan harga baru!',
+                ]);
+            }
+
+            return redirect()->route('rfq.show', $rfq)
+                ->with('success', 'Quotation ' . $rfq->rfq_number . ' berhasil direvisi dan dikembalikan ke Admin Purchase untuk pengecekan harga baru!');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal memperbarui RFQ: ' . $e->getMessage(),
+                ], 500);
+            }
+
+            return redirect()->route('rfq.show', $rfq)
+                ->with('error', 'Gagal memperbarui RFQ: ' . $e->getMessage());
+        }
+    }
+
+    public function destroy(Rfq $rfq)
+    {
+        $user = $this->authUser();
+        $isAdminOrLeader = $user->isAdminOrAbove() || $user->isLeader() || $user->hasPermission('CRUD');
+
+        if ($isAdminOrLeader) {
+            abort_if(in_array($rfq->status, [
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL,
+            ]), 403, 'RFQ tidak bisa dihapus karena sudah masuk tahap PO atau GOAL.');
+        } else {
+            abort_if(!$user->isSales(), 403);
+            if ($rfq->sales_id !== Auth::id()) {
+                abort(403);
+            }
+            abort_if(!$rfq->isPendingAdmin(), 403, 'RFQ hanya bisa dihapus saat status Pending Admin.');
+        }
+
+        $rfqNumber = $rfq->rfq_number;
+        $salesId = $rfq->sales_id;
+
+        // Hapus draf quotation terkait jika belum menjadi PO
+        $draftQuotations = \App\Models\Quotation::where('rfq_id', $rfq->id)->get();
+        foreach ($draftQuotations as $quo) {
+            $quo->delete();
+        }
+
+        $rfq->delete();
+
+        if ($salesId) {
+            $this->clearDashboardCacheForSales($salesId);
+        }
+
+        $prevUrl = url()->previous();
+        $isDetailView = str_contains($prevUrl, '/rfqs/' . $rfq->id);
+        $redirectTarget = $isDetailView ? route('rfq.index') : ($prevUrl ?: route('rfq.index'));
+
+        return redirect()->to($redirectTarget)
+            ->with('success', 'RFQ ' . $rfqNumber . ' berhasil dihapus.');
+    }
+
+    public function getCustomer(Customer $customer)
+    {
+        if (!$this->authUser()->isAdminOrAbove() && $customer->sales_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $primary = $customer->primaryContact();
+
+        return response()->json([
+            'company_name' => $customer->company_name,
+            'company_code' => $customer->company_code,
+            'address'      => $customer->address,
+            'city'         => $customer->city,
+            'province'     => $customer->province,
+            'phone'        => $customer->phone,
+            'email'        => $customer->email,
+            'cp_name'      => $primary?->name ?? $customer->cp_name,
+            'cp_position'  => $primary?->position ?? $customer->cp_position,
+            'cp_email'     => $primary?->email ?? $customer->cp_email,
+            'cp_phone'     => $primary?->phone ?? $customer->cp_phone,
+            'contacts'     => $customer->contacts,
+        ]);
+    }
+
+    private function clearDashboardCacheForSales(?int $salesId): void
+    {
+        $ym = now()->format('Y-m');
+        $currFilterKey = now()->startOfMonth()->format('Ymd') . '_' . now()->endOfMonth()->format('Ymd');
+
+        if ($salesId) {
+            Cache::forget('dash:cust_stats:' . $salesId);
+            Cache::forget('dash:rfq_stats:' . $salesId);
+            Cache::forget('dash:quo_stats:' . $salesId);
+            Cache::forget('dash:cust_health:' . $salesId);
+            Cache::forget('dash:po_stats:' . $salesId);
+            Cache::forget('dash:rev:' . $salesId . ':' . $ym);
+            Cache::forget('dash:goal_cnt:' . $salesId . ':' . $ym);
+            Cache::forget('dash:stats:' . $salesId . ':' . $ym);
+            Cache::forget("dash:rev:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:goal_cnt:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:stats:{$salesId}:{$currFilterKey}");
+            Cache::forget("dash:pipeline:{$salesId}:{$currFilterKey}");
+            Cache::forget('dash:pipeline:' . $salesId);
+            Cache::forget('dash:chart:' . $salesId);
+            Cache::forget('dash:recent:' . $salesId);
+            Cache::forget("dash:recent_goal:{$salesId}");
+            Cache::forget('dash:recent_quo:' . $salesId);
+        }
+
+        Cache::forget('dash:admin:quo_global');
+        Cache::forget('dash:admin:global');
+        Cache::forget('dash:admin:total_rfq');
+        Cache::forget('dash:admin:total_rfq_items');
+        Cache::forget('dash:admin:action_queue');
+        Cache::forget('dash:admin:rev:' . $ym);
+        Cache::forget("dash:admin:rev:{$currFilterKey}");
+        Cache::forget("dash:admin:pipeline:{$currFilterKey}");
+        Cache::forget('dash:admin:pipeline');
+        Cache::forget("dash:admin:goal_cnt:{$currFilterKey}");
+        Cache::forget('dash:admin:chart');
+        Cache::forget('dash:admin:perf:' . $ym);
+        Cache::forget("dash:admin:perf:{$currFilterKey}");
+        Cache::forget('dash:admin:recent_quo');
+        Cache::forget('dash:admin:recent');
+        Cache::forget('analytics:pending_review_count');
+        Cache::forget('analytics:revenue_this_month');
+        Cache::forget('analytics:monthly_revenue');
+    }
+
+    public function priceForm(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
+        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa diubah dari status saat ini.');
+
+        $rfq->load(['items.components.vendor', 'items.vendor', 'customer', 'revisionAuthor']);
+        
+        $vendors = \App\Models\Vendor::active()->orderBy('nama_vendor')->get();
+        // Tarik rate Portal MP (MP + THR + BPJS KES + BPJS TK)
+        $mp = \App\Models\Mainpower::first();
+        $mpPediaRate = $mp ? ($mp->total > 0 ? (float)$mp->total : ($mp->mp + $mp->thr + $mp->bpjskes + $mp->bpjstk)) : 336179; // fallback
+
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->with('creator:id,name')
+            ->orderByDesc('version')
+            ->get();
+
+        return view('rfqs.price_form', compact('rfq', 'vendors', 'mpPediaRate', 'priceHistories'));
+    }
+
+    public function submitPrice(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(in_array($rfq->status, [Rfq::STATUS_GOAL, Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Harga tidak bisa diubah karena sudah masuk tahap PO atau GOAL.');
+        abort_if(!$rfq->canBePriceSubmitted(), 403, 'Harga tidak bisa dikirim dari status saat ini.');
+
+        if ($request->has('items') && is_array($request->items)) {
+            $cleanedItems = $request->items;
+            foreach ($cleanedItems as $key => $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+                foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $field) {
+                    if (isset($item[$field]) && is_string($item[$field])) {
+                        $cleanedVal = preg_replace('/[^\d]/', '', $item[$field]);
+                        $cleanedItems[$key][$field] = $cleanedVal !== '' ? $cleanedVal : 0;
+                    }
+                }
+                if (!isset($cleanedItems[$key]['hpp']) || $cleanedItems[$key]['hpp'] === '' || $cleanedItems[$key]['hpp'] === null) {
+                    $cleanedItems[$key]['hpp'] = 0;
+                }
+                if (isset($item['link_referensi']) && is_string($item['link_referensi'])) {
+                    $link = trim($item['link_referensi']);
+                    if ($link !== '' && !preg_match('~^https?://~i', $link)) {
+                        $cleanedItems[$key]['link_referensi'] = 'https://' . $link;
+                    } elseif ($link === '') {
+                        $cleanedItems[$key]['link_referensi'] = null;
+                    }
+                }
+                if (isset($item['margin_value']) && is_string($item['margin_value'])) {
+                    $mType = $item['margin_type'] ?? 'percentage';
+                    if ($mType === 'nominal') {
+                        $cleanedVal = preg_replace('/[^\d]/', '', $item['margin_value']);
+                        $cleanedItems[$key]['margin_value'] = $cleanedVal !== '' ? $cleanedVal : 0;
+                    } else {
+                        $cleanedItems[$key]['margin_value'] = str_replace(',', '.', trim($item['margin_value']));
+                    }
+                }
+
+                if (isset($item['components']) && is_array($item['components'])) {
+                    foreach ($item['components'] as $cKey => $comp) {
+                        if (!is_array($comp)) {
+                            continue;
+                        }
+                        foreach (['hpp', 'ongkir_pedia', 'biaya_kirim', 'fee_eu', 'custom_ceiling'] as $cField) {
+                            if (isset($comp[$cField]) && is_string($comp[$cField])) {
+                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp[$cField]);
+                                $cleanedItems[$key]['components'][$cKey][$cField] = $cCleanedVal !== '' ? $cCleanedVal : 0;
+                            }
+                        }
+                        if (isset($comp['margin_value']) && is_string($comp['margin_value'])) {
+                            $cMType = $comp['margin_type'] ?? 'percentage';
+                            if ($cMType === 'nominal') {
+                                $cCleanedVal = preg_replace('/[^\d]/', '', $comp['margin_value']);
+                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = $cCleanedVal !== '' ? $cCleanedVal : 0;
+                            } else {
+                                $cleanedItems[$key]['components'][$cKey]['margin_value'] = str_replace(',', '.', trim($comp['margin_value']));
+                            }
+                        }
+                    }
+                }
+            }
+            $request->merge(['items' => $cleanedItems]);
+        }
+
+        $validated = $request->validate([
+            'notes'                              => 'nullable|string|max:3000',
+            'admin_note'                         => 'nullable|string|max:5000',
+            'tax_type'                           => 'nullable|string|in:auto,include,exclude',
+            'payment_term_type'                  => 'nullable|string|in:tempo,cbd_b2b,cbd_personal',
+            'payment_term_days'                  => 'nullable|integer|min:1|max:365',
+            'payment_term_dp_percent'            => 'nullable|integer|min:1|max:99',
+            'material_package_unit'              => 'nullable|string|max:30',
+            'jasa_package_unit'                  => 'nullable|string|max:30',
+            'enable_material_ceiling'            => 'nullable',
+            'material_ceiling_step'              => 'nullable',
+            'material_custom_total'              => 'nullable',
+            'is_manual_material_custom_total'    => 'nullable',
+            'enable_jasa_ceiling'                => 'nullable',
+            'jasa_ceiling_step'                  => 'nullable',
+            'jasa_custom_total'                  => 'nullable',
+            'is_manual_jasa_custom_total'        => 'nullable',
+            'items'                              => 'required|array',
+            'items.*.is_bundle'                  => 'nullable',
+            'items.*.category'                   => 'nullable|string',
+            'items.*.vendor_id'                  => 'nullable|exists:vendors,id',
+            'items.*.vendor_name'                => 'nullable|string|max:255',
+            'items.*.product_name'               => 'required|string',
+            'items.*.qty'                        => 'required|numeric|min:0.01',
+            'items.*.unit'                       => 'nullable|string',
+            'items.*.description'                => 'nullable|string',
+            'items.*.detail_item'                => 'nullable|string|max:5000',
+            'items.*.hpp'                        => 'required|numeric|min:0',
+            'items.*.ongkir_pedia'               => 'nullable|numeric|min:0',
+            'items.*.biaya_kirim'                => 'nullable|numeric|min:0',
+            'items.*.fee_eu'                     => 'nullable|numeric|min:0',
+            'items.*.margin_type'                => 'nullable|in:percentage,nominal',
+            'items.*.margin_value'               => 'nullable|numeric|min:0',
+            'items.*.custom_ceiling'             => 'nullable|numeric|min:0',
+            'items.*.validity_days'              => 'nullable|integer|min:1',
+            'items.*.components'                 => 'nullable|array',
+            'items.*.components.*.id'            => 'nullable',
+            'items.*.components.*.product_name'  => 'nullable|string',
+            'items.*.components.*.vendor_name'   => 'nullable|string|max:255',
+            'items.*.components.*.qty'           => 'nullable|numeric|min:0.01',
+            'items.*.components.*.unit'          => 'nullable|string|max:30',
+            'items.*.components.*.hpp'           => 'nullable|numeric|min:0',
+            'items.*.components.*.biaya_kirim'   => 'nullable|numeric|min:0',
+            'items.*.components.*.ongkir_pedia'  => 'nullable|numeric|min:0',
+            'items.*.components.*.margin_type'   => 'nullable|in:percentage,nominal',
+            'items.*.components.*.margin_value'  => 'nullable|numeric|min:0',
+            'items.*.components.*.custom_ceiling'=> 'nullable|numeric|min:0',
+            'items.*.components.*.description'   => 'nullable|string',
+            'items.*.components.*.link_referensi'=> 'nullable|string|max:2048',
+            'items.*.link_referensi'             => 'nullable|string|max:2048',
+        ]);
+
+        $oldStatus = $rfq->status;
+        $isLeaderUser = $this->authUser()->isLeader() || $this->authUser()->isSuperAdmin();
+        $targetStatus = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
+            ? Rfq::STATUS_APPROVED
+            : Rfq::STATUS_PENDING_LEADER;
+
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($validated, $rfq, $oldStatus, $isLeaderUser, $request, $targetStatus) {
+            $cleanPrice = function ($val, $default = 0.0) {
+                if ($val === null || $val === '') return $default;
+                if (is_int($val) || is_float($val)) return (float) $val;
+                $cleaned = preg_replace('/[^\d]/', '', (string) $val);
+                return $cleaned !== '' ? (float) $cleaned : $default;
+            };
+
+            $rfqUpdate = [];
+            if ($request->has('notes')) {
+                $rfqUpdate['notes'] = $request->notes;
+            }
+            if ($request->has('admin_note')) {
+                $rfqUpdate['admin_note'] = $request->filled('admin_note') ? trim($request->admin_note) : null;
+                $rfqUpdate['admin_note_updated_at'] = now();
+                $rfqUpdate['admin_note_by'] = Auth::id();
+            }
+            if ($request->has('tax_type')) {
+                $rfqUpdate['tax_type'] = $request->tax_type ?: 'auto';
+            }
+            if ($request->has('material_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'material_package_unit')) {
+                $rfqUpdate['material_package_unit'] = trim($request->material_package_unit) ?: 'Lot';
+            }
+            if ($request->has('jasa_package_unit') && \Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'jasa_package_unit')) {
+                $rfqUpdate['jasa_package_unit'] = trim($request->jasa_package_unit) ?: 'Lot';
+            }
+            if ($request->has('enable_material_ceiling')) {
+                $rfqUpdate['enable_material_ceiling'] = $request->boolean('enable_material_ceiling');
+            }
+            if ($request->has('material_ceiling_step')) {
+                $rfqUpdate['material_ceiling_step'] = $cleanPrice($request->material_ceiling_step, 500000.0);
+            }
+            if ($request->has('material_custom_total')) {
+                $hasManualFlag = $request->has('is_manual_material_custom_total');
+                $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
+                $customMat = $cleanPrice($request->material_custom_total, 0.0);
+                $rfqUpdate['material_custom_total'] = ($isManualMat && $customMat > 0) ? $customMat : null;
+            }
+            if ($request->has('enable_jasa_ceiling')) {
+                $rfqUpdate['enable_jasa_ceiling'] = $request->boolean('enable_jasa_ceiling');
+            }
+            if ($request->has('jasa_ceiling_step')) {
+                $rfqUpdate['jasa_ceiling_step'] = $cleanPrice($request->jasa_ceiling_step, 500000.0);
+            }
+            if ($request->has('jasa_custom_total')) {
+                $hasManualFlag = $request->has('is_manual_jasa_custom_total');
+                $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
+                $customJasa = $cleanPrice($request->jasa_custom_total, 0.0);
+                $rfqUpdate['jasa_custom_total'] = ($isManualJasa && $customJasa > 0) ? $customJasa : null;
+            }
+            if ($request->has('payment_term_type')) {
+                $termType = $request->payment_term_type ?: 'tempo';
+                $rfqUpdate['payment_term_type'] = $termType;
+                if ($termType === 'tempo') {
+                    $rfqUpdate['payment_term_days'] = $request->filled('payment_term_days') ? (int) $request->payment_term_days : 14;
+                    $rfqUpdate['payment_term_dp_percent'] = $request->filled('payment_term_dp_percent') ? (int) $request->payment_term_dp_percent : null;
+                } else {
+                    $rfqUpdate['payment_term_days'] = null;
+                    $rfqUpdate['payment_term_dp_percent'] = null;
+                }
+            }
+            if (!empty($rfqUpdate)) {
+                $rfq->update($rfqUpdate);
+                $rfq->touch();
+            }
+
+            $submittedItemIds = [];
+            foreach ($validated['items'] as $itemId => $data) {
+                $item = is_numeric($itemId) ? $rfq->items()->find($itemId) : null;
+                if (!$item) {
+                    $item = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
+                }
+
+                $isBundle = !empty($data['is_bundle']);
+                $item->is_bundle = $isBundle;
+
+                $item->category         = $data['category'] ?? $item->category;
+                // Support typed vendor name (nama vendor ketik saja)
+                $typedVendor = trim($data['vendor_name'] ?? '');
+                if ($typedVendor !== '') {
+                    $vendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($typedVendor)])->first();
+                    if (!$vendor) {
+                        $vendor = \App\Models\Vendor::create([
+                            'nama_vendor' => $typedVendor,
+                            'kategori'    => 'General Trading & Office',
+                            'status'      => \App\Models\Vendor::STATUS_ACTIVE,
+                        ]);
+                    }
+                    $item->vendor_id = $vendor->id;
+                } elseif (array_key_exists('vendor_name', $data) && $typedVendor === '') {
+                    $item->vendor_id = null;
+                } else {
+                    $item->vendor_id = !empty($data['vendor_id']) ? $data['vendor_id'] : null;
+                }
+                $item->product_name     = $data['product_name'];
+                $item->qty              = $data['qty'];
+                $item->unit             = $data['unit'] ?? null;
+                $rawDesc                = $data['description'] ?? $data['detail_item'] ?? null;
+                $desc                   = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
+                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
+                    : null;
+                $item->description      = $desc;
+                $item->detail_item      = $desc;
+                $item->hpp              = $data['hpp'];
+                $item->ongkir_pedia     = (float) ($data['ongkir_pedia'] ?? ($item->ongkir_pedia ?? 0));
+                $item->biaya_kirim      = (float) ($data['biaya_kirim'] ?? 0);
+                $item->fee_eu           = (float) ($data['fee_eu'] ?? 0);
+                $item->margin_type      = $data['margin_type'] ?? 'percentage';
+                $item->margin_value     = (float) ($data['margin_value'] ?? 0);
+                $item->margin           = (float) ($data['margin_value'] ?? 0);
+                $item->custom_ceiling   = (float) ($data['custom_ceiling'] ?? 0);
+                $item->ceiling          = (int) (($data['custom_ceiling'] ?? 0) > 0 ? ($data['custom_ceiling'] ?? 0) : 10000);
+                $item->validity_days    = (int) ($data['validity_days'] ?? ($item->validity_days ?: 3));
+
+                $item->link_referensi  = !empty($data['link_referensi']) ? $data['link_referensi'] : null;
+
+                $item->price_after_margin = $item->calculatePriceAfterMargin();
+                $item->save();
+                $submittedItemIds[] = $item->id;
+
+                if ($isBundle && !empty($data['components']) && is_array($data['components'])) {
+                    $bundleCostTotal = 0;
+                    $bundleSellingTotal = 0;
+                    $activeCompIds = [];
+
+                    foreach ($data['components'] as $cData) {
+                        $cName = trim($cData['product_name'] ?? '');
+                        if ($cName === '') {
+                            continue;
+                        }
+
+                        $compId = !empty($cData['id']) && is_numeric($cData['id']) ? (int) $cData['id'] : null;
+                        $comp = $compId ? $rfq->items()->find($compId) : null;
+                        if (!$comp) {
+                            $comp = new \App\Models\RfqItem(['rfq_id' => $rfq->id]);
+                        }
+
+                        $comp->parent_id = $item->id;
+                        $comp->is_bundle = false;
+                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
+                        $comp->category = $item->category;
+                        $comp->product_name = $cName;
+                        $comp->qty = (float) ($cData['qty'] ?? 1);
+                        $comp->unit = $cData['unit'] ?? 'Unit';
+                        $rawCDesc = $cData['description'] ?? null;
+                        $comp->description = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawCDesc)
+                            ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawCDesc))
+                            : null;
+                        $comp->detail_item = $comp->description;
+                        $comp->hpp = (float) ($cData['hpp'] ?? 0);
+                        $comp->ongkir_pedia = (float) ($cData['ongkir_pedia'] ?? 0);
+                        $comp->biaya_kirim = (float) ($cData['biaya_kirim'] ?? 0);
+                        $comp->fee_eu = 0;
+                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
+                        $comp->margin_value = (float) ($cData['margin_value'] ?? 12.5);
+                        $comp->margin = $comp->margin_value;
+                        $comp->custom_ceiling = (float) ($cData['custom_ceiling'] ?? 50000);
+                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
+                        $comp->validity_days = $item->validity_days;
+                        $comp->link_referensi = $cData['link_referensi'] ?? null;
+
+                        $cTypedVendor = trim($cData['vendor_name'] ?? '');
+                        if ($cTypedVendor !== '') {
+                            $cVendor = \App\Models\Vendor::whereRaw('LOWER(nama_vendor) = ?', [strtolower($cTypedVendor)])->first();
+                            if (!$cVendor) {
+                                $cVendor = \App\Models\Vendor::create([
+                                    'nama_vendor' => $cTypedVendor,
+                                    'kategori'    => 'Hardware & Komponen PC',
+                                    'status'      => \App\Models\Vendor::STATUS_ACTIVE,
+                                ]);
+                            }
+                            $comp->vendor_id = $cVendor->id;
+                        } else {
+                            $comp->vendor_id = null;
+                        }
+
+                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
+                        $comp->save();
+
+                        $submittedItemIds[] = $comp->id;
+                        $activeCompIds[] = $comp->id;
+
+                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
+                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
+                    }
+
+                    $rfq->items()->where('parent_id', $item->id)->whereNotIn('id', $activeCompIds)->delete();
+
+                    if (!empty($activeCompIds)) {
+                        $item->hpp = $bundleCostTotal;
+                        $item->price_after_margin = $bundleSellingTotal;
+                        $item->save();
+                    }
+                } else {
+                    $rfq->items()->where('parent_id', $item->id)->delete();
+                }
+            }
+
+            if (!empty($submittedItemIds)) {
+                $rfq->items()->whereNotIn('id', $submittedItemIds)->delete();
+            }
+
+            // Snapshot History (Versioning)
+            $updatedData = $rfq->items()->get()->toArray();
+
+            if (count($updatedData) > 0) {
+                $lastVersion = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)->max('version') ?? 0;
+                
+                $historyPayload = [
+                    'rfq_id'       => $rfq->id,
+                    'version'      => $lastVersion + 1,
+                    'history_data' => $updatedData,
+                    'created_by'   => $this->authUser()->id,
+                ];
+
+                if (\Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
+                    $historyPayload['approved_at'] = ($isLeaderUser && in_array($oldStatus, [Rfq::STATUS_APPROVED, 'Quotation Created', 'Quotation Sent']))
+                        ? now()
+                        : null;
+                }
+
+                \App\Models\RfqPriceHistory::create($historyPayload);
+            }
+
+            // Jika Leader yang merevisi RFQ yang sudah Approved/Quotation, pertahankan status Approved
+            // Jika Admin yang merevisi, alihkan ke Pending Leader agar disetujui ulang oleh Leader
+            if ($rfq->canTransitionTo($targetStatus)) {
+                $rfq->update(['status' => $targetStatus]);
+            }
+        });
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal submit harga RFQ: ' . $e->getMessage(), [
+                'rfq_id' => $rfq->id,
+                'user_id' => \Illuminate\Support\Facades\Auth::id(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat menyimpan harga: ' . $e->getMessage());
+        }
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+        }
+
+        // Jika yang submit adalah Admin, kirim notifikasi HANYA ke Leader untuk Approval (Sales TIDAK diberi notif prematur)
+        if (!$isLeaderUser) {
+            $leaders = \App\Models\User::where('role', 'Leader')->get();
+            foreach ($leaders as $leader) {
+                \App\Models\Notification::send(
+                    userId:  $leader->id,
+                    type:    'warning',
+                    title:   'RFQ Membutuhkan Approval',
+                    message: 'RFQ ' . $rfq->rfq_number . ' membutuhkan Approval Harga! HPP, Ongkir, dan Margin telah diisi oleh Admin Purchase.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+        } else {
+            // Jika Leader yang langsung menyesuaikan harga pada RFQ yang statusnya sudah Approved
+            if ($targetStatus === Rfq::STATUS_APPROVED && $rfq->sales_id) {
+                \App\Models\Notification::send(
+                    userId:  $rfq->sales_id,
+                    type:    'info',
+                    title:   'Harga Penawaran Disesuaikan Leader',
+                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan harga untuk RFQ ' . $rfq->rfq_number . '.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+
+            // Info ke Admin Purchase
+            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    userId:  $admin->id,
+                    type:    'info',
+                    title:   'HPP Disesuaikan oleh Leader',
+                    message: 'Leader ' . $this->authUser()->name . ' telah menyesuaikan HPP untuk RFQ ' . $rfq->rfq_number . '.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+        }
+
+        $successMsg = $isLeaderUser
+            ? 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disesuaikan oleh Leader.'
+            : 'Harga untuk RFQ ' . $rfq->rfq_number . ' berhasil disimpan dan diteruskan ke Leader untuk di-approve.';
+
+        return redirect()->route('rfq.show', $rfq)->with('success', $successMsg);
+    }
+
+    public function updateAdminNote(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader() && !$this->authUser()->hasPermission('CRUD'), 403);
+
+        $validated = $request->validate([
+            'admin_note' => 'nullable|string|max:5000',
+        ]);
+
+        $note = $request->filled('admin_note') ? trim($validated['admin_note']) : null;
+
+        $rfq->update([
+            'admin_note'            => $note,
+            'admin_note_updated_at' => now(),
+            'admin_note_by'         => Auth::id(),
+        ]);
+
+        if ($rfq->sales_id) {
+            try {
+                $updaterName = Auth::user()?->name ?? 'Admin';
+                Notification::send(
+                    userId:  $rfq->sales_id,
+                    type:    'info',
+                    title:   'Catatan Admin pada RFQ ' . $rfq->rfq_number,
+                    message: $updaterName . ' memperbarui catatan internal untuk RFQ ' . $rfq->rfq_number . ' (' . $rfq->customer_name . ').',
+                    link:    route('rfq.show', $rfq)
+                );
+            } catch (\Throwable $e) {
+                \Log::warning('Gagal kirim notifikasi admin note: ' . $e->getMessage());
+            }
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'               => true,
+                'message'               => 'Catatan internal untuk Sales berhasil disimpan.',
+                'admin_note'            => $rfq->admin_note,
+                'admin_note_updated_at' => $rfq->admin_note_updated_at?->format('d/m/Y H:i'),
+                'admin_note_author'     => $rfq->adminNoteAuthor?->name,
+                'whatsapp_text'         => $rfq->getWhatsAppFormattedNote(),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Catatan internal untuk Sales berhasil disimpan.');
+    }
+
+    public function approve(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
+
+        // Idempoten: jika sudah disetujui (misal double-click atau re-submit), kembalikan pesan info tanpa error 403
+        if ($rfq->status === Rfq::STATUS_APPROVED) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_APPROVED)) {
+            return redirect()->back(fallback: route('rfq.show', $rfq))
+                ->with('error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa disetujui dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+        }
+
+        $rfq->update(['status' => Rfq::STATUS_APPROVED]);
+        $rfq->touch();
+
+        $latestPriceHistory = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->first();
+        if ($latestPriceHistory && \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at')) {
+            if ($latestPriceHistory->approved_at === null) {
+                $latestPriceHistory->update(['approved_at' => now()]);
+            }
+        }
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+            // EVENT 3 — Leader Approve: notifikasi ke SALES terkait
+            \App\Models\Notification::send(
+                $rfq->sales_id,
+                'success',
+                'RFQ Di-Approve',
+                'Quotation ' . $rfq->rfq_number . ' telah di-Approve dan siap di-download!',
+                route('rfq.show', $rfq)
+            );
+        }
+
+        // Notifikasi ke Admin Purchase bahwasanya sudah disetujui oleh Leader
+        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'success',
+                'RFQ Disetujui Leader',
+                'RFQ ' . $rfq->rfq_number . ' telah disetujui oleh Leader. Siap dilanjutkan ke proses berikutnya.',
+                route('rfq.show', $rfq)
+            );
+        }
+
+        // Otomatis kirim kartu pengumuman ke saluran chat Sales terkait
+        $this->broadcastRfqApprovalToChat($rfq, $this->authUser());
+
+        return redirect()->back(fallback: route('rfq.show', $rfq))
+            ->with('success', 'RFQ ' . $rfq->rfq_number . ' berhasil disetujui. Dokumen Quotation sudah bisa di-generate.');
+    }
+
+    public function reject(Request $request, Rfq $rfq)
+    {
+        $validated = $request->validate([
+            'action_type'    => 'nullable|in:revision,cancel',
+            'notes'          => 'nullable|string|max:2000',
+            'revision_notes' => 'nullable|string|max:2000',
+        ]);
+
+        $actionType = $validated['action_type'] ?? 'revision';
+        $notes = $validated['revision_notes'] ?? $validated['notes'] ?? null;
+
+        if ($actionType === 'cancel') {
+            // Membatalkan RFQ diizinkan untuk Leader, Admin, atau Super Admin
+            abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin() && !$this->authUser()->isAdminOrAbove(), 403);
+
+            // Idempoten jika sudah Cancelled
+            if ($rfq->status === Rfq::STATUS_CANCELLED) {
+                return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dibatalkan sebelumnya.');
+            }
+
+            if (!$rfq->canTransitionTo(Rfq::STATUS_CANCELLED)) {
+                return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dibatalkan dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+            }
+
+            $rfqUpdate = [
+                'status'         => Rfq::STATUS_CANCELLED,
+                'revision_notes' => $notes,
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+                $rfqUpdate['revision_by'] = Auth::id();
+                $rfqUpdate['revision_at'] = now();
+            }
+            $rfq->update($rfqUpdate);
+            $rfq->touch();
+
+            if ($rfq->sales_id) {
+                $this->clearDashboardCacheForSales($rfq->sales_id);
+                \App\Models\Notification::send(
+                    $rfq->sales_id,
+                    'error',
+                    'RFQ Ditolak / Dibatalkan ❌',
+                    'RFQ ' . $rfq->rfq_number . ' resmi ditolak/dibatalkan oleh ' . $this->authUser()->name . '. Alasan: ' . ($notes ?: '-'),
+                    route('rfq.show', $rfq)
+                );
+            }
+
+            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    $admin->id,
+                    'warning',
+                    'RFQ Dibatalkan: ' . $rfq->rfq_number,
+                    $this->authUser()->name . ' membatalkan RFQ ' . $rfq->rfq_number . '. Alasan: ' . ($notes ?: '-'),
+                    route('rfq.show', $rfq)
+                );
+            }
+
+            $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: true);
+
+            return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' resmi DITOLAK dan DIBATALKAN (Cancelled).');
+        }
+
+        // Action revisi HPP hanya boleh dilakukan Leader atau Super Admin saat tahap Pending Leader
+        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
+
+        // Default: Kembalikan ke Admin Purchase untuk revisi HPP
+        // Idempoten: jika sudah dikembalikan ke admin sebelumnya
+        if ($rfq->status === Rfq::STATUS_PENDING_ADMIN) {
+            return $this->redirectAfterReject($request, $rfq, 'info', 'RFQ ' . $rfq->rfq_number . ' sudah dikembalikan untuk revisi sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PENDING_LEADER || !$rfq->canTransitionTo(Rfq::STATUS_PENDING_ADMIN)) {
+            return $this->redirectAfterReject($request, $rfq, 'error', 'RFQ ' . $rfq->rfq_number . ' tidak bisa dikembalikan ke Admin dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+        }
+
+        $rfqUpdate = [
+            'status'         => Rfq::STATUS_PENDING_ADMIN,
+            'revision_notes' => $notes,
+        ];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+            $rfqUpdate['revision_by'] = Auth::id();
+            $rfqUpdate['revision_at'] = now();
+        }
+        $rfq->update($rfqUpdate);
+        $rfq->touch();
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+            // EVENT 3 — Leader Reject → notif + tanda merah di lonceng SALES terkait
+            \App\Models\Notification::send(
+                $rfq->sales_id,
+                'error',
+                'RFQ Perlu Revisi Harga',
+                'RFQ ' . $rfq->rfq_number . ' dikembalikan oleh Leader untuk revisi harga. Alasan: ' . ($notes ?: '-'),
+                route('rfq.show', $rfq)
+            );
+        }
+
+        // Notif ke Admin Purchase
+        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'warning',
+                'Revisi HPP Diperlukan: ' . $rfq->rfq_number,
+                'Leader meminta revisi harga RFQ ' . $rfq->rfq_number . '. Catatan: ' . ($notes ?: '-'),
+                route('rfq.price_form', $rfq)
+            );
+        }
+
+        $this->broadcastRfqRejectionToChat($rfq, $this->authUser(), $notes, isCancellation: false);
+
+        return $this->redirectAfterReject($request, $rfq, 'warning', 'RFQ ' . $rfq->rfq_number . ' ditolak dan dikembalikan ke Admin Purchase dengan catatan revisi.');
+    }
+
+    public function downloadQuotation(Request $request, Rfq $rfq)
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
+
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
+
+        if (!$historyId && !$canPreviewDraft) {
+            abort_if(!in_array($rfq->status, [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL
+            ]), 403, 'Quotation belum tersedia.');
+        }
+
+        if (!$historyId && $rfq->status === Rfq::STATUS_APPROVED) {
+            if ($rfq->canTransitionTo(Rfq::STATUS_QUOTATION_CREATED)) {
+                $rfq->update(['status' => Rfq::STATUS_QUOTATION_CREATED]);
+                if ($rfq->sales_id) {
+                    $this->clearDashboardCacheForSales($rfq->sales_id);
+                }
+            }
+        }
+
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
+        
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
+
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
+            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
+
+        if ($historyId !== null && $resolvedHistory !== null) {
+            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
+                $item = new \App\Models\RfqItem();
+                $item->forceFill((array) $itemArr);
+                $item->setRelation('vendor', null);
+                return $item;
+            });
+            $rfq->setRelation('items', $rawItems);
+        }
+
+        $fontCacheDir = storage_path('fonts');
+        if (!is_dir($fontCacheDir)) {
+            @mkdir($fontCacheDir, 0777, true);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('rfqs.pdf', compact('rfq', 'revisionCount', 'revisionDate', 'quotationItems'), [], 'UTF-8');
+        $pdf->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'isFontSubsettingEnabled' => true,
+            'fontDir' => $fontCacheDir,
+            'fontCache' => $fontCacheDir,
+            'chroot' => [public_path(), storage_path(), base_path()],
+        ]);
+
+        // Format Penamaan File Resmi Pedia:
+        // {RFQ_NUMBER}_Penawaran {NAMA_ITEM}[_rev{N}].pdf
+        // Contoh: 240327-0288_Penawaran Monitor Acer_rev1.pdf
+        $rfqNum = $rfq->rfq_number;
+        if (!$rfqNum) {
+            $datePart = $rfq->rfq_date ? \Carbon\Carbon::parse($rfq->rfq_date)->format('ymd') : date('ymd');
+            $rfqNum = $datePart . '-' . str_pad($rfq->id, 4, '0', STR_PAD_LEFT);
+        }
+
+        $firstItem = $quotationItems->first() ?: ($rfq->customer_quotation_items->first() ?: $rfq->items->first());
+        $rawTitle = $firstItem?->product_name ?: ($rfq->customer?->company_name ?: ($rfq->type ?: 'Hardware'));
+        $cleanTitle = trim(preg_replace('/[\\/\\\\:*?"<>|]+/', ' ', $rawTitle));
+        $cleanTitle = \Illuminate\Support\Str::limit($cleanTitle, 40, '');
+
+        $revSuffix = ($revisionCount > 0) ? '_rev' . $revisionCount : '';
+
+        $filename = "{$rfqNum}_Penawaran {$cleanTitle}{$revSuffix}.pdf";
+
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Access-Control-Expose-Headers' => 'Content-Disposition',
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    public function previewQuotation(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen Quotation ini.');
+
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        $canPreviewDraft = ($this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader()) && $rfq->status === Rfq::STATUS_PENDING_LEADER;
+
+        if (!$historyId && !$canPreviewDraft) {
+            abort_if(!in_array($rfq->status, [
+                Rfq::STATUS_APPROVED,
+                Rfq::STATUS_QUOTATION_CREATED,
+                Rfq::STATUS_QUOTATION_SENT,
+                Rfq::STATUS_PO_PENDING_ADMIN,
+                Rfq::STATUS_PO_PENDING_LEADER,
+                Rfq::STATUS_GOAL
+            ]), 403, 'Quotation belum tersedia.');
+        }
+
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'items', 'sales']);
+        
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
+
+        $historyId = $request->filled('history_id') ? (int) $request->query('history_id') : null;
+        [$revisionCount, $revisionDate, $quotationItems, $resolvedHistoryId, $resolvedHistory] = 
+            $this->resolveQuotationVersion($rfq, $priceHistories, $historyId);
+
+        if ($historyId !== null && $resolvedHistory !== null) {
+            $rawItems = collect($resolvedHistory->history_data ?? [])->map(function ($itemArr) {
+                $item = new \App\Models\RfqItem();
+                $item->forceFill((array) $itemArr);
+                $item->setRelation('vendor', null);
+                return $item;
+            });
+            $rfq->setRelation('items', $rawItems);
+        }
+
+        return view('rfqs.preview_quotation', [
+            'rfq'            => $rfq,
+            'revisionCount'  => $revisionCount,
+            'revisionDate'   => $revisionDate,
+            'quotationItems' => $quotationItems,
+            'historyId'      => $resolvedHistoryId,
+        ]);
+    }
+
+    public function previewDraft(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->hasPermission('CRUD') && !$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke pratinjau penawaran ini.');
+
+        $rfq->load(['customer.contacts', 'customer.sales', 'customerContact', 'sales']);
+
+        $cleanNum = function ($val, $default = 0.0) {
+            if ($val === null || $val === '') return $default;
+            if (is_int($val) || is_float($val)) return (float) $val;
+            $cleaned = preg_replace('/[^\d]/', '', (string) $val);
+            return $cleaned !== '' ? (float) $cleaned : $default;
+        };
+
+        if ($request->has('notes')) {
+            $rfq->notes = $request->input('notes');
+        }
+        if ($request->has('tax_type')) {
+            $rfq->tax_type = $request->input('tax_type') ?: 'auto';
+        }
+        if ($request->has('material_package_unit')) {
+            $rfq->material_package_unit = trim($request->input('material_package_unit')) ?: 'Lot';
+        }
+        if ($request->has('jasa_package_unit')) {
+            $rfq->jasa_package_unit = trim($request->input('jasa_package_unit')) ?: 'Lot';
+        }
+        if ($request->has('enable_material_ceiling')) {
+            $rfq->enable_material_ceiling = $request->boolean('enable_material_ceiling');
+        }
+        if ($request->has('material_ceiling_step')) {
+            $rfq->material_ceiling_step = $cleanNum($request->input('material_ceiling_step'), 500000.0);
+        }
+        if ($request->has('material_custom_total')) {
+            $hasManualFlag = $request->has('is_manual_material_custom_total');
+            $isManualMat = $hasManualFlag ? $request->boolean('is_manual_material_custom_total') : true;
+            $cMat = $cleanNum($request->input('material_custom_total'), 0.0);
+            $rfq->material_custom_total = ($isManualMat && $cMat > 0) ? $cMat : null;
+        }
+        if ($request->has('enable_jasa_ceiling')) {
+            $rfq->enable_jasa_ceiling = $request->boolean('enable_jasa_ceiling');
+        }
+        if ($request->has('jasa_ceiling_step')) {
+            $rfq->jasa_ceiling_step = $cleanNum($request->input('jasa_ceiling_step'), 500000.0);
+        }
+        if ($request->has('jasa_custom_total')) {
+            $hasManualFlag = $request->has('is_manual_jasa_custom_total');
+            $isManualJasa = $hasManualFlag ? $request->boolean('is_manual_jasa_custom_total') : true;
+            $cJasa = $cleanNum($request->input('jasa_custom_total'), 0.0);
+            $rfq->jasa_custom_total = ($isManualJasa && $cJasa > 0) ? $cJasa : null;
+        }
+        if ($request->has('payment_term_type')) {
+            $termType = $request->input('payment_term_type') ?: 'tempo';
+            $rfq->payment_term_type = $termType;
+            if ($termType === 'tempo') {
+                $rfq->payment_term_days = $request->filled('payment_term_days') ? (int) $request->input('payment_term_days') : 14;
+                $rfq->payment_term_dp_percent = $request->filled('payment_term_dp_percent') ? (int) $request->input('payment_term_dp_percent') : null;
+            } else {
+                $rfq->payment_term_days = null;
+                $rfq->payment_term_dp_percent = null;
+            }
+        }
+
+        $tempItems = collect();
+        $rawItems = $request->input('items', []);
+        if (is_array($rawItems)) {
+
+            foreach ($rawItems as $itemId => $data) {
+                if (!is_array($data)) {
+                    continue;
+                }
+                $pName = trim($data['product_name'] ?? '');
+                if ($pName === '') {
+                    continue;
+                }
+
+                $item = new \App\Models\RfqItem();
+                $item->id = is_numeric($itemId) ? (int) $itemId : rand(900000, 999999);
+                $item->rfq_id = $rfq->id;
+                $item->is_bundle = !empty($data['is_bundle']);
+                $item->category = $data['category'] ?? null;
+                $item->product_name = $pName;
+                $item->qty = (float) ($data['qty'] ?? 1);
+                $item->unit = $data['unit'] ?? 'Unit';
+                $rawDesc = $data['description'] ?? $data['detail_item'] ?? null;
+                $desc = \App\Helpers\RfqNoteHelper::hasVisibleContent($rawDesc)
+                    ? trim(\App\Helpers\RfqNoteHelper::normalizeSpaces($rawDesc))
+                    : null;
+                $item->description = $desc;
+                $item->detail_item = $desc;
+
+                $item->hpp = $cleanNum($data['hpp'] ?? 0);
+                $item->ongkir_pedia = $cleanNum($data['ongkir_pedia'] ?? 0);
+                $item->biaya_kirim = $cleanNum($data['biaya_kirim'] ?? 0);
+                $item->fee_eu = $cleanNum($data['fee_eu'] ?? 0);
+
+                $item->margin_type = $data['margin_type'] ?? 'percentage';
+                if ($item->margin_type === 'nominal') {
+                    $item->margin_value = $cleanNum($data['margin_value'] ?? 0);
+                } else {
+                    $item->margin_value = (float) str_replace(',', '.', (string) ($data['margin_value'] ?? 0));
+                }
+                $item->margin = $item->margin_value;
+
+                $item->custom_ceiling = $cleanNum($data['custom_ceiling'] ?? 0);
+                $item->ceiling = (int) ($item->custom_ceiling > 0 ? $item->custom_ceiling : 10000);
+                $item->validity_days = (int) ($data['validity_days'] ?? 7);
+
+                $item->price_after_margin = $item->calculatePriceAfterMargin();
+
+                if ($item->is_bundle && !empty($data['components']) && is_array($data['components'])) {
+                    $comps = collect();
+                    $bundleCostTotal = 0;
+                    $bundleSellingTotal = 0;
+
+                    foreach ($data['components'] as $cData) {
+                        if (!is_array($cData)) continue;
+                        $comp = new \App\Models\RfqItem();
+                        $comp->id = rand(800000, 899999);
+                        $comp->rfq_id = $rfq->id;
+                        $comp->parent_id = $item->id;
+                        $comp->is_bundle = false;
+                        $comp->show_in_quotation = !empty($cData['show_in_quotation']);
+                        $comp->product_name = $cData['product_name'] ?? 'Komponen';
+                        $comp->qty = (float) ($cData['qty'] ?? 1);
+                        $comp->unit = $cData['unit'] ?? 'Unit';
+                        $comp->hpp = $cleanNum($cData['hpp'] ?? 0);
+                        $comp->ongkir_pedia = $cleanNum($cData['ongkir_pedia'] ?? 0);
+                        $comp->biaya_kirim = $cleanNum($cData['biaya_kirim'] ?? 0);
+                        $comp->fee_eu = 0;
+                        $comp->margin_type = $cData['margin_type'] ?? 'percentage';
+                        if ($comp->margin_type === 'nominal') {
+                            $comp->margin_value = $cleanNum($cData['margin_value'] ?? 0);
+                        } else {
+                            $comp->margin_value = (float) str_replace(',', '.', (string) ($cData['margin_value'] ?? 0));
+                        }
+                        $comp->margin = $comp->margin_value;
+                        $comp->custom_ceiling = $cleanNum($cData['custom_ceiling'] ?? 50000);
+                        $comp->ceiling = (int) ($comp->custom_ceiling > 0 ? $comp->custom_ceiling : 50000);
+                        $comp->price_after_margin = $comp->calculatePriceAfterMargin();
+                        $comps->push($comp);
+
+                        $bundleCostTotal += ($comp->hpp + $comp->ongkir_pedia + $comp->biaya_kirim) * $comp->qty;
+                        $bundleSellingTotal += $comp->price_after_margin * $comp->qty;
+                    }
+
+                    $item->setRelation('components', $comps);
+                    if ($comps->isNotEmpty()) {
+                        $item->hpp = $bundleCostTotal;
+                        $item->price_after_margin = $bundleSellingTotal;
+                    }
+                }
+
+                $tempItems->push($item);
+            }
+        }
+
+        $rfq->setRelation('items', $tempItems);
+
+        $priceHistories = \App\Models\RfqPriceHistory::where('rfq_id', $rfq->id)
+            ->orderByDesc('version')
+            ->get();
+
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, false);
+
+        $isDraftPreview = true;
+
+        return view('rfqs.preview_quotation', compact('rfq', 'revisionCount', 'revisionDate', 'isDraftPreview'));
+    }
+
+    public function markQuotationSent(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403, 'Anda tidak memiliki izin menandai penawaran terkirim.');
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke RFQ ini.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Hanya RFQ yang sudah disetujui / terbit quotation yang dapat ditandai terkirim ke klien.');
+
+        if ($rfq->status !== Rfq::STATUS_QUOTATION_SENT) {
+            $rfq->update(['status' => Rfq::STATUS_QUOTATION_SENT]);
+            if ($rfq->sales_id) {
+                $this->clearDashboardCacheForSales($rfq->sales_id);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Quotation ' . $rfq->quotation_number . ' berhasil ditandai sebagai Terkirim ke Klien (Quotation Sent)!');
+    }
+
+    public function editQty(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
+        abort_if(
+            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
+            403,
+            $rfq->status === Rfq::STATUS_GOAL
+                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
+                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
+        );
+
+        $rfq->load('items');
+        return view('rfqs.edit_qty', compact('rfq'));
+    }
+
+    public function updateQty(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->hasPermission('CRUD'), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk merevisi QTY RFQ ini.');
+        abort_if(
+            !in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]),
+            403,
+            $rfq->status === Rfq::STATUS_GOAL
+                ? 'Revisi QTY untuk RFQ yang sudah GOAL hanya dapat dilakukan setelah status GOAL direject terlebih dahulu.'
+                : 'Revisi QTY hanya bisa dilakukan setelah di-approve.'
+        );
+
+        $request->validate([
+            'items'                 => 'nullable|array',
+            'items.*.id'            => 'required|exists:rfq_items,id',
+            'items.*.product_name'  => 'required|string',
+            'items.*.description'   => 'nullable|string',
+            'items.*.qty'           => 'required|numeric|min:0.01',
+            'items.*.unit'          => 'required|string',
+            'new_items'             => 'nullable|array',
+            'new_items.*.product_name' => 'required|string',
+            'new_items.*.description'  => 'nullable|string',
+            'new_items.*.qty'          => 'required|numeric|min:0.01',
+            'new_items.*.unit'         => 'required|string',
+            'deleted_items'         => 'nullable|array',
+            'deleted_items.*'       => 'exists:rfq_items,id',
+            'revision_notes'        => 'required|string',
+        ]);
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $rfq) {
+            if ($request->has('deleted_items')) {
+                $rfq->items()->whereIn('id', $request->deleted_items)->delete();
+            }
+
+            if ($request->has('items')) {
+                foreach ($request->items as $itemData) {
+                    $item = $rfq->items()->find($itemData['id']);
+                    if ($item) {
+                        $item->update([
+                            'product_name' => $itemData['product_name'],
+                            'description'  => $itemData['description'],
+                            'qty'          => $itemData['qty'],
+                            'unit'         => $itemData['unit'],
+                        ]);
+                    }
+                }
+            }
+
+            if ($request->has('new_items')) {
+                foreach ($request->new_items as $newItem) {
+                    $rfq->items()->create([
+                        'category'     => $newItem['category'] ?? 'Hardware',
+                        'product_name' => $newItem['product_name'],
+                        'description'  => $newItem['description'] ?? null,
+                        'qty'          => $newItem['qty'],
+                        'unit'         => $newItem['unit'] ?? 'Unit',
+                        'hpp'          => 0, // Wajib diisi Admin
+                        'margin_type'  => 'percentage',
+                        'price_after_margin' => 0,
+                    ]);
+                }
+            }
+
+            $rfqUpdate = [
+                'status'         => Rfq::STATUS_PENDING_ADMIN,
+                'revision_notes' => $request->revision_notes,
+            ];
+            if (\Illuminate\Support\Facades\Schema::hasColumn('rfqs', 'revision_by')) {
+                $rfqUpdate['revision_by'] = Auth::id();
+                $rfqUpdate['revision_at'] = now();
+            }
+            $rfq->update($rfqUpdate);
+            $rfq->touch();
+
+            $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin', 'Leader'])->get();
+            foreach ($admins as $admin) {
+                \App\Jobs\CreateNotification::dispatch([
+                    'user_id' => $admin->id,
+                    'title'   => 'Revisi RFQ ' . $rfq->rfq_number,
+                    'message' => 'Sales ' . $this->authUser()->name . ' telah merevisi penawaran. Mohon cek ulang HPP.',
+                    'type'    => 'warning',
+                    'link'    => route('rfq.show', $rfq),
+                ]);
+            }
+        });
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'Penawaran berhasil direvisi dan dikembalikan ke Admin Purchase.');
+    }
+
+    public function history(Request $request)
+    {
+        abort_if(!$this->authUser()->isSales(), 403, 'Hanya Sales yang dapat mengakses riwayat penjualan.');
+
+        $query = Rfq::with(['customer', 'items'])
+            ->where('sales_id', Auth::id())
+            ->where('status', Rfq::STATUS_GOAL);
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('rfq_number', 'like', '%' . $search . '%')
+                  ->orWhereHas('customer', fn($c) => $c->where('company_name', 'like', '%' . $search . '%'));
+            });
+        }
+
+        $rfqs = $query->orderByDesc('updated_at')->paginate(10)->withQueryString();
+
+        return view('rfqs.history', compact('rfqs'));
+    }
+
+    public function verifyPo(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove(), 403);
+
+        // Idempoten jika sudah diverifikasi
+        if ($rfq->status === Rfq::STATUS_PO_PENDING_LEADER) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('info', 'PO untuk RFQ ' . $rfq->rfq_number . ' sudah diverifikasi sebelumnya.');
+        }
+
+        if ($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN || !$rfq->canTransitionTo(Rfq::STATUS_PO_PENDING_LEADER)) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('error', 'PO ini tidak bisa diverifikasi dari status saat ini (' . ($rfq->status_label ?? $rfq->status) . ').');
+        }
+
+        $rfq->update(['status' => Rfq::STATUS_PO_PENDING_LEADER]);
+
+        if ($rfq->sales_id) {
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+        }
+
+        // Kirim notifikasi ke Leader agar segera approve GOAL
+        $leaders = \App\Models\User::where('role', 'Leader')->get();
+        foreach ($leaders as $leader) {
+            \App\Models\Notification::send(
+                userId:  $leader->id,
+                type:    'warning',
+                title:   'PO Membutuhkan Approval GOAL',
+                message: 'Admin telah memverifikasi bukti PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu persetujuan GOAL dari Anda.',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'PO untuk RFQ ' . $rfq->rfq_number . ' berhasil diverifikasi. Menunggu approval Leader.');
+    }
+
+    public function uploadPo(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak upload PO untuk RFQ ini.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_APPROVED, Rfq::STATUS_QUOTATION_CREATED, Rfq::STATUS_QUOTATION_SENT]), 403, 'Upload PO hanya bisa dilakukan saat status Approved, Quotation Created, atau Quotation Sent.');
+
+        $useExistingPo = $request->boolean('use_existing_po') && !$request->hasFile('po_file');
+
+        if ($useExistingPo) {
+            if (!$rfq->hasStoredPoFile()) {
+                return redirect()->route('rfq.show', $rfq)
+                    ->with('error', 'File bukti PO sebelumnya tidak ditemukan di server. Silakan upload ulang file PO.');
+            }
+            $poPath = $rfq->po_file_path;
+        } else {
+            $request->validate([
+                'po_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
+            ], [
+                'po_file.required' => 'Bukti PO wajib diupload.',
+                'po_file.max'      => 'Ukuran file terlalu besar (maksimal 5 MB).',
+                'po_file.mimes'    => 'Format file tidak didukung. Gunakan PDF, JPG, JPEG, atau PNG.',
+            ]);
+
+            // Hapus file lama jika ada sebelum replace file baru
+            $rfq->deleteStoredPoFile();
+            $poPath = $request->file('po_file')->store('purchase_orders', 'public');
+        }
+
+        $rfq->update([
+            'po_file_path'      => $poPath,
+            'status'            => Rfq::STATUS_PO_PENDING_ADMIN,
+            'po_rejection_note' => null,
+            'po_rejected_at'    => null,
+            'po_rejected_by'    => null,
+        ]);
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        // Notif ke Admin Purchase
+        $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->where('id', '!=', Auth::id())->get();
+        $poActionText = $useExistingPo
+            ? ($this->authUser()->name . ' mengajukan verifikasi ulang PO (menggunakan file PO tersimpan) untuk RFQ ' . $rfq->rfq_number . '.')
+            : ($this->authUser()->name . ' mengupload PO untuk RFQ ' . $rfq->rfq_number . '. Menunggu verifikasi Anda.');
+
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'info',
+                'PO Diterima',
+                $poActionText,
+                route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', $useExistingPo
+                ? 'Bukti PO tersimpan berhasil diajukan ulang. Menunggu verifikasi Admin Purchase.'
+                : 'Bukti PO berhasil diupload. Menunggu verifikasi Admin Purchase.');
+    }
+
+    public function cancelPo(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isSales() && !$this->authUser()->isAdminOrAbove(), 403);
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki hak untuk membatalkan PO RFQ ini.');
+        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_ADMIN, 403, 'Hanya PO yang berstatus Pending Admin yang dapat dibatalkan.');
+
+        // Hapus file PO fisik dari storage
+        $rfq->deleteStoredPoFile();
+
+        $rfq->update([
+            'po_file_path'      => null,
+            'status'            => Rfq::STATUS_QUOTATION_SENT,
+            'po_rejection_note' => null,
+            'po_rejected_at'    => null,
+            'po_rejected_by'    => null,
+        ]);
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'Bukti PO berhasil dibatalkan. Silakan unggah kembali file PO yang sesuai.');
+    }
+
+    public function rejectPo(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin atau Leader yang dapat menolak bukti PO.');
+        abort_if(!in_array($rfq->status, [Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER]), 403, 'Hanya PO yang berstatus Pending Admin atau Pending Leader yang dapat ditolak.');
+
+        $request->validate([
+            'rejection_reason' => 'required|string|min:3|max:1000',
+        ], [
+            'rejection_reason.required' => 'Alasan penolakan PO wajib diisi.',
+            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
+            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
+        ]);
+
+        // Hapus file PO fisik yang salah dari storage
+        $rfq->deleteStoredPoFile();
+
+        $rejectionReason = trim($request->rejection_reason);
+        $userRole = $this->authUser()->isLeader() ? 'Leader' : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
+
+        $rfq->update([
+            'po_file_path'      => null,
+            'status'            => Rfq::STATUS_QUOTATION_SENT,
+            'po_rejection_note' => $rejectionReason,
+            'po_rejected_at'    => now(),
+            'po_rejected_by'    => Auth::id(),
+        ]);
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        if ($rfq->sales_id) {
+            // Kirim notifikasi peringatan ke Sales pemilik RFQ
+            \App\Models\Notification::send(
+                userId:  $rfq->sales_id,
+                type:    'warning',
+                title:   'Bukti PO Ditolak oleh ' . $userRole,
+                message: $userRole . ' ' . $this->authUser()->name . ' menolak bukti PO untuk RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Silakan lakukan revisi harga/QTY atau koordinasikan dengan Admin.',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        // Jika ditolak oleh Leader, beri tahu juga Admin Purchase agar segera sesuaikan HPP/harga penawaran
+        if ($this->authUser()->isLeader() || $this->authUser()->isSuperAdmin()) {
+            $admins = User::whereIn('role', ['Admin', 'Admin Purchase'])->get();
+            foreach ($admins as $admin) {
+                \App\Models\Notification::send(
+                    userId:  $admin->id,
+                    type:    'warning',
+                    title:   'PO Ditolak oleh Leader (Perlu Revisi HPP/Harga)',
+                    message: 'Leader ' . $this->authUser()->name . ' menolak bukti PO RFQ ' . $rfq->rfq_number . '. Catatan: "' . $rejectionReason . '". Harap periksa dan sesuaikan HPP/harga penawaran jika diperlukan.',
+                    link:    route('rfq.show', $rfq)
+                );
+            }
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('warning', 'Bukti PO RFQ ' . $rfq->rfq_number . ' telah ditolak. Sales dan Admin telah diberitahu untuk melakukan penyesuaian.');
+    }
+
+    public function rejectGoal(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && !$this->authUser()->isLeader(), 403, 'Hanya Admin Purchase, Leader, atau Super Admin yang dapat me-reject status GOAL.');
+        abort_if($rfq->status !== Rfq::STATUS_GOAL || !$rfq->canTransitionTo(Rfq::STATUS_QUOTATION_SENT), 403, 'Hanya RFQ yang berstatus GOAL yang dapat direject untuk revisi data.');
+
+        $request->validate([
+            'rejection_reason' => 'required|string|min:3|max:1000',
+            'remove_po_file'   => 'nullable|boolean',
+        ], [
+            'rejection_reason.required' => 'Alasan penolakan status GOAL wajib diisi.',
+            'rejection_reason.min'      => 'Alasan penolakan minimal 3 karakter.',
+            'rejection_reason.max'      => 'Alasan penolakan maksimal 1000 karakter.',
+        ]);
+
+        $rejectionReason = trim($request->rejection_reason);
+        $removePoFile = $request->boolean('remove_po_file');
+
+        DB::transaction(function () use ($rfq, $rejectionReason, $removePoFile) {
+            if ($removePoFile) {
+                $rfq->deleteStoredPoFile();
+            }
+
+            $rfqUpdate = [
+                'status'            => Rfq::STATUS_QUOTATION_SENT,
+                'po_rejection_note' => $rejectionReason,
+                'po_rejected_at'    => now(),
+                'po_rejected_by'    => Auth::id(),
+            ];
+            if ($removePoFile) {
+                $rfqUpdate['po_file_path'] = null;
+            }
+
+            $rfq->update($rfqUpdate);
+            $rfq->touch();
+
+            \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)
+                ->where('status', \App\Models\PurchaseOrder::STATUS_GOAL)
+                ->update([
+                    'status'           => \App\Models\PurchaseOrder::STATUS_TIDAK_GOAL,
+                    'rejection_reason' => 'GOAL direject untuk revisi RFQ: ' . $rejectionReason,
+                ]);
+        });
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        $actorRole = $this->authUser()->isLeader()
+            ? 'Leader'
+            : ($this->authUser()->isSuperAdmin() ? 'Super Admin' : 'Admin');
+
+        if ($rfq->sales_id && (int) $rfq->sales_id !== (int) Auth::id()) {
+            \App\Models\Notification::send(
+                userId:  $rfq->sales_id,
+                type:    'warning',
+                title:   'Status GOAL Direject oleh ' . $actorRole,
+                message: $actorRole . ' ' . $this->authUser()->name . ' me-reject status GOAL untuk RFQ ' . $rfq->rfq_number . ' karena perlu perbaikan data. Catatan: "' . $rejectionReason . '".',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        $reviewerUsers = User::whereIn('role', ['Leader', 'Admin', 'Admin Purchase', 'Super Admin'])
+            ->where('id', '!=', Auth::id())
+            ->get();
+        foreach ($reviewerUsers as $reviewer) {
+            \App\Models\Notification::send(
+                userId:  $reviewer->id,
+                type:    'warning',
+                title:   'Status GOAL RFQ ' . $rfq->rfq_number . ' Direject (Perlu Revisi Data)',
+                message: $actorRole . ' ' . $this->authUser()->name . ' mengembalikan RFQ ' . $rfq->rfq_number . ' dari status GOAL ke tahap revisi. Alasan: "' . $rejectionReason . '".',
+                link:    route('rfq.show', $rfq)
+            );
+        }
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('warning', 'Status GOAL RFQ ' . $rfq->rfq_number . ' berhasil direject dan dikembalikan ke Quotation Sent. Silakan lakukan revisi data lewat Edit HPP / Revisi Penawaran.');
+    }
+
+    public function approveGoal(Request $request, Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isLeader() && !$this->authUser()->isSuperAdmin(), 403);
+
+        // Idempoten jika sudah GOAL
+        if ($rfq->status === Rfq::STATUS_GOAL) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('info', 'RFQ ' . $rfq->rfq_number . ' sudah disetujui menjadi GOAL sebelumnya.');
+        }
+
+        abort_if($rfq->status !== Rfq::STATUS_PO_PENDING_LEADER, 403, 'Hanya PO yang sudah diverifikasi Admin (Pending Leader) yang bisa diproses menjadi GOAL.');
+
+        if (!$rfq->canTransitionTo(Rfq::STATUS_GOAL)) {
+            return redirect()->route('rfq.show', $rfq)
+                ->with('error', 'RFQ ini tidak bisa diproses menjadi GOAL dari status saat ini.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $rfq->update(['status' => Rfq::STATUS_GOAL]);
+
+            $rfq->load(['customer', 'items.components']);
+
+            // Gunakan item penawaran resmi pelanggan (bebas dari duplikasi komponen anak dan mendukung rollup bundling & projek)
+            $quotationItems = $rfq->customer_quotation_items;
+            if ($quotationItems->isEmpty()) {
+                $nonComponents = $rfq->items->filter(fn($i) => empty($i->parent_id));
+                $quotationItems = $nonComponents->map(function ($i) {
+                    return (object) [
+                        'product_name' => $i->product_name,
+                        'qty'          => (float) $i->qty,
+                        'unit'         => $i->unit ?: 'Unit',
+                        'unit_price'   => (float) $i->price_after_margin,
+                        'row_total'    => (float) ($i->qty * $i->price_after_margin),
+                    ];
+                });
+            }
+
+            $subtotal = (float) $quotationItems->sum('row_total');
+            $isIncludeTax = $rfq->isIncludeTax();
+            $taxAmount = $isIncludeTax ? 0.0 : round($subtotal * 0.11);
+            $grandTotal = $subtotal + $taxAmount;
+
+            $estimatedCost = (float) $rfq->items
+                ->filter(fn($i) => empty($i->parent_id))
+                ->sum(fn($i) => ((float) $i->hpp + (float) $i->ongkir_pedia + (float) $i->biaya_kirim) * (float) $i->qty);
+
+            $poPayload = [
+                'customer_id'           => $rfq->customer_id,
+                'sales_id'              => $rfq->sales_id,
+                'po_date'               => now(),
+                'status'                => \App\Models\PurchaseOrder::STATUS_GOAL,
+                'file_path'             => $rfq->po_file_path,
+                'subtotal'              => $subtotal,
+                'tax_amount'            => $taxAmount,
+                'grand_total'           => $grandTotal,
+                'estimated_cost'        => $estimatedCost,
+                'rejection_reason'      => null,
+                'change_request_reason' => null,
+            ];
+
+            // Reuse existing PO if this RFQ was previously GOAL and revised after Reject GOAL
+            $po = \App\Models\PurchaseOrder::where('rfq_id', $rfq->id)->latest('id')->first();
+            if ($po) {
+                $po->update($poPayload);
+                $po->items()->delete();
+            } else {
+                $poPayload['po_number'] = \App\Models\PurchaseOrder::generatePoNumber();
+                $poPayload['rfq_id']    = $rfq->id;
+                $po = \App\Models\PurchaseOrder::create($poPayload);
+            }
+
+            foreach ($quotationItems as $qItem) {
+                $po->items()->create([
+                    'item_name'  => $qItem->product_name,
+                    'quantity'   => (int) max(1, round($qItem->qty)),
+                    'unit_price' => $qItem->unit_price,
+                    'subtotal'   => $qItem->row_total,
+                ]);
+            }
+
+            DB::commit();
+
+            $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return redirect()->route('rfq.show', $rfq)
+                ->with('error', 'Gagal memproses GOAL: ' . $e->getMessage());
+        }
+
+        $admins = \App\Models\User::whereIn('role', ['Admin', 'Admin Purchase', 'Super Admin'])->get();
+        foreach ($admins as $admin) {
+            \App\Models\Notification::send(
+                $admin->id,
+                'success',
+                'PO Baru (Dari GOAL Sales)',
+                'Sales ' . ($rfq->sales?->name ?? $rfq->sales_name) . ' telah GOAL untuk penawaran ' . $rfq->rfq_number . '. PO siap diproses.',
+                route('po.show', $po)
+            );
+        }
+
+        // Kirim notifikasi ucapan selamat ke Sales pemilik penawaran
+        if ($rfq->sales_id) {
+            \App\Models\Notification::send(
+                $rfq->sales_id,
+                'success',
+                'Selamat! Penawaran GOAL 🎉',
+                'Penawaran ' . $rfq->rfq_number . ' untuk ' . ($rfq->customer?->company_name ?? $rfq->customer_name) . ' telah disetujui Leader sebagai GOAL!',
+                route('rfq.show', $rfq)
+            );
+        }
+
+        $this->clearDashboardCacheForSales($rfq->sales_id);
+
+        return redirect()->route('rfq.show', $rfq)
+            ->with('success', 'Yeay! Quotation ' . $rfq->rfq_number . ' resmi menjadi GOAL dan diteruskan ke Admin Purchase.');
+    }
+
+    public function viewPoFile(Rfq $rfq)
+    {
+        abort_if(!$this->authUser()->isAdminOrAbove() && $rfq->sales_id !== Auth::id(), 403, 'Anda tidak memiliki akses ke dokumen PO ini.');
+
+        $path = $rfq->getNormalizedPoFilePath();
+        if (!$path) {
+            abort(404, 'File lampiran bukti PO tidak ditemukan.');
+        }
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404, 'File lampiran bukti PO tidak ditemukan di server.');
+        }
+
+        return Storage::disk('public')->response($path);
+    }
+
+    /**
+     * Menghitung nomor revisi resmi penawaran untuk tampilan web dan dokumen PDF.
+     * Aturan: Revisi PDF hanya dihitung jika dokumen telah di-approve Leader lebih dari 1 kali.
+     * Draf sebelum approval pertama tetap menjadi penawaran Original (Rev 0).
+     */
+    private function calculateQuotationRevision(Rfq $rfq, $priceHistories, bool $isApproved): array
+    {
+        $hasApprovedCol = \Illuminate\Support\Facades\Schema::hasColumn('rfq_price_histories', 'approved_at');
+        
+        $approvedHistories = $hasApprovedCol
+            ? $priceHistories->filter(fn($h) => !empty($h->approved_at))->values()
+            : collect();
+
+        $approvedCount = $approvedHistories->count();
+
+        // Dokumen penawaran resmi hanya bertambah nomor revisinya jika pernah disetujui lebih dari 1 kali
+        if ($isApproved) {
+            $revisionCount = ($approvedCount > 1) ? ($approvedCount - 1) : 0;
+        } elseif ($rfq->status === Rfq::STATUS_PENDING_LEADER && $approvedCount >= 1) {
+            $revisionCount = $approvedCount; // Draf revisi ke-N yang sedang menunggu approval Leader
+        } else {
+            $revisionCount = 0;
+        }
+
+        $latestApproved = $approvedHistories->sortByDesc('approved_at')->first();
+        $latestHistory = $priceHistories->sortByDesc('version')->first();
+
+        // Tanggal revisi diambil dari tanggal approval resmi revisi tersebut
+        $revisionDate = $latestApproved?->approved_at
+            ? $latestApproved->approved_at->format('d M Y')
+            : ($latestHistory?->created_at ? $latestHistory->created_at->format('d M Y') : date('d M Y'));
+
+        return [$revisionCount, $revisionDate, $latestHistory];
+    }
+
+    /**
+     * Resolve quotation revision metadata and quotation items.
+     * Supports both latest version and specific historical version via history_id.
+     *
+     * @return array{0: int, 1: string, 2: \Illuminate\Support\Collection, 3: ?int, 4: ?\App\Models\RfqPriceHistory}
+     */
+    private function resolveQuotationVersion(Rfq $rfq, $priceHistories, ?int $historyId = null): array
+    {
+        if ($historyId) {
+            $targetHistory = $priceHistories->firstWhere('id', $historyId);
+            abort_if(!$targetHistory, 404, 'Dokumen arsip penawaran tidak ditemukan.');
+
+            $canViewUnapproved = $this->authUser()->isAdminOrAbove() || $this->authUser()->isLeader();
+            abort_if(empty($targetHistory->approved_at) && !$canViewUnapproved, 403, 'Versi penawaran ini belum disetujui oleh Leader.');
+
+            $approvedHistories = $priceHistories->filter(fn($h) => !empty($h->approved_at))
+                ->sortBy('version')
+                ->values();
+
+            $index = $approvedHistories->search(fn($h) => (int)$h->id === (int)$targetHistory->id);
+            if ($index !== false) {
+                $revisionCount = (int)$index;
+            } else {
+                $revisionCount = $approvedHistories->count();
+            }
+
+            $revisionDate = $targetHistory->approved_at 
+                ? $targetHistory->approved_at->format('d M Y')
+                : ($targetHistory->created_at ? $targetHistory->created_at->format('d M Y') : date('d M Y'));
+
+            $quotationItems = $rfq->getCustomerQuotationItemsFromSnapshot($targetHistory->history_data ?? []);
+
+            return [$revisionCount, $revisionDate, $quotationItems, $targetHistory->id, $targetHistory];
+        }
+
+        // Default / Latest version
+        $isApproved = in_array($rfq->status, [
+            Rfq::STATUS_APPROVED,
+            Rfq::STATUS_QUOTATION_CREATED,
+            Rfq::STATUS_QUOTATION_SENT,
+            Rfq::STATUS_PO_PENDING_ADMIN,
+            Rfq::STATUS_PO_PENDING_LEADER,
+            Rfq::STATUS_GOAL
+        ]);
+        [$revisionCount, $revisionDate, $latestHistory] = $this->calculateQuotationRevision($rfq, $priceHistories, $isApproved);
+        $quotationItems = $rfq->customer_quotation_items;
+
+        return [$revisionCount, $revisionDate, $quotationItems, null, $latestHistory];
+    }
+
+    private function authUser(): User
+    {
+        $user = Auth::user();
+        if (!$user) {
+            abort(403);
+        }
+        return $user;
+    }
+
+    /**
+     * Otomatis kirim kartu pengumuman ke saluran chat Sales saat RFQ disetujui Leader.
+     */
+    private function broadcastRfqApprovalToChat(Rfq $rfq, User $approver): void
+    {
+        try {
+            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
+                return;
+            }
+
+            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
+            if (!$salesUser && $rfq->sales_name) {
+                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
+            }
+
+            if (!$salesUser) {
+                return;
+            }
+
+            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
+
+            $noteText = trim($rfq->admin_note ?: ($rfq->notes ?: ''));
+            $announcementText = "📢 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah disetujui Leader dan siap dikirim ke klien.";
+            if (!empty($noteText)) {
+                $announcementText .= "\nCatatan: " . $noteText;
+            }
+
+            $room->messages()->create([
+                'user_id'      => $approver->id,
+                'message'      => $announcementText,
+                'message_type' => 'rfq_card',
+                'rfq_id'       => $rfq->id,
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast approval RFQ ke chat: ' . $e->getMessage());
+        }
+    }
+
+    private function broadcastRfqRejectionToChat(Rfq $rfq, User $rejector, ?string $notes, bool $isCancellation = false): void
+    {
+        try {
+            if (!config('app.enable_crm_chat', env('ENABLE_CRM_CHAT', false))) {
+                return;
+            }
+
+            $salesUser = $rfq->sales ?: \App\Models\User::find($rfq->sales_id);
+            if (!$salesUser && $rfq->sales_name) {
+                $salesUser = \App\Models\User::where('name', $rfq->sales_name)->first();
+            }
+
+            if (!$salesUser) {
+                return;
+            }
+
+            $room = \App\Models\ChatRoom::getOrCreateForSales($salesUser);
+
+            if ($isCancellation) {
+                $announcementText = "🚫 Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) telah DITOLAK / DIBATALKAN oleh Leader.";
+            } else {
+                $announcementText = "⚠️ Pengumuman: Penawaran RFQ {$rfq->rfq_number} ({$rfq->customer_name}) dikembalikan oleh Leader ke Admin Purchase untuk revisi harga.";
+            }
+
+            if (!empty($notes)) {
+                $announcementText .= "\nAlasan / Catatan: " . trim($notes);
+            }
+
+            $room->messages()->create([
+                'user_id'      => $rejector->id,
+                'message'      => $announcementText,
+                'message_type' => 'text',
+                'rfq_id'       => $rfq->id,
+            ]);
+
+            \Illuminate\Support\Facades\Cache::forget('chat:unread:' . $salesUser->id);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Gagal broadcast rejection RFQ ke chat: ' . $e->getMessage());
+        }
+    }
+
+    private function redirectAfterReject(Request $request, Rfq $rfq, string $flashType, string $flashMessage)
+    {
+        $referer = (string) $request->header('referer');
+
+        // Jika request datang dari halaman approvals, kembalikan ke approvals
+        if (str_contains($referer, '/approvals')) {
+            return redirect()->route('approvals.index')->with($flashType, $flashMessage);
+        }
+
+        // Jika request datang dari rfq.show atau rfq list, arahkan ke daftar RFQ agar tidak terjebak di halaman yang sama
+        if (str_contains($referer, '/rfqs/') || str_contains($referer, '/rfq')) {
+            return redirect()->route('rfq.index')->with($flashType, $flashMessage);
+        }
+
+        return redirect()->back(fallback: route('rfq.index'))->with($flashType, $flashMessage);
+    }
+}
