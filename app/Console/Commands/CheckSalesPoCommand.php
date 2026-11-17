@@ -78,8 +78,11 @@ class CheckSalesPoCommand extends Command
 
             // 1. Ambil seluruh PO Goal aktual di bulan ini (baik via po_date, created_at, atau approved_at)
             $pos = PurchaseOrder::with(['customer', 'rfq.items'])
-                ->where('sales_id', $sales->id)
-                ->where('status', PurchaseOrder::STATUS_GOAL)
+                ->where(function ($sq) use ($sales) {
+                    $sq->where('sales_id', $sales->id)
+                       ->orWhereHas('rfq', fn($rq) => $rq->where('sales_id', $sales->id));
+                })
+                ->whereIn('status', [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved'])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('po_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
                       ->orWhereBetween('created_at', [$startDate, $endDate])
@@ -87,10 +90,23 @@ class CheckSalesPoCommand extends Command
                 })
                 ->get();
 
+            // 1b. Cek apakah ada PO yang BELUM Goal (Pending / Revisi) yang mungkin dikira sudah approve
+            $pendingPos = PurchaseOrder::with(['customer', 'rfq'])
+                ->where(function ($sq) use ($sales) {
+                    $sq->where('sales_id', $sales->id)
+                       ->orWhereHas('rfq', fn($rq) => $rq->where('sales_id', $sales->id));
+                })
+                ->whereNotIn('status', [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved'])
+                ->where(function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('po_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+                      ->orWhereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->get();
+
             // 2. Ambil seluruh RFQ Goal di bulan ini (berdasarkan updated_at atau rfq_date)
             $rfqsGoal = Rfq::with(['customer', 'items', 'purchaseOrders'])
                 ->where('sales_id', $sales->id)
-                ->where('status', Rfq::STATUS_GOAL)
+                ->whereIn('status', [Rfq::STATUS_GOAL, 'Goal', 'goal', 'GOAL'])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('updated_at', [$startDate, $endDate])
                       ->orWhereBetween('rfq_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
@@ -194,6 +210,20 @@ class CheckSalesPoCommand extends Command
             // Tampilkan tabel rincian transaksi jika ada
             if ($transactions->isEmpty()) {
                 $this->line("  Belum ada transaksi PO Goal di periode ini.");
+                if ($pendingPos->isNotEmpty()) {
+                    $this->warn("  [!] PERHATIAN: Ditemukan {$pendingPos->count()} PO yang BELUM berstatus GOAL / Approved (masih Pending/Draft):");
+                    $pendingRows = [];
+                    foreach ($pendingPos as $p) {
+                        $pendingRows[] = [
+                            \Illuminate\Support\Str::limit($p->customer?->company_name ?? ($p->rfq?->customer_name ?? '-'), 22),
+                            $p->po_number ?: '-',
+                            $p->status,
+                            number_format((float) $p->grand_total, 0, ',', '.'),
+                            $p->po_date ? Carbon::parse($p->po_date)->format('d/m/Y') : $p->created_at->format('d/m/Y'),
+                        ];
+                    }
+                    $this->table(['Pelanggan', 'No PO', 'Status Saat Ini', 'Grand Total', 'Tgl PO'], $pendingRows);
+                }
                 $this->newLine();
             } else {
                 $tableRows = [];
@@ -251,6 +281,22 @@ class CheckSalesPoCommand extends Command
                     $this->info("  │  • SELISIH OMSET                 : Rp 0 (SINKRON)");
                 }
                 $this->line("  └─────────────────────────────────────────────────────────────────");
+
+                if ($pendingPos->isNotEmpty()) {
+                    $this->warn("  [!] PERHATIAN: Ditemukan {$pendingPos->count()} PO yang BELUM berstatus GOAL / Approved (masih Pending/Draft):");
+                    $pendingRows = [];
+                    foreach ($pendingPos as $p) {
+                        $pendingRows[] = [
+                            \Illuminate\Support\Str::limit($p->customer?->company_name ?? ($p->rfq?->customer_name ?? '-'), 22),
+                            $p->po_number ?: '-',
+                            $p->status,
+                            number_format((float) $p->grand_total, 0, ',', '.'),
+                            $p->po_date ? Carbon::parse($p->po_date)->format('d/m/Y') : $p->created_at->format('d/m/Y'),
+                        ];
+                    }
+                    $this->table(['Pelanggan', 'No PO', 'Status Saat Ini', 'Grand Total', 'Tgl PO'], $pendingRows);
+                }
+
                 $this->newLine();
 
                 $grandSummary[] = [
