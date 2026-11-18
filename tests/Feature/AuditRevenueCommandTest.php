@@ -69,7 +69,7 @@ class AuditRevenueCommandTest extends TestCase
         $output = \Illuminate\Support\Facades\Artisan::output();
         
         $this->assertEquals(0, $code);
-        $this->assertStringContainsString('AUDIT TRANSPARANSI GOAL & REVENUE', $output);
+        $this->assertStringContainsString('FULL SYSTEM AUDIT', $output);
         $this->assertStringContainsString('PO-2026-0010', $output);
         $this->assertStringContainsString('42.800.000', $output);
         $this->assertStringContainsString('25.750.000', $output);
