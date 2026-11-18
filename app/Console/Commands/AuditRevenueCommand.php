@@ -230,6 +230,68 @@ class AuditRevenueCommand extends Command
             $salesRows
         );
 
+        // 4. Cek PO yang masih Pending / Revisi (belum Goal)
+        $pendingPos = PurchaseOrder::with(['customer', 'sales', 'rfq.sales'])
+            ->whereNotIn('status', [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved'])
+            ->orderByDesc('id')
+            ->get();
+
+        if ($pendingPos->isNotEmpty()) {
+            $this->newLine();
+            $this->warn("▶ DAFTAR PO YANG MASIH PENDING / BELUM DI-APPROVE JADI GOAL:");
+            $pendRows = [];
+            foreach ($pendingPos as $idx => $ppo) {
+                $sName = $ppo->sales?->name ?? $ppo->rfq?->sales?->name ?? '-';
+                $cName = $ppo->customer?->company_name ?? $ppo->rfq?->customer_name ?? '-';
+                $val   = ((float) $ppo->subtotal > 0) ? (float) $ppo->subtotal : (float) $ppo->grand_total;
+                $pendRows[] = [
+                    $idx + 1,
+                    $sName,
+                    $cName,
+                    $ppo->po_number,
+                    $ppo->rfq?->rfq_number ?? '-',
+                    $ppo->status,
+                    'Rp ' . number_format($val, 0, ',', '.'),
+                ];
+            }
+            $this->table(['No', 'Sales', 'Customer', 'No PO', 'No RFQ', 'Status PO', 'Nilai PO'], $pendRows);
+        }
+
+        // 5. Cek RFQ Bu Ade / Sales yang di Excel sudah PO tapi di CRM masih berstatus Quotation / Approved / Pending PO
+        $unclosedRfqs = Rfq::with(['customer', 'sales', 'items'])
+            ->whereNotIn('status', [Rfq::STATUS_GOAL, Rfq::STATUS_CANCELLED])
+            ->where(function ($q) use ($startDate) {
+                $q->where('rfq_date', '>=', $startDate->copy()->subMonth()->format('Y-m-d'))
+                  ->orWhere('updated_at', '>=', $startDate);
+            })
+            ->orderByDesc('updated_at')
+            ->get();
+
+        if ($unclosedRfqs->isNotEmpty()) {
+            $this->newLine();
+            $this->warn("▶ DAFTAR RFQ AKTIF YANG BELUM JADI PO GOAL (CEK JIKA ADA PO EXCEL YANG BELUM DI-UPLOAD SALES):");
+            $unclosedRows = [];
+            $uNo = 1;
+            foreach ($unclosedRfqs as $urfq) {
+                $val = (float) $urfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                if ($val <= 0) {
+                    continue;
+                }
+                $unclosedRows[] = [
+                    $uNo++,
+                    mb_strimwidth($urfq->sales?->name ?? $urfq->sales_name ?? '-', 0, 14, '..'),
+                    mb_strimwidth($urfq->customer?->company_name ?? $urfq->customer_name ?? '-', 0, 24, '..'),
+                    $urfq->rfq_number,
+                    $urfq->rfq_date ? $urfq->rfq_date->format('d/m/Y') : '-',
+                    $urfq->status,
+                    'Rp ' . number_format($val, 0, ',', '.'),
+                ];
+            }
+            if (!empty($unclosedRows)) {
+                $this->table(['No', 'Sales', 'Customer', 'No RFQ', 'Tgl RFQ', 'Status di CRM', 'Nilai Penawaran'], $unclosedRows);
+            }
+        }
+
         $this->newLine();
         $this->info("✓ KESIMPULAN AUDIT:");
         $this->line("  1. Dashboard sekarang sudah 100% SINKRON dengan PO fisik yang sah diapprove.");
