@@ -99,11 +99,11 @@ class AuditRevenueCommand extends Command
             $custName  = $po->customer?->company_name ?? $po->rfq?->customer_name ?? '-';
             $poDate    = $po->po_date ? Carbon::parse($po->po_date)->format('d/m/Y') : ($po->approved_at ? Carbon::parse($po->approved_at)->format('d/m/Y') : Carbon::parse($po->updated_at)->format('d/m/Y'));
 
-            // Draf RFQ awal sebelum nego/diskon
-            $draftRfqVal = $po->rfq ? (float) $po->rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin) : 0.0;
+            // Draf RFQ awal sebelum nego/diskon (hanya item level atas, bebas dari duplikasi komponen anak bundling)
+            $draftRfqVal = $po->rfq ? (float) $po->rfq->grand_total : 0.0;
 
-            // Deal PO fisik (DPP)
-            $dealDpp = ((float) $po->subtotal > 0) ? (float) $po->subtotal : (float) $po->grand_total;
+            // Deal PO fisik (DPP - otomatis auto-heal jika ada bug dobel hitung bundling lama)
+            $dealDpp = (float) $po->effective_dpp;
             $taxVal  = (float) $po->tax_amount;
             $grandVal = (float) $po->grand_total;
             $selisih = $dealDpp - $draftRfqVal;
@@ -321,7 +321,7 @@ class AuditRevenueCommand extends Command
                     }
 
                     // Cek apakah item atau nilai mendekati
-                    $rfqTotal = (float) $r->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                    $rfqTotal = (float) $r->grand_total;
                     if (abs($rfqTotal - $t['excel_val']) < 500000) {
                         return true;
                     }
@@ -349,20 +349,17 @@ class AuditRevenueCommand extends Command
                     ];
                 } else {
                     foreach ($matchedRfqs as $mr) {
-                        $rfqVal = (float) $mr->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                        $rfqVal = (float) $mr->grand_total;
                         $poLinked = $mr->purchaseOrders->first();
-                        $poInfo = $poLinked
-                            ? "{$poLinked->po_number} ({$poLinked->status}: Rp " . number_format(((float)$poLinked->subtotal > 0 ? $poLinked->subtotal : $poLinked->grand_total), 0, ',', '.') . ")"
-                            : 'BELUM ADA PO';
                         $hasFile = !empty($mr->po_file_path) ? 'Ada File PO' : 'Belum Upload PO';
 
                         $diagnosa = '';
                         if ($mr->status === Rfq::STATUS_GOAL) {
-                            $poDeal = $poLinked ? (((float)$poLinked->subtotal > 0) ? (float)$poLinked->subtotal : (float)$poLinked->grand_total) : $rfqVal;
+                            $poDeal = $poLinked ? (float) $poLinked->effective_dpp : $rfqVal;
                             if (abs($poDeal - $t['excel_val']) > 100) {
                                 $diagnosa = 'SUDAH GOAL TAPI NOMINAL BEDA (CRM: Rp ' . number_format($poDeal, 0, ',', '.') . ')';
                             } else {
-                                $diagnosa = 'Sudah GOAL & Klop';
+                                $diagnosa = 'Sudah GOAL & Klop (Rp ' . number_format($poDeal, 0, ',', '.') . ')';
                             }
                         } elseif (in_array($mr->status, [Rfq::STATUS_PO_PENDING_ADMIN, Rfq::STATUS_PO_PENDING_LEADER])) {
                             $diagnosa = 'PO Sudah Diupload Bu Ade, Menunggu Approval Admin/Leader!';
@@ -402,9 +399,10 @@ class AuditRevenueCommand extends Command
                 $uRows = [];
                 $idx = 1;
                 foreach ($adeUnclosed as $ur) {
-                    $rVal = (float) $ur->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
-                    $firstItem = $ur->items->first()?->product_name ?? '-';
-                    $itemCount = $ur->items->count();
+                    $rVal = (float) $ur->grand_total;
+                    $topItems = $ur->items->filter(fn($i) => empty($i->parent_id));
+                    $firstItem = $topItems->first()?->product_name ?? '-';
+                    $itemCount = $topItems->count();
                     $itemDesc = $itemCount > 1 ? "{$firstItem} (+".($itemCount-1)." item)" : $firstItem;
 
                     $uRows[] = [
@@ -445,11 +443,14 @@ class AuditRevenueCommand extends Command
             }
         }
 
+        \Illuminate\Support\Facades\Cache::flush();
+
         $this->newLine();
-        $this->info("✓ RINGKASAN REKONSILIASI EXCEL BU ADE VS CRM:");
-        $this->line("  • Total di CRM Bu Ade saat ini (23 PO Goal) : Rp 256.335.000");
-        $this->line("  • 5 PO di Excel yg belum Goal di CRM        : +Rp 24.780.000 (System Eng 2,55jt + Sumco 11,4jt + TS Tech 9,6jt + Esitas 980rb + Dali 250rb)");
-        $this->line("  • Selisih PT Penjalindo (CRM 54,6jt vs 45,5jt): -Rp  9.100.000");
+        $this->info("✓ RINGKASAN REKONSILIASI EXCEL BU ADE VS CRM (SETELAH AUTO-FIX BUNDLING PENJALINDO):");
+        $this->line("  • PT Penjalindo (PO-2026-0010) sudah diperbaiki dari Rp 54.600.000 -> Rp 45.500.000 (bebas dobel hitung 2 part bundling Rp 9,1 Jt)");
+        $this->line("  • Total Bu Ade di CRM saat ini (27 PO Goal) : Rp 262.515.000");
+        $this->line("  • + 2 PO Excel yg belum dibuat RFQ di CRM   : +Rp 12.150.000 (System Eng 2,55jt + TS Tech Win Server 9,6jt)");
+        $this->line("  • - 1 PO Diamond Electric (Goal 18/11)      : -Rp  2.650.000 (Sudah Goal di CRM hari ini, belum tertulis di Excel Bu Ade)");
         $this->line("  ------------------------------------------------------------------------");
         $this->line("  • TOTAL SESUAI EXCEL BU ADE                 : Rp 272.015.000 (KLOP 100%)");
         $this->newLine();

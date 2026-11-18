@@ -358,7 +358,7 @@
                                 <span class="font-medium text-slate-500">{{ $order->updated_at ? $order->updated_at->format('d M Y') : '' }}</span>
                             </div>
                             <div class="flex justify-end items-end">
-                                <span class="text-xs font-bold" style="color: var(--accent-blue);">Rp{{ number_format($order->grand_total/1000000, 1, ',', '.') }}Jt</span>
+                                <span class="text-xs font-bold" style="color: var(--accent-blue);">Rp{{ number_format($order->deal_total/1000000, 1, ',', '.') }}Jt</span>
                             </div>
                         </div>
                     @empty

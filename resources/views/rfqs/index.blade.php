@@ -178,7 +178,7 @@
                             <p class="font-medium" style="color: var(--text-primary);">{{ $rfq->customer_name }}</p>
                         </td>
                         <td style="color: var(--text-secondary);">{{ $rfq->sales_name }}</td>
-                        <td style="color: var(--text-secondary);">{{ $rfq->items->count() }} item</td>
+                        <td style="color: var(--text-secondary);">{{ $rfq->items->filter(fn($it) => empty($it->parent_id))->count() }} item</td>
                         <td>
                             @php
                                 $badgeClass = match($rfq->status) {

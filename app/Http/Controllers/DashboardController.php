@@ -137,7 +137,7 @@ class DashboardController extends Controller
 
         // Revenue pada periode terpilih (cached 60s)
         $revenueThisMonth = Cache::remember("dash:rev:{$userId}:{$filterKey}", 60, function () use ($userId, $startDate, $endDate) {
-            $pos = PurchaseOrder::with('rfq')
+            $pos = PurchaseOrder::with('rfq.items')
                 ->where(function ($sq) use ($userId) {
                     $sq->where('sales_id', $userId)
                        ->orWhereHas('rfq', fn($rq) => $rq->where('sales_id', $userId));
@@ -163,11 +163,11 @@ class DashboardController extends Controller
                 ->get();
 
             $totalPo = $pos->sum(function ($po) {
-                return ((float) $po->subtotal > 0) ? (float) $po->subtotal : (float) $po->grand_total;
+                return (float) $po->effective_dpp;
             });
 
             $totalStandalone = $standaloneRfqs->sum(function ($rfq) {
-                return $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                return (float) $rfq->grand_total;
             });
 
             return (float) ($totalPo + $totalStandalone);
@@ -237,7 +237,7 @@ class DashboardController extends Controller
             $startDate6m = now()->subMonths(5)->startOfMonth();
 
             // 1. PO GOAL sales dalam 6 bulan terakhir
-            $pos = PurchaseOrder::with('rfq')
+            $pos = PurchaseOrder::with('rfq.items')
                 ->where(function ($sq) use ($userId) {
                     $sq->where('sales_id', $userId)
                        ->orWhereHas('rfq', fn($rq) => $rq->where('sales_id', $userId));
@@ -301,11 +301,11 @@ class DashboardController extends Controller
                 $penawaranGroup = $groupedPenawaran->get($monthKey, collect());
 
                 $totalGoalPo = $poGroup->sum(function ($p) {
-                    return ((float) $p->subtotal > 0) ? (float) $p->subtotal : (float) $p->grand_total;
+                    return (float) $p->effective_dpp;
                 });
 
                 $totalGoalStandalone = $standaloneGroup->sum(function ($r) {
-                    return $r->items->sum(fn($item) => (float) $item->qty * (float) $item->price_after_margin);
+                    return (float) $r->grand_total;
                 });
 
                 $totalGoal = (float) ($totalGoalPo + $totalGoalStandalone);
@@ -557,7 +557,7 @@ class DashboardController extends Controller
         });
 
         $totalRfqItems = Cache::remember('dash:admin:total_rfq_items', 60, function () {
-            return \App\Models\RfqItem::count();
+            return \App\Models\RfqItem::whereNull('parent_id')->count();
         });
 
         $actionQueueSummary = Cache::remember('dash:admin:action_queue', 60, function () use ($now) {
@@ -619,7 +619,7 @@ class DashboardController extends Controller
 
         // Revenue pada periode terpilih
         $revenueThisMonth = Cache::remember("dash:admin:rev:{$filterKey}", 60, function () use ($startDate, $endDate) {
-            $pos = PurchaseOrder::with('rfq')
+            $pos = PurchaseOrder::with('rfq.items')
                 ->whereIn('status', [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved'])
                 ->where(function ($q) use ($startDate, $endDate) {
                     $q->whereBetween('po_date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
@@ -640,11 +640,11 @@ class DashboardController extends Controller
                 ->get();
 
             $totalPo = $pos->sum(function ($po) {
-                return ((float) $po->subtotal > 0) ? (float) $po->subtotal : (float) $po->grand_total;
+                return (float) $po->effective_dpp;
             });
 
             $totalStandalone = $standaloneRfqs->sum(function ($rfq) {
-                return $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                return (float) $rfq->grand_total;
             });
 
             return (float) ($totalPo + $totalStandalone);
@@ -652,7 +652,7 @@ class DashboardController extends Controller
 
         // Revenue chart 6 bulan
         $monthlyRevenue = Cache::remember('dash:admin:chart', 300, function () {
-            $pos = PurchaseOrder::with('rfq')
+            $pos = PurchaseOrder::with('rfq.items')
                 ->whereIn('status', [PurchaseOrder::STATUS_GOAL, 'Goal', 'goal', 'Approved', 'approved'])
                 ->where('po_date', '>=', now()->subMonths(5)->startOfMonth()->format('Y-m-d'))
                 ->get();
@@ -681,11 +681,11 @@ class DashboardController extends Controller
                 $rfqGroup = $groupedRfq->get($monthKey, collect());
 
                 $totalPo = $poGroup->sum(function ($p) {
-                    return ((float) $p->subtotal > 0) ? (float) $p->subtotal : (float) $p->grand_total;
+                    return (float) $p->effective_dpp;
                 });
 
                 $totalRfq = $rfqGroup->sum(function ($r) {
-                    return $r->items->sum(fn($item) => (float) $item->qty * (float) $item->price_after_margin);
+                    return (float) $r->grand_total;
                 });
 
                 $chartData->push((object)[
@@ -711,7 +711,7 @@ class DashboardController extends Controller
                 }])
                 ->get()
                 ->map(function ($s) use ($startDate, $endDate) {
-                    $pos = PurchaseOrder::with('rfq')
+                    $pos = PurchaseOrder::with('rfq.items')
                         ->where(function ($sq) use ($s) {
                             $sq->where('sales_id', $s->id)
                                ->orWhereHas('rfq', fn($rq) => $rq->where('sales_id', $s->id));
@@ -737,11 +737,11 @@ class DashboardController extends Controller
                         ->get();
 
                     $totalPo = $pos->sum(function ($po) {
-                        return ((float) $po->subtotal > 0) ? (float) $po->subtotal : (float) $po->grand_total;
+                        return (float) $po->effective_dpp;
                     });
 
                     $totalStandalone = $standaloneRfqs->sum(function ($rfq) {
-                        return $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                        return (float) $rfq->grand_total;
                     });
 
                     $achieved = (float) ($totalPo + $totalStandalone);

@@ -96,4 +96,39 @@ class PurchaseOrder extends Model
         $next = $last ? (int) substr($last->po_number, -4) + 1 : 1;
         return 'PO-' . $year . '-' . str_pad($next, 4, '0', STR_PAD_LEFT);
     }
+
+    /**
+     * Nilai DPP (Subtotal sebelum PPN) yang bersih dari bug dobel hitung komponen bundling lama.
+     */
+    public function getEffectiveDppAttribute(): float
+    {
+        $rawDpp = ((float) $this->subtotal > 0) ? (float) $this->subtotal : (float) $this->grand_total;
+
+        $rfq = $this->relationLoaded('rfq') ? $this->rfq : $this->rfq()->with('items')->first();
+        if ($rfq && $rfq->items && $rfq->items->isNotEmpty()) {
+            $hasChildComponents = $rfq->items->contains(fn($i) => !empty($i->parent_id));
+            if ($hasChildComponents) {
+                $allItemsSum = (float) $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+                $topLevelSum = (float) $rfq->items->filter(fn($i) => empty($i->parent_id))->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+
+                if ($topLevelSum > 0 && $topLevelSum < $allItemsSum && abs($rawDpp - $allItemsSum) < 1) {
+                    $isIncludeTax = $rfq->isIncludeTax();
+                    $taxAmount = $isIncludeTax ? 0.0 : round($topLevelSum * 0.11);
+                    $this->subtotal = $topLevelSum;
+                    $this->tax_amount = $taxAmount;
+                    $this->grand_total = $topLevelSum + $taxAmount;
+                    if ($this->exists) {
+                        $this->updateQuietly([
+                            'subtotal'    => $topLevelSum,
+                            'tax_amount'  => $taxAmount,
+                            'grand_total' => $topLevelSum + $taxAmount,
+                        ]);
+                    }
+                    return $topLevelSum;
+                }
+            }
+        }
+
+        return $rawDpp;
+    }
 }

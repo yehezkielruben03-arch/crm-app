@@ -1388,7 +1388,7 @@
                                 </thead>
                                 <tbody class="divide-y divide-slate-100">
                                     @if(is_array($history->history_data))
-                                        @foreach($history->history_data as $hItem)
+                                        @foreach(collect($history->history_data)->filter(fn($h) => empty($h['parent_id'])) as $hItem)
                                         <tr>
                                             <td class="px-3 py-2 font-semibold text-slate-800">{{ $hItem['product_name'] ?? '-' }}</td>
                                             <td class="px-3 py-2 text-center text-slate-600 font-medium">{{ (int)($hItem['qty'] ?? 1) }} {{ $hItem['unit'] ?? '' }}</td>

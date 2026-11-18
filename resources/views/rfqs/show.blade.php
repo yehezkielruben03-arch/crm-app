@@ -705,10 +705,13 @@
 
             {{-- Item RFQ --}}
             <div class="card p-0 overflow-hidden animate-in" style="animation-delay: 0.15s;">
+                @php
+                    $topLevelItems = $rfq->items->filter(fn($it) => empty($it->parent_id));
+                @endphp
                 <div class="flex items-center justify-between px-6 py-4" style="border-bottom: 1px solid #e2e8f0;">
                     <div>
                         <h2 class="text-sm font-semibold" style="color: var(--text-secondary);">Detail Item</h2>
-                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $rfq->items->count() }} item &mdash; {{ $rfq->type }}</p>
+                        <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ $topLevelItems->count() }} item &mdash; {{ $rfq->type }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         @if((auth()->user()->isAdminOrAbove() || auth()->user()->isLeader()) && !in_array($rfq->status, [\App\Models\Rfq::STATUS_GOAL, \App\Models\Rfq::STATUS_PO_PENDING_ADMIN, \App\Models\Rfq::STATUS_PO_PENDING_LEADER]))
@@ -721,7 +724,7 @@
                         </a>
                         @endif
                         <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background: rgba(37,99,235,0.08); color: var(--accent-blue); border: 1px solid rgba(37,99,235,0.15);">
-                            {{ $rfq->items->count() }} Item
+                            {{ $topLevelItems->count() }} Item
                         </span>
                     </div>
                 </div>
@@ -1159,7 +1162,7 @@
                                     </thead>
                                     <tbody class="divide-y divide-slate-100 text-[11px]">
                                         @if(is_array($history->history_data))
-                                            @foreach($history->history_data as $hItem)
+                                            @foreach(collect($history->history_data)->filter(fn($h) => empty($h['parent_id'])) as $hItem)
                                             @php
                                                 $hHpp = (float)($hItem['hpp'] ?? 0);
                                                 $hPrice = (float)($hItem['price_after_margin'] ?? 0);
@@ -1230,11 +1233,11 @@
                     </div>
                     <div class="flex justify-between text-sm">
                         <span style="color: var(--text-muted);">Total Item</span>
-                        <span style="color: var(--text-secondary);">{{ $rfq->items->count() }} Produk</span>
+                        <span style="color: var(--text-secondary);">{{ $topLevelItems->count() }} Produk</span>
                     </div>
                     <div class="flex justify-between text-sm">
                         <span style="color: var(--text-muted);">Total Kuantitas</span>
-                        <span style="color: var(--text-secondary);">{{ number_format($rfq->items->sum('qty'), 0, ',', '.') }} Unit</span>
+                        <span style="color: var(--text-secondary);">{{ number_format($topLevelItems->sum('qty'), 0, ',', '.') }} Unit</span>
                     </div>
                     @if(isset($priceHistories) && $priceHistories->count() > 0)
                     <div class="flex justify-between text-sm items-center">

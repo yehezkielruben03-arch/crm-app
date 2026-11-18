@@ -58,10 +58,10 @@
                             {{ $rfq->need_date ? \Carbon\Carbon::parse($rfq->need_date)->format('d M Y') : '-' }}
                         </td>
                         <td class="px-6 py-4">
-                            {{ number_format($rfq->items->sum('qty'), 0, ',', '.') }}
+                            {{ number_format($rfq->items->filter(fn($item) => empty($item->parent_id))->sum('qty'), 0, ',', '.') }}
                         </td>
                         <td class="px-6 py-4 font-semibold" style="color: var(--accent-emerald);">
-                            Rp {{ number_format($rfq->items->sum(function($item) { return $item->price_after_margin * $item->qty; }), 0, ',', '.') }}
+                            Rp {{ number_format($rfq->deal_total, 0, ',', '.') }}
                         </td>
                         <td class="px-6 py-4 text-right">
                             <a href="{{ route('rfq.show', $rfq) }}"
