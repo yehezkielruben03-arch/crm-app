@@ -687,7 +687,14 @@ class RfqController extends Controller
             }
 
             if (!empty($keptItemIds)) {
-                $rfq->items()->whereNotIn('id', $keptItemIds)->delete();
+                $rfq->items()
+                    ->where(function ($q) use ($keptItemIds) {
+                        $q->whereNull('parent_id')->whereNotIn('id', $keptItemIds);
+                    })
+                    ->orWhere(function ($q) use ($keptItemIds) {
+                        $q->whereNotNull('parent_id')->whereNotIn('parent_id', $keptItemIds);
+                    })
+                    ->delete();
             } else {
                 $rfq->items()->delete();
             }
@@ -1181,6 +1188,10 @@ class RfqController extends Controller
                     if (!empty($activeCompIds)) {
                         $item->hpp = $bundleCostTotal;
                         $item->price_after_margin = $bundleSellingTotal;
+                        $effectiveMargin = $bundleCostTotal > 0 ? round((($bundleSellingTotal - $bundleCostTotal) / $bundleCostTotal) * 100, 2) : 0;
+                        $item->margin_type = 'percentage';
+                        $item->margin_value = $effectiveMargin;
+                        $item->margin = $effectiveMargin;
                         $item->save();
                     }
                 } else {
@@ -1788,6 +1799,10 @@ class RfqController extends Controller
                     if ($comps->isNotEmpty()) {
                         $item->hpp = $bundleCostTotal;
                         $item->price_after_margin = $bundleSellingTotal;
+                        $effectiveMargin = $bundleCostTotal > 0 ? round((($bundleSellingTotal - $bundleCostTotal) / $bundleCostTotal) * 100, 2) : 0;
+                        $item->margin_type = 'percentage';
+                        $item->margin_value = $effectiveMargin;
+                        $item->margin = $effectiveMargin;
                     }
                 }
 
@@ -1871,7 +1886,10 @@ class RfqController extends Controller
 
         \Illuminate\Support\Facades\DB::transaction(function () use ($request, $rfq) {
             if ($request->has('deleted_items')) {
-                $rfq->items()->whereIn('id', $request->deleted_items)->delete();
+                $rfq->items()->where(function ($q) use ($request) {
+                    $q->whereIn('id', $request->deleted_items)
+                      ->orWhereIn('parent_id', $request->deleted_items);
+                })->delete();
             }
 
             if ($request->has('items')) {

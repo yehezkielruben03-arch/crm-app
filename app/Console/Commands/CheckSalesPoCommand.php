@@ -153,7 +153,8 @@ class CheckSalesPoCommand extends Command
                     }
                 }
 
-                $rfqItemSum = $rfq ? $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin) : 0;
+                $rfqItemSum = $rfq ? (float) $rfq->grand_total : 0;
+                $effectiveDpp = (float) $po->effective_dpp;
 
                 $transactions->put("po_{$po->id}", [
                     'source'           => 'PO',
@@ -163,7 +164,7 @@ class CheckSalesPoCommand extends Command
                     'customer'         => $po->customer?->company_name ?? ($rfq?->customer_name ?? '-'),
                     'rfq_date'         => $rfqDate ? $rfqDate->format('d/m/Y') : '-',
                     'po_date'          => $poDate->format('d/m/Y'),
-                    'subtotal'         => (float) $po->subtotal,
+                    'subtotal'         => $effectiveDpp,
                     'tax_amount'       => (float) $po->tax_amount,
                     'grand_total'      => (float) $po->grand_total,
                     'rfq_item_sum'     => (float) $rfqItemSum,

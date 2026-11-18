@@ -120,7 +120,7 @@ class CheckRfqRevisionsCommand extends Command
             $poDate = $po && $po->po_date ? Carbon::parse($po->po_date)->format('d/m/Y') : ($po ? $po->created_at->format('d/m/Y') : '-');
             $poApprovedAt = $po && $po->approved_at ? Carbon::parse($po->approved_at)->format('d/m/Y H:i') : '-';
             $poNumber = $po?->po_number ?: '-';
-            $poSubtotal = $po ? (float) $po->subtotal : 0;
+            $poSubtotal = $po ? (float) $po->effective_dpp : 0;
             $poGrandTotal = $po ? (float) $po->grand_total : 0;
 
             // Cek apakah PO terbit setelah masa berlaku 3 hari habis
@@ -133,7 +133,7 @@ class CheckRfqRevisionsCommand extends Command
             $versionCount = $histories->count();
 
             // Total RFQ Items saat ini (draf di database)
-            $currentRfqDpp = (float) $rfq->items->sum(fn($i) => (float) $i->qty * (float) $i->price_after_margin);
+            $currentRfqDpp = (float) $rfq->grand_total;
 
             $this->line("==================================================================================");
             $this->info("[$no] RFQ: {$rfq->rfq_number} | Pelanggan: {$customerName} | Sales: {$salesName}");
@@ -171,8 +171,9 @@ class CheckRfqRevisionsCommand extends Command
                     $vTotal = 0;
                     $itemCount = 0;
                     if (is_array($h->history_data)) {
-                        $itemCount = count($h->history_data);
-                        foreach ($h->history_data as $hItem) {
+                        $topHistoryItems = collect($h->history_data)->filter(fn($hi) => empty($hi['parent_id']));
+                        $itemCount = $topHistoryItems->count();
+                        foreach ($topHistoryItems as $hItem) {
                             $qty = (float) ($hItem['qty'] ?? 0);
                             $price = (float) ($hItem['price_after_margin'] ?? ($hItem['unit_price'] ?? 0));
                             $vTotal += ($qty * $price);

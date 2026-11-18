@@ -397,7 +397,7 @@
 
     <script>
         const RAW_CUSTOMERS = @json($customers);
-        const OLD_ITEMS = @json($rfq->items);
+        const OLD_ITEMS = @json($rfq->items->filter(fn($i) => empty($i->parent_id))->values());
         
         function customerSelect() {
             return {

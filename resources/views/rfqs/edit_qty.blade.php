@@ -59,7 +59,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y" id="items-table-body" style="border-color: var(--border-color);">
-                        @foreach($rfq->items as $idx => $item)
+                        @foreach($rfq->items->filter(fn($i) => empty($i->parent_id))->values() as $idx => $item)
                         <tr class="transition-colors hover:bg-slate-50/50 existing-item-row" id="existing-row-{{ $item->id }}">
                             <input type="hidden" name="items[{{ $idx }}][id]" value="{{ $item->id }}">
                             

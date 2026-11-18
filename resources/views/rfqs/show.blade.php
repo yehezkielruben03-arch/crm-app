@@ -857,10 +857,19 @@
                                                 </div>
                                                 
                                                 <div class="text-[10px] text-slate-400">
-                                                    @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
-                                                        Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                    @if($item->isBundle() && $item->components->isNotEmpty())
+                                                        @php
+                                                            $bCost = (float) $item->bundle_total_cost;
+                                                            $bSell = (float) $item->bundle_selling_price;
+                                                            $bPct  = $bCost > 0 ? round((($bSell - $bCost) / $bCost) * 100, 1) : 0;
+                                                        @endphp
+                                                        Margin Paket: <strong class="text-slate-600">{{ rtrim(rtrim(number_format($bPct, 1, '.', ''), '0'), '.') }}%</strong> (Rp {{ number_format($bSell - $bCost, 0, ',', '.') }})
+                                                    @else
+                                                        @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
+                                                            Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                        @endif
+                                                        Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
                                                     @endif
-                                                    Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
                                                 </div>
 
                                                 <div class="pt-0.5 border-t border-slate-100">
@@ -1005,10 +1014,19 @@
                                             </div>
                                             
                                             <div class="text-[10px] text-slate-400">
-                                                @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
-                                                    Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                @if($item->isBundle() && $item->components->isNotEmpty())
+                                                    @php
+                                                        $bCost = (float) $item->bundle_total_cost;
+                                                        $bSell = (float) $item->bundle_selling_price;
+                                                        $bPct  = $bCost > 0 ? round((($bSell - $bCost) / $bCost) * 100, 1) : 0;
+                                                    @endphp
+                                                    Margin Paket: <strong class="text-slate-600">{{ rtrim(rtrim(number_format($bPct, 1, '.', ''), '0'), '.') }}%</strong> (Rp {{ number_format($bSell - $bCost, 0, ',', '.') }})
+                                                @else
+                                                    @if($item->biaya_kirim > 0 || $item->ongkir_pedia > 0)
+                                                        Ongkir: Rp {{ number_format($item->biaya_kirim + $item->ongkir_pedia, 0, ',', '.') }} •
+                                                    @endif
+                                                    Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
                                                 @endif
-                                                Margin: <strong class="text-slate-600">{{ ($item->margin_type ?? 'percentage') === 'nominal' ? 'Rp ' . number_format($item->margin_value ?: $item->margin, 0, ',', '.') : rtrim(rtrim(number_format((float) ($item->margin_value ?: $item->margin), 2, '.', ''), '0'), '.') . '%' }}</strong>
                                             </div>
 
                                             <div class="pt-0.5 border-t border-slate-100">

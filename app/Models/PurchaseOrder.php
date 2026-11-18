@@ -123,6 +123,19 @@ class PurchaseOrder extends Model
                             'tax_amount'  => $taxAmount,
                             'grand_total' => $topLevelSum + $taxAmount,
                         ]);
+
+                        $topLevelItems = $rfq->items->filter(fn($i) => empty($i->parent_id));
+                        if ($this->items()->count() > $topLevelItems->count()) {
+                            $this->items()->delete();
+                            foreach ($topLevelItems as $tItem) {
+                                $this->items()->create([
+                                    'item_name'  => $tItem->product_name,
+                                    'quantity'   => (int) max(1, round((float) $tItem->qty)),
+                                    'unit_price' => (float) $tItem->price_after_margin,
+                                    'subtotal'   => (float) $tItem->qty * (float) $tItem->price_after_margin,
+                                ]);
+                            }
+                        }
                     }
                     return $topLevelSum;
                 }
