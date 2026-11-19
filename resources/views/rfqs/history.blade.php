@@ -5,6 +5,9 @@
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">History Penjualan</h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Daftar Quotation yang sudah deal (GOAL)</p>
         </div>
+        <div class="flex items-center gap-2">
+            <x-po-export-modal />
+        </div>
     </div>
 
     <!-- Search / Filter -->

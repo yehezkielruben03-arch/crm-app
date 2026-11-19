@@ -1,8 +1,13 @@
 <x-app-layout>
 
-    <div class="mb-6 animate-in" style="animation-delay: 0.05s;">
-        <h1 class="text-xl font-bold" style="color: var(--text-primary);">Analytics & Laporan</h1>
-        <p class="text-sm mt-0.5" style="color: var(--text-muted);">Ringkasan performa bisnis dan pencapaian tim Sales Marketing</p>
+    <div class="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between animate-in" style="animation-delay: 0.05s;">
+        <div>
+            <h1 class="text-xl font-bold" style="color: var(--text-primary);">Analytics & Laporan</h1>
+            <p class="text-sm mt-0.5" style="color: var(--text-muted);">Ringkasan performa bisnis dan pencapaian tim Sales Marketing</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <x-po-export-modal />
+        </div>
     </div>
 
     {{-- ── ROW 1: Stat Cards ── --}}

@@ -2,15 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\MonthlyPoExport;
 use App\Models\PurchaseOrder;
 use App\Models\Customer;
 use App\Models\Notification;
 use App\Models\Rfq;
 use App\Models\User;
+use App\Services\MonthlyPoReportService;
 use App\Services\PdfItemParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Maatwebsite\Excel\Facades\Excel;
 
 class PurchaseOrderController extends Controller
 {
@@ -45,6 +49,57 @@ class PurchaseOrderController extends Controller
         $purchaseOrders = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
 
         return view('purchase-orders.index', compact('purchaseOrders'));
+    }
+
+    public function exportMonthly(Request $request, MonthlyPoReportService $reportService)
+    {
+        $user = auth()->user();
+        abort_if(!$user || (!$user->isSales() && !$user->isAdminOrAbove()), 403, 'Anda tidak memiliki akses untuk export laporan PO.');
+
+        $validated = $request->validate([
+            'month'    => 'nullable|integer|min:1|max:12',
+            'year'     => 'nullable|integer|min:2020|max:2100',
+            'sales_id' => 'nullable|integer|exists:users,id',
+        ]);
+
+        $month = (int) ($validated['month'] ?? now()->month);
+        $year  = (int) ($validated['year'] ?? now()->year);
+
+        if (!$user->isAdminOrAbove()) {
+            // Anti-IDOR: role Sales hanya boleh mengekspor data PO miliknya sendiri
+            $targetSalesId = (int) $user->id;
+            $multiSheetBySales = false;
+            $singleSalesName = $user->name;
+        } elseif (!empty($validated['sales_id'])) {
+            $targetSales = User::withTrashed()->findOrFail((int) $validated['sales_id']);
+            $targetSalesId = (int) $targetSales->id;
+            $multiSheetBySales = false;
+            $singleSalesName = $targetSales->name;
+        } else {
+            $targetSalesId = null;
+            $multiSheetBySales = true;
+            $singleSalesName = null;
+        }
+
+        $rows = $reportService->getMonthlyRows($month, $year, $targetSalesId);
+
+        $monthName = MonthlyPoReportService::monthName($month);
+        $scopeSlug = $multiSheetBySales
+            ? 'Semua-Sales'
+            : (Str::slug($singleSalesName ?: 'Sales') ?: 'Sales');
+        $filename = "Laporan-PO-{$monthName}-{$year}-{$scopeSlug}.xlsx";
+
+        return Excel::download(
+            new MonthlyPoExport(
+                month: $month,
+                year: $year,
+                rows: $rows,
+                multiSheetBySales: $multiSheetBySales,
+                singleSalesName: $singleSalesName,
+                reportService: $reportService,
+            ),
+            $filename
+        );
     }
 
     public function create(Request $request)

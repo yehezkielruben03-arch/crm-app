@@ -108,6 +108,9 @@ Route::middleware('auth')->group(function () {
 
         // PO Routes
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index'])->name('po.index');
+        Route::get('/purchase-orders/export', [PurchaseOrderController::class, 'exportMonthly'])
+            ->middleware('role:Sales,Sales Marketing,Admin,Admin Purchase,Leader,Super Admin')
+            ->name('po.export');
         Route::get('/purchase-orders/create', [PurchaseOrderController::class, 'create'])->name('po.create');
         Route::post('/purchase-orders', [PurchaseOrderController::class, 'store'])->name('po.store');
         Route::get('/purchase-orders/{po}', [PurchaseOrderController::class, 'show'])->name('po.show');
